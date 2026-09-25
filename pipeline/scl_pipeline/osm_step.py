@@ -176,7 +176,8 @@ def run() -> dict[str, Any]:
             "osm_latest_object_timestamp": last_ts,
             "bbox": list(config.OSM_BBOX),
             "bbox_pbf_sha256": sha256_file(OSM_CACHE / BBOX_PBF),
-            "osmium": f"{osmium_image()} (debian bookworm osmium-tool, pipeline/osrm/Dockerfile.osmium)",
+            # 로컬 이미지 이름(SCL_OSMIUM_IMAGE)은 PC마다 다를 수 있어 산출물에 넣지 않는다.
+            "osmium": "debian bookworm osmium-tool (pipeline/osrm/Dockerfile.osmium)",
             "commands": [
                 f"osmium extract -b {b} chungcheong.osm.pbf -o {BBOX_PBF}",
                 f"osmium tags-filter {BBOX_PBF} {' '.join(filters)}",

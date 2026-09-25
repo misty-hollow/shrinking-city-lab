@@ -134,7 +134,9 @@ def _table(
         f"{root}/table/v1/driving/{coords}"
         f"?sources={';'.join(map(str, range(ns)))}"
         f"&destinations={';'.join(map(str, range(ns, len(pts))))}"
-        "&annotations=duration,distance"
+        # duration만 받는다. MLD /table의 distance는 osrm-partition 결과(그래프를 만들 때마다 다르다)에 따라
+        # 0.1 m씩 흔들리고 계산에 쓰지 않는다. duration(0.1초 정수 합)은 분할과 무관하게 같다.
+        "&annotations=duration"
     )
     if hints:
         url += "&hints=" + ";".join(hints)
@@ -260,7 +262,7 @@ def run() -> dict[str, Any]:
         # OSRM 출력은 소수 6자리 반올림이라 1e-6°(약 0.1 m) 흔들린다. 0.5 m 안이면 같은 접근점이다.
         if _meters(*w["location"], *c.location) > 0.5:
             raise SystemExit(f"/table이 고른 접근점을 지키지 않았다: {c.location} → {w['location']}")
-    dur, dist = res["durations"], res["distances"]
+    dur = res["durations"]
     if any(d is None for row in dur for d in row):
         raise SystemExit("도달 불가 쌍이 있다(null duration)")
     ref, v = osrm_image()
@@ -290,7 +292,7 @@ def run() -> dict[str, Any]:
             "access_rule": access.ACCESS_RULE,
             "call": (
                 "GET /table/v1/driving sources=161 법정리 접근점 destinations=10 보건지소 접근점 "
-                "hints=접근점 구간 annotations=duration,distance (exclude 없음)"
+                "hints=접근점 구간 annotations=duration (exclude 없음)"
             ),
             "conditions": "자유류(free-flow) 도로망 시간. 혼잡·신호 대기·주차·진료 대기 없음",
             "motorway_used_cells": sum(
@@ -307,7 +309,6 @@ def run() -> dict[str, Any]:
         "sources": [point(vi.id, vi.lon, vi.lat, k) for k, vi in enumerate(villages)],
         "destinations": [point(f.id, f.lon, f.lat, ns + k) for k, f in enumerate(facilities)],
         "durations_s": dur,
-        "distances_m": dist,
     }
     sha = write_json(config.DERIVED_DIR / "osrm_car_table.json", out)
     changed = sum(p["access_changed"] for p in out["sources"] + out["destinations"])

@@ -5,7 +5,7 @@
  "data_version_date": "2026-09-24",
  "reproducibility": {
   "pipeline_version": "0.1.0",
-  "code_sha256": "abcc19757b433d008809f85175551d786118b9d68da670db0ae07b620dde9a7f",
+  "code_sha256": "99da49c0055b3aaed46e96203ebd16094cd9d3b337e56ba49c89e11d82d868fc",
   "inputs": {
    "population_tongban": "d16c49b42c000d312a0bf81e6b84a704acba9eb7986bea76ecee633cc254b8e8",
    "population_households_age": "953bbe8e6684e2d95cf07bd9520e2ac1e95322d3d9e41f3696d75e0c7173a8b1",
@@ -19,9 +19,9 @@
    },
    "derived": {
     "boundaries.json": "8a6da26f58ddac5b0a1e6a45172343181abebb7689fafc4f144d618cefaf729f",
-    "osm_features.json": "bbc7fbff57d701028ef0861eabf088705ab265241b9b972fdad34c2a57e59054",
-    "osrm_car_routes.json": "b1cbca2371c5e6fb04ea9f8bdc618096cb2dee9b030668662160d748868e38a2",
-    "osrm_car_table.json": "755aa0d8675f7009185df1c95e285e40231da342f07d457469c3689164af2207",
+    "osm_features.json": "b720d625b3d524d362670e0fa83588b09ee6afa24a58d78061ad9755ecfe0247",
+    "osrm_car_routes.json": "f16a4fe63843f7e6d0c212c5347cea6d11da75f781edbeb9f64cb53dd1ff376f",
+    "osrm_car_table.json": "d2d66b576654737bf8ea6138adbd01f5a8c96c6888b30e90c494195b86f458a8",
     "source_facts.json": "01eb4375025ac9ca09e0eb080f86b67d60a12634d57972c62937616904b7762d",
     "terrain.json": "161439e146d1835559a811b3864b275a48607260e088eab1b4810455c739e61e"
    }
