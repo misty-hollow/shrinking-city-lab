@@ -48,7 +48,7 @@ interface MarkersProps {
   onPreview(j: number | null, dir?: 1 | -1): void
   onInc(j: number): void
   onDec(j: number): void
-  onDenied(j: number): void
+  onDenied(j: number, dir: 1 | -1): void
   /** 튜토리얼 코치: 이 지소를 가리킨다 */
   coach?: number | null
 }
@@ -61,11 +61,11 @@ export function ClinicMarkers(p: MarkersProps) {
     if (e.key === '+' || e.key === '=' || e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       if (ok.inc) p.onInc(j)
-      else p.onDenied(j)
+      else p.onDenied(j, 1)
     } else if (e.key === '-' || e.key === '_' || e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault()
       if (ok.dec) p.onDec(j)
-      else p.onDenied(j)
+      else p.onDenied(j, -1)
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
       e.preventDefault()
       const at = p.order.indexOf(j)
@@ -120,7 +120,7 @@ export function ClinicMarkers(p: MarkersProps) {
                 if (!p.interactive) return
                 e.preventDefault()
                 if (ok.dec) p.onDec(j)
-                else p.onDenied(j)
+                else p.onDenied(j, -1)
               }}
             >
               <div className="mk-head">
@@ -133,7 +133,7 @@ export function ClinicMarkers(p: MarkersProps) {
                 onMouseEnter={() => p.interactive && p.onPreview(j, 1)}
                 onClick={() => {
                   if (ok.inc) p.onInc(j)
-                  else p.onDenied(j)
+                  else p.onDenied(j, 1)
                 }}
               >
                 <span className="mk-name">{f.short}</span>

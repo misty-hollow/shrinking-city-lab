@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { Component, type ReactNode, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { briefingCues, lightCues } from './audio/cues'
 import { sound } from './audio/sound'
@@ -94,9 +94,40 @@ export function App() {
       </>
     )
   }
-  if (error) return <div className="loading">{copy.loadError}</div>
-  if (!data) return <div className="loading">{copy.loading}</div>
-  return <Game data={data} width={width} height={height} />
+  if (error)
+    return (
+      <div className="loading" role="alert">
+        {copy.loadError}
+      </div>
+    )
+  if (!data)
+    return (
+      <div className="loading" role="status">
+        {copy.loading}
+      </div>
+    )
+  return (
+    <CrashBoundary>
+      <Game data={data} width={width} height={height} />
+    </CrashBoundary>
+  )
+}
+
+/** 그리는 도중의 예외로 빈 화면이 되지 않게: 안내 한 줄을 보인다(전시 복귀·새로고침으로 다시 시작). */
+class CrashBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true }
+  }
+  render(): ReactNode {
+    if (this.state.failed)
+      return (
+        <div className="loading" role="alert">
+          {copy.crashed}
+        </div>
+      )
+    return this.props.children
+  }
 }
 
 /** 결산·세 개의 공주의 보고서 종이 폭 */
@@ -214,7 +245,12 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
 
   // 빛이 번지는 동안은 새 미리보기를 띄우지 않는다(방금 놓은 결과를 끝까지 보게).
   useEffect(() => {
-    if (!hudEvent) return
+    // 조작 화면을 빛이 번지는 도중에 떠나면(빠른 [미션 시작]) 끝 타이머가 치워지므로, 여기서 멈춤을 푼다.
+    // 풀지 않으면 다음 미션에서 미리보기가 계속 막힌다.
+    if (!hudEvent) {
+      setRunning(false)
+      return
+    }
     const wait = hudEvent.t0 + hudEvent.plan.endMs - performance.now()
     if (wait <= 0) {
       setRunning(false)
@@ -385,8 +421,13 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   }, [s.lastTChange?.seq])
 
   // --- 조작: 말풍선·무대·키보드가 같은 길로 --------------------------------------------------
-  const deny = (j: number) => {
+  const deny = (j: number, dir: 1 | -1) => {
     sound.play('deny')
+    // 막힌 까닭은 미리보기(aria-hidden)에만 있었다 — 스크린리더에도 한 문장으로 알린다(설계안 5-11 라이브 영역).
+    const t = copy.world.preview
+    const why =
+      s.screen === 'tutorial' ? t.blockedTutorial : dir < 0 ? t.blockedNone : remaining(s.alloc, s.budget) <= 0 ? t.blockedEmpty : t.blockedMax
+    setLive(`${scenario.facilities[j].short}: ${why}`)
     const key = performance.now()
     setDenied({ j, key })
     window.setTimeout(() => setDenied((d) => (d && d.key === key ? null : d)), 320)
@@ -394,7 +435,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const doOp = (j: number, dir: 1 | -1, record = true) => {
     const ok = allowedOps(s, cfg, j)
     if (dir > 0 ? !ok.inc : !ok.dec) {
-      deny(j)
+      deny(j, dir)
       return
     }
     dispatch({ type: dir > 0 ? 'inc' : 'dec', j })
@@ -412,7 +453,17 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     setHistory([])
     setPreview(null)
     setPops([])
+    // 가리키던 요소가 화면과 함께 사라지면 mouseleave가 오지 않는다 — 가리킴 상태를 여기서 비운다.
+    setUndoHover(false)
+    setPanelHoverEmd(null)
+    setEmphasis(null)
   }, [s.screen, s.mission])
+  // 지표 자세히를 닫으면 그 안에서 가리키던 읍·면·지표 강조도 끝난다
+  useEffect(() => {
+    if (details) return
+    setPanelHoverEmd(null)
+    setEmphasis(null)
+  }, [details])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -897,6 +948,8 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
                   highlight={panelHoverEmd ?? (stageHover?.kind === 'emd' ? stageHover.index : null)}
                   onHover={setPanelHoverEmd}
                   onOpen={(m) => {
+                    // 누른 행이 지역 카드로 바뀌어 사라지므로 가리킴 강조를 여기서 끝낸다
+                    setPanelHoverEmd(null)
                     dispatch({ type: 'openRegion', m })
                     stage.current?.focusEmd(m)
                   }}

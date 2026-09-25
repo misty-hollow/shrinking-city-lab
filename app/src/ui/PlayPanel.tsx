@@ -38,7 +38,7 @@ interface DockProps {
   /** 카드 더블클릭 = 그 지소 읍·면으로 카메라 초점(설계안 5-5 ③). 한 번 클릭은 카메라를 움직이지 않는다. */
   onFocusCamera?(j: number): void
   /** 막힌 조작(풀이 비었는데 + 등): 소리·흔들림으로만 알린다 */
-  onDenied?(j: number): void
+  onDenied?(j: number, dir: 1 | -1): void
   coached?: boolean
 }
 
@@ -56,11 +56,11 @@ export function FacilityDock(p: DockProps) {
     if (e.key === '+' || e.key === '=' || e.key === 'ArrowRight') {
       e.preventDefault()
       if (ok.inc) p.onInc(j)
-      else p.onDenied?.(j)
+      else p.onDenied?.(j, 1)
     } else if (e.key === '-' || e.key === '_' || e.key === 'ArrowLeft') {
       e.preventDefault()
       if (ok.dec) p.onDec(j)
-      else p.onDenied?.(j)
+      else p.onDenied?.(j, -1)
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
       e.preventDefault()
       const cards = (e.currentTarget.parentElement?.querySelectorAll<HTMLElement>('.fac-row') ?? []) as NodeListOf<HTMLElement>

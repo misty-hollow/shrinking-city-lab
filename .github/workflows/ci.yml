@@ -43,6 +43,11 @@ jobs:
             zricethezav/gitleaks:v8.24.2 \
             git /repo --config /repo/.gitleaks.toml --log-opts=--all --redact=100 --no-banner
 
+      - name: Deploy scripts parse
+        run: |
+          for f in deploy/*.sh; do bash -n "$f"; done
+          python3 -m py_compile deploy/smoke_web.py
+
   # 데이터 검사는 저장소에 들어 있는 원자료·파생 결과만 쓰고 네트워크·docker·OSRM을 부르지 않는다
   # (fetch·osm·route·routes 단계는 개발 PC에서만 돈다, README 「데이터 재생성」).
   pipeline:
@@ -95,3 +100,14 @@ jobs:
           npm ci --no-fund --no-audit
           npm run build
           npm test
+
+      # geoleobom.kr 배포와 같은 뿌리 기준 빌드(--base=/): 자산 경로·라이선스 고지·앱 자료 바이트(data.lock) 확인.
+      # 정적 서버에는 SPA 물러섬이 없으므로 깊은 주소 확인은 로컬 예행연습(deploy/dryrun_local.sh)이 맡는다.
+      - name: Root-base build and static smoke
+        working-directory: app
+        run: |
+          npm run build -- --base=/
+          grep -q '"/assets/index-' dist/index.html
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory dist >/dev/null 2>&1 &
+          for i in $(seq 1 20); do curl -fsS -o /dev/null http://127.0.0.1:8765/ && break; sleep 0.5; done
+          python3 ../deploy/smoke_web.py --base-url http://127.0.0.1:8765 --lock ../pipeline/data.lock.json --probe-path ""

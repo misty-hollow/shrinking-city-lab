@@ -158,6 +158,7 @@ export function reducer(cfg: GameConfig) {
     selectedFacility: null,
     regionEmd: null,
     lastOp: null,
+    lastTChange: null,
   })
   // S6은 같은 세계에서 미션 1 배분부터 본다(설계안 6-17). 세 장의 지도는 finaleFocus = null.
   const toFinale = (s: GameState): GameState => ({
@@ -172,6 +173,7 @@ export function reducer(cfg: GameConfig) {
     selectedFacility: null,
     regionEmd: null,
     lastOp: null,
+    lastTChange: null,
   })
   return (s: GameState, a: Action): GameState => {
     switch (a.type) {
@@ -200,6 +202,7 @@ export function reducer(cfg: GameConfig) {
           baseline: 'current',
           deltaMode: false,
           lastOp: null,
+          lastTChange: null,
         }
       case 'skipMission': {
         // S3 [건너뛰기] → 다음 미션 브리핑 또는 S6(설계안 5-4). 건너뛴 미션의 결과 칸은 비워 둔다.
@@ -250,6 +253,7 @@ export function reducer(cfg: GameConfig) {
           selectedFacility: null,
           regionEmd: null,
           lastOp: null,
+          lastTChange: null,
         }
       }
       case 'replay': {
@@ -264,6 +268,7 @@ export function reducer(cfg: GameConfig) {
           ghost: false,
           debriefCompare: false,
           lastOp: null,
+          lastTChange: null,
         }
       }
       case 'nextMission': {
@@ -324,5 +329,6 @@ function toTutorial(s: GameState, cfg: GameConfig): GameState {
     deltaMode: false,
     selectedFacility: null,
     lastOp: null,
+    lastTChange: null,
   }
 }

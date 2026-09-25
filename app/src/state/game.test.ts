@@ -99,6 +99,27 @@ describe('flow S0 → S5', () => {
     expect(s.results).toEqual({})
   })
 
+  it('a threshold change does not follow the player into the next screen (no stale "기준 10분 → 15분" news)', () => {
+    // 회귀: 화면 전환이 lastOp만 비우고 lastTChange를 남겨, 튜토리얼의 기준 변경 소식이 미션 1 플레이 첫 화면에 다시 떴다.
+    let s = run({ type: 'start' }, { type: 'introNext' }, { type: 'introNext' }, { type: 'introNext' }, { type: 'tutorialNext' })
+    s = step(s, { type: 'setT', T: 10 })
+    s = step(s, { type: 'setT', T: 15 })
+    expect(s.lastTChange).not.toBeNull()
+    s = step(s, { type: 'tutorialNext' })
+    s = step(s, { type: 'dec', j: 5 })
+    s = step(s, { type: 'inc', j: 0 })
+    s = step(s, { type: 'toBriefing' })
+    s = step(s, { type: 'beginPlay' })
+    expect(s.screen).toBe('play')
+    expect(s.lastTChange).toBeNull()
+    s = place(s, A1)
+    s = step(s, { type: 'setT', T: 20 })
+    s = step(s, { type: 'confirm' })
+    expect(s.lastTChange).toBeNull()
+    s = step(s, { type: 'replay' })
+    expect(s.lastTChange).toBeNull()
+  })
+
   it('cannot confirm while days remain in the pool', () => {
     let s = run({ type: 'tutorialSkip' }, { type: 'beginPlay' }, { type: 'inc', j: 1 })
     s = step(s, { type: 'confirm' })

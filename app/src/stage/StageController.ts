@@ -206,6 +206,8 @@ export class StageController {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     container.appendChild(this.renderer.domElement)
     this.renderer.domElement.setAttribute('aria-hidden', 'true')
+    // GPU 재설정 뒤 three.js가 문맥을 되살려도, 움직임 없는 화면(플레이·결산·S6)은 다음 입력 전까지 다시 그리지 않는다.
+    this.renderer.domElement.addEventListener('webglcontextrestored', this.onContextRestored)
 
     const sc = data.scenario
     this.hm = hm
@@ -523,6 +525,7 @@ export class StageController {
     el.removeEventListener('pointerdown', this.onPointerDown)
     el.removeEventListener('pointerup', this.onPointerUp)
     el.removeEventListener('dblclick', this.onDblClick)
+    el.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.controls.dispose()
     this.anchorObserver?.disconnect()
     this.scene.traverse((o) => {
@@ -775,6 +778,10 @@ export class StageController {
     if (moved > 5 || e.button !== 0) return
     const r = this.renderer.domElement.getBoundingClientRect()
     this.cb.onClick(this.pick(e.clientX - r.left, e.clientY - r.top))
+  }
+
+  private readonly onContextRestored = (): void => {
+    this.dirty = true
   }
 
   private readonly onDblClick = (e: MouseEvent): void => {

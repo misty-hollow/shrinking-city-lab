@@ -21,5 +21,10 @@ export async function loadAppData(base = `${import.meta.env.BASE_URL}data/`): Pr
   const t = await fetch(base + geometry.terrain.file)
   if (!t.ok) throw new Error(`terrain: ${t.status}`)
   const terrain = await t.arrayBuffer()
+  // SPA 물러섬이 없는 파일 대신 index.html(200)을 돌려주면 JSON은 파싱에서 걸리지만 이진 지형은 그대로 읽힌다.
+  // 머리표가 말하는 크기보다 짧으면 자료가 아니다 — 무대를 만들다 깨지기 전에 여기서 멈춘다.
+  const h = geometry.terrain
+  const need = Math.max(h.heights_offset + h.cols * h.rows * 2, h.mask_offset + (h.cols - 1) * (h.rows - 1))
+  if (terrain.byteLength < need) throw new Error(`terrain: ${terrain.byteLength} < ${need} bytes`)
   return { scenario, geometry, landscape, manifest, terrain }
 }

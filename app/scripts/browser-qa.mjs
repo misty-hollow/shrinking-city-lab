@@ -360,6 +360,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
 
   // S4 플레이: 키보드만으로 배분
   await page.waitForSelector('.mission-card')
+  await page.waitForTimeout(250)
+  check((await page.locator('.toast').count()) === 0, `${tag} S4: 튜토리얼의 기준 변경 소식이 미션으로 넘어오지 않는다`, await page.locator('.toasts').innerText().catch(() => ''))
   const confirm = page.getByRole('button', { name: '이 배분으로 확정' })
   check(await confirm.isDisabled(), `${tag} S4: 풀이 남으면 확정 비활성`)
   const order = await page.locator('.fac-row').evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-j'))))

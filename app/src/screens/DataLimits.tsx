@@ -11,18 +11,24 @@ import { Badge } from '../ui/common'
 export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(): void }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const opener = useRef<Element | null>(null)
+  // onClose는 부르는 쪽에서 매번 새 함수다. 효과를 그것에 묶으면 뒤 화면이 다시 그려질 때마다(빛·소식 타이머)
+  // 포커스가 [닫기]로 튀고 읽던 곳이 맨 위로 돌아간다. 열릴 때 한 번만 건다.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   useEffect(() => {
     opener.current = document.activeElement
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('keydown', onKey)
       if (opener.current instanceof HTMLElement) opener.current.focus()
     }
-  }, [onClose])
+  }, [])
+  // 바깥(어두운 곳)을 눌러 닫기: 누르기와 떼기가 모두 바깥일 때만(종이 안에서 글자를 끌어 고르다 바깥에서 떼면 닫지 않는다)
+  const downOnBackdrop = useRef(false)
   const s = manifest.sources
   const rows: { item: string; source: string; url?: string; date: string; cls: 'REAL_DATA' | 'DERIVED' }[] = [
     { item: '법정리 인구, 읍·면 65세 이상', source: `${s.population.title} · ${s.population.license}`, url: s.population.page_url, date: s.population.reference_date, cls: 'REAL_DATA' },
@@ -35,8 +41,18 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
   ]
   const assumptions = manifest.classification.filter((c) => c.class === 'SIMULATION_ASSUMPTION')
   return (
-    <div className="data-page" role="dialog" aria-modal="true" aria-labelledby="s8-title" onClick={onClose}>
-      <div className="data-sheet paper" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="data-page"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="s8-title"
+      onMouseDown={(e) => (downOnBackdrop.current = e.target === e.currentTarget)}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && downOnBackdrop.current) onClose()
+        downOnBackdrop.current = false
+      }}
+    >
+      <div className="data-sheet paper">
         <div className="data-head">
           <h2 id="s8-title">{copy.dataPage.title}</h2>
           <button type="button" className="btn btn-small" ref={closeRef} onClick={onClose}>
