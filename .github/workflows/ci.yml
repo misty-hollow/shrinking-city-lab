@@ -41,7 +41,7 @@ jobs:
           docker run --rm --network none \
             --volume "$GITHUB_WORKSPACE:/repo:ro" \
             zricethezav/gitleaks:v8.24.2 \
-            git /repo --log-opts=--all --redact=100 --no-banner
+            git /repo --config /repo/.gitleaks.toml --log-opts=--all --redact=100 --no-banner
 
   # 데이터 검사는 저장소에 들어 있는 원자료·파생 결과만 쓰고 네트워크·docker·OSRM을 부르지 않는다
   # (fetch·osm·route·routes 단계는 개발 PC에서만 돈다, README 「데이터 재생성」).
