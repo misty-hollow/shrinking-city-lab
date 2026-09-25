@@ -1,0 +1,525 @@
+{
+ "product": "Shrinking City Lab",
+ "scenario": "진료일을 나누다 — 공주 보건지소 편",
+ "data_version": "scl01-gongju-r2",
+ "data_version_date": "2026-09-24",
+ "reproducibility": {
+  "pipeline_version": "0.1.0",
+  "code_sha256": "abcc19757b433d008809f85175551d786118b9d68da670db0ae07b620dde9a7f",
+  "inputs": {
+   "population_tongban": "d16c49b42c000d312a0bf81e6b84a704acba9eb7986bea76ecee633cc254b8e8",
+   "population_households_age": "953bbe8e6684e2d95cf07bd9520e2ac1e95322d3d9e41f3696d75e0c7173a8b1",
+   "clinic_schedule": "d401fc4fc495e50e8260a07e8f3049f7bf30c59e2e2d0d108bbca0ccb62ed9d0",
+   "facilities_json": "5eff3c561312eb3cd52938583a6da5334264963f17862e4179423fa9651583ca",
+   "osm_pbf": "fe454e43bc499df22733c7f3aa97892448dccd9c4caa2397ecfd80241fce89ed",
+   "admin_boundaries": "c01ef44a0eb00978662ba7a6240ccb1da287fb52abd85104a1758969d391132f",
+   "dem_tiles": {
+    "N36E126": "cc3ba98fc39b1c41ae78756165e3c18eb8afddc3003bc74dd4d2fdf057efe444",
+    "N36E127": "2c319768aa062b613d4195655fdbd20b8b61729f4c7a7b1cc0b27e46a6589676"
+   },
+   "derived": {
+    "boundaries.json": "8a6da26f58ddac5b0a1e6a45172343181abebb7689fafc4f144d618cefaf729f",
+    "osm_features.json": "bbc7fbff57d701028ef0861eabf088705ab265241b9b972fdad34c2a57e59054",
+    "osrm_car_routes.json": "b1cbca2371c5e6fb04ea9f8bdc618096cb2dee9b030668662160d748868e38a2",
+    "osrm_car_table.json": "755aa0d8675f7009185df1c95e285e40231da342f07d457469c3689164af2207",
+    "source_facts.json": "01eb4375025ac9ca09e0eb080f86b67d60a12634d57972c62937616904b7762d",
+    "terrain.json": "161439e146d1835559a811b3864b275a48607260e088eab1b4810455c739e61e"
+   }
+  },
+  "outputs": {
+   "scenario.json": "36a2a7335fe673d36e429d71f57cc122d7998529c8eee9eb8f1db88c1e93b2cf",
+   "geometry.json": "f3030fa085ba31ae6248ba63e16221a3384f0eddc4874fd5a01246fbf4bb3aa4",
+   "landscape.json": "3d231bc90c029da7513ac9c42c9c58462b5cf8868174153db883d65248b8b635",
+   "golden.json": "36ac23e825d41047678f9946067cbcd46cff8626857762565ce3c3df0cb8096b",
+   "terrain.bin": "a7d4b09fa5b373dcdb9d920b59d59725110d6cf46e1aecbd5430cf47843ddf62"
+  },
+  "regenerate": "README.md 「데이터 재생성」의 명령(pipeline/에서 python -m scl_pipeline). 같은 입력이면 같은 바이트가 나온다(verify가 대조)."
+ },
+ "display_dates": {
+  "population": "2026-08-31",
+  "schedule": "2026-04-13",
+  "road_network": "2026-09-10"
+ },
+ "sources": {
+  "population": {
+   "publisher": "공주시 스마트정보과",
+   "title": "2026년 8월 인구현황 — 법정동별통반별인구현황(2026.8.).xlsx",
+   "page_url": "https://www.gongju.go.kr/bbs/BBSMSTR_000000000697/view.do?nttId=B000000336750Xz4qT4b",
+   "reference_date": "2026-08-31",
+   "license": "공공누리 표시 없음. 재배포 허락 확인 안 됨(redistribution 참고)",
+   "also": "2026년 8월 인구현황 — 인구 및 세대현황(2026.8.).xlsx",
+   "method": "법정리 인구 = 같은 법정리의 통·반 총인구 합. 읍·면 합계와 일치를 검사한다"
+  },
+  "schedule": {
+   "publisher": "공주시보건소",
+   "title": "진료안내 — 공주시보건소 순회근무 현황 (2026. 4. 13. 기준), 의과 진료 표",
+   "page_url": "https://www.gongju.go.kr/health/sub02_01.do",
+   "reference_date": "2026-04-13",
+   "conversion_rule": "요일 칸 ○ = 주 1일, 격주 = 주 0.5일(격주 평균), 빈 칸 = 0일",
+   "rows": [
+    {
+     "facility": "yugu",
+     "cells": [
+      "",
+      "",
+      "",
+      "",
+      ""
+     ],
+     "note": "진료미운영",
+     "weekly_days": 0.0
+    },
+    {
+     "facility": "iin",
+     "cells": [
+      "",
+      "격주",
+      "",
+      "격주",
+      ""
+     ],
+     "note": "",
+     "weekly_days": 1.0
+    },
+    {
+     "facility": "tancheon",
+     "cells": [
+      "격주",
+      "",
+      "격주",
+      "",
+      "격주"
+     ],
+     "note": "",
+     "weekly_days": 1.5
+    },
+    {
+     "facility": "gyeryong",
+     "cells": [
+      "",
+      "",
+      "",
+      "",
+      ""
+     ],
+     "note": "진료미운영",
+     "weekly_days": 0.0
+    },
+    {
+     "facility": "banpo",
+     "cells": [
+      "",
+      "",
+      "",
+      "",
+      ""
+     ],
+     "note": "진료미운영",
+     "weekly_days": 0.0
+    },
+    {
+     "facility": "uidang",
+     "cells": [
+      "○",
+      "○",
+      "○",
+      "○",
+      "○"
+     ],
+     "note": "",
+     "weekly_days": 5.0
+    },
+    {
+     "facility": "jeongan",
+     "cells": [
+      "",
+      "",
+      "",
+      "",
+      ""
+     ],
+     "note": "진료미운영",
+     "weekly_days": 0.0
+    },
+    {
+     "facility": "useong",
+     "cells": [
+      "",
+      "",
+      "",
+      "",
+      ""
+     ],
+     "note": "진료미운영",
+     "weekly_days": 0.0
+    },
+    {
+     "facility": "sagok",
+     "cells": [
+      "",
+      "",
+      "",
+      "",
+      ""
+     ],
+     "note": "진료미운영",
+     "weekly_days": 0.0
+    },
+    {
+     "facility": "sinpung",
+     "cells": [
+      "격주",
+      "격주",
+      "격주",
+      "격주",
+      "격주"
+     ],
+     "note": "",
+     "weekly_days": 2.5
+    }
+   ]
+  },
+  "facilities": {
+   "title": "공주시 읍·면 보건지소 10곳",
+   "reference_month": "2026-06",
+   "official_address": "https://www.gongju.go.kr/health/sub01_05.do",
+   "coordinates": "HIRA 병원정보서비스 2026.6 좌표. 공식 주소와 HIRA 주소가 다른 유구·정안은 OSM 객체 중심점",
+   "excluded": "공주 시내(동 지역) 보건소·병원, 보건진료소, 민간 의원, 다른 시군의 시설"
+  },
+  "road_network": {
+   "publisher": "OpenStreetMap contributors (Geofabrik 배포)",
+   "license": "ODbL 1.0 (© OpenStreetMap contributors)",
+   "osm_latest_object_timestamp": "2026-09-10T14:58:34Z",
+   "extract_bbox": [
+    126.55,
+    36.15,
+    127.55,
+    36.85
+   ],
+   "pbf_sha256": "fe454e43bc499df22733c7f3aa97892448dccd9c4caa2397ecfd80241fce89ed"
+  },
+  "routing": {
+   "engine": "OSRM",
+   "image": "ghcr.io/project-osrm/osrm-backend:v5.27.1",
+   "digest": "sha256:855614a38f464b0558a2ad6eaa7cb8c139f39887da9b38b485ce453c6e6e6124",
+   "profile": "car",
+   "profile_detail": "stock /opt/car.lua (osrm-backend v5.27.1 이미지 내장)",
+   "algorithm": "MLD",
+   "conditions": "자유류(free-flow) 도로망 시간. 혼잡·신호 대기·주차·진료 대기 없음",
+   "runtime": "앱은 OSRM을 부르지 않는다. 전처리에서 한 번 만든 정적 행렬만 읽는다"
+  },
+  "boundaries": {
+   "publisher": "통계청 SGIS 행정동 경계(공공누리 제1유형), 가공 vuski/admdongkor (CC BY 4.0)",
+   "title": "HangJeongDong_ver20260701.geojson",
+   "download_url": "https://raw.githubusercontent.com/vuski/admdongkor/7360288277dfd12d74e54b959c59bdd66f852e3a/ver20260701/HangJeongDong_ver20260701.geojson",
+   "reference_date": "2026-07-01",
+   "license": "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0으로 배포된다."
+  },
+  "terrain": {
+   "publisher": "NASA/USGS SRTM 1 arc-second, Mapzen/Tilezen Terrain Tiles(AWS Open Data elevation-tiles-prod, skadi 형식)",
+   "title": "SRTM HGT 1°×1° 타일 N36E126, N36E127",
+   "license": "SRTM은 미국 정부 저작물(퍼블릭 도메인). Terrain Tiles 출처 표기: Mapzen/Tilezen, SRTM(NASA)."
+  }
+ },
+ "semantics": {
+  "demand_points": "법정리 1곳 = 대표점 1개(161개). 대표점은 법정리 이름과 같은 OSM 마을(place=village/hamlet) 점 중 그 읍·면 중심 점에 가장 가까운 것. 리 주민 전체가 그 한 점에 있다고 본다. 도로망 계산은 대표점에서 가장 가까운 '직접 들어갈 수 있는' 일반 도로 구간(접근점, access_points)에서 시작한다. 대표점 좌표 자체는 바꾸지 않는다",
+  "facilities": "읍·면 보건지소 1곳 = 1점(10개). 시내·민간·다른 시군 시설은 포함하지 않는다",
+  "matrix": "161(법정리 접근점)×10(보건지소 접근점) 자동차 도로망 최단 접근시간. OSRM car, 혼잡·대기 없음. 접근점 뒤의 경로는 고속도로를 포함한 정상 car 경로다. OSRM 초 값을 0.1분 단위로 올림해 정수(0.1분)로 저장한다. 행 = villages 순서, 열 = facilities 순서",
+  "routes": "geometry.routes: 도로망 20분 안의 (법정리, 보건지소) 쌍마다 같은 OSRM car 그래프·접근점으로 계산한 최단경로 폴리라인(40 m 단순화). 화면에서 hover·선택 때 '어느 지소가 어느 마을에 어떤 길로 닿는가'를 그리는 데만 쓴다. 접근시간 계산은 행렬(matrix)이다",
+  "clinic_day": "한 보건지소에서 일반진료가 열리는 하루(주당). 게임용 자원 단위이며 실제 의료서비스 전체가 아니다",
+  "current_total": "주 10일 = 2026-04-13 의과 순회진료 일정의 합(격주는 주 0.5일로 평균)",
+  "mission_total": "주 15일 = 실제 10일(REAL DATA) + 추가 5일(SIMULATION ASSUMPTION). 가상 정책실험"
+ },
+ "classification": [
+  {
+   "item": "읍·면 10곳 이름·경계",
+   "class": "REAL_DATA"
+  },
+  {
+   "item": "법정리 161곳 이름·인구",
+   "class": "REAL_DATA"
+  },
+  {
+   "item": "읍·면 65세 이상 인구·비율",
+   "class": "REAL_DATA"
+  },
+  {
+   "item": "법정리 65세 이상 인구",
+   "class": "DERIVED",
+   "note": "추정이라 앱 데이터와 화면에 넣지 않는다"
+  },
+  {
+   "item": "법정리 대표점 좌표",
+   "class": "DERIVED"
+  },
+  {
+   "item": "보건지소 10곳 위치·이름",
+   "class": "REAL_DATA"
+  },
+  {
+   "item": "현재 진료일(의과 순회진료, 합 주 10일)",
+   "class": "REAL_DATA"
+  },
+  {
+   "item": "도로망",
+   "class": "REAL_DATA"
+  },
+  {
+   "item": "161×10 도로망 접근시간 행렬",
+   "class": "DERIVED"
+  },
+  {
+   "item": "지형 고도",
+   "class": "REAL_DATA",
+   "note": "시각 표현 전용"
+  },
+  {
+   "item": "금강·하천·주요 도로 형상",
+   "class": "REAL_DATA",
+   "note": "시각 표현 전용"
+  },
+  {
+   "item": "법정리→보건지소 도로망 경로 형상(20분 안 쌍)",
+   "class": "DERIVED",
+   "note": "관계 읽기 표현 전용. 계산은 행렬"
+  },
+  {
+   "item": "KPI·배분 지형도·목표치·참고 배분",
+   "class": "DERIVED"
+  },
+  {
+   "item": "진료일 단위(지소 하나의 주당 일반진료 1일, 모두 같은 가치)",
+   "class": "SIMULATION_ASSUMPTION"
+  },
+  {
+   "item": "주민 1인 주당 상한 5일",
+   "class": "SIMULATION_ASSUMPTION"
+  },
+  {
+   "item": "'닿는다' 기준 10·15·20분과 기준 안 지소의 균등 이용",
+   "class": "SIMULATION_ASSUMPTION"
+  },
+  {
+   "item": "추가 진료자원 +5일(미션 총량 15일 = 실제 10일 + 가정 5일)",
+   "class": "SIMULATION_ASSUMPTION"
+  },
+  {
+   "item": "정수 배분(격주 배분은 만들 수 없다)",
+   "class": "SIMULATION_ASSUMPTION"
+  }
+ ],
+ "experiment_comparison": "pipeline/reports/experiment_comparison.json",
+ "access_points": {
+  "rule_version": "access-v1",
+  "rule": "OSRM /nearest?exclude=motorway 후보(최대 100개, 거리순) 중 OSM way가 highway=motorway|motorway_link, motorroad=yes, expressway=yes, tunnel(no·building_passage 외)이 아니고, 도로망 본체에 이어져 지소 10곳에 모두 닿으며, 고속도로 없이도 한 곳 이상 닿는 가장 가까운 구간. 그 구간을 hint로 고정해 /table을 부른다. 경로 계산에는 exclude를 쓰지 않는다(접근점 이후 고속도로 이용 허용).",
+  "reason": "r1(=2026-09 반증 실험)은 OSRM 기본 스냅을 그대로 써서 일부 법정리 대표점이 고속도로 본선·램프·터널 구간에서 출발했다(마을에서 직접 들어갈 수 없는 구간). r2는 접근점 고르기와 경로 계산을 나눈다",
+  "changed_villages": 9,
+  "changed_villages_pop": 1873,
+  "changed_facilities": 1,
+  "villages": [
+   {
+    "id": "yugu-06",
+    "default": {
+     "dist_m": 50.1,
+     "osm_way": "w35909443",
+     "highway": "motorway",
+     "name": "서산영덕고속도로",
+     "tags_flag": "highway=motorway"
+    },
+    "access": {
+     "dist_m": 443.4,
+     "osm_way": "w475647181",
+     "highway": "primary",
+     "name": "금계산로"
+    },
+    "pop": 256
+   },
+   {
+    "id": "banpo-07",
+    "default": {
+     "dist_m": 143.1,
+     "osm_way": "w777216402",
+     "highway": "trunk",
+     "name": "금벽로",
+     "tags_flag": "expressway=yes"
+    },
+    "access": {
+     "dist_m": 164.5,
+     "osm_way": "w1288888361",
+     "highway": "residential",
+     "name": ""
+    },
+    "pop": 259
+   },
+   {
+    "id": "jeongan-02",
+    "default": {
+     "dist_m": 402.4,
+     "osm_way": "w39017014",
+     "highway": "motorway",
+     "name": "논산천안고속도로",
+     "tags_flag": "highway=motorway"
+    },
+    "access": {
+     "dist_m": 910.5,
+     "osm_way": "w935674381",
+     "highway": "service",
+     "name": ""
+    },
+    "pop": 157
+   },
+   {
+    "id": "jeongan-10",
+    "default": {
+     "dist_m": 19.7,
+     "osm_way": "w800919241",
+     "highway": "motorway",
+     "name": "논산천안고속도로",
+     "tags_flag": "highway=motorway"
+    },
+    "access": {
+     "dist_m": 360.2,
+     "osm_way": "w1172624368",
+     "highway": "service",
+     "name": ""
+    },
+    "pop": 207
+   },
+   {
+    "id": "useong-03",
+    "default": {
+     "dist_m": 100.2,
+     "osm_way": "w118690906",
+     "highway": "motorway",
+     "name": "서산영덕고속도로",
+     "tags_flag": "highway=motorway"
+    },
+    "access": {
+     "dist_m": 228.4,
+     "osm_way": "w1159786629",
+     "highway": "residential",
+     "name": "성곡길"
+    },
+    "pop": 270
+   },
+   {
+    "id": "useong-06",
+    "default": {
+     "dist_m": 35.8,
+     "osm_way": "w1124789604",
+     "highway": "motorway_link",
+     "name": "",
+     "tags_flag": "highway=motorway_link"
+    },
+    "access": {
+     "dist_m": 90.9,
+     "osm_way": "w1126438023",
+     "highway": "residential",
+     "name": ""
+    },
+    "pop": 207
+   },
+   {
+    "id": "useong-07",
+    "default": {
+     "dist_m": 140.0,
+     "osm_way": "w46705819",
+     "highway": "trunk",
+     "name": "연미터널",
+     "tags_flag": "expressway=yes"
+    },
+    "access": {
+     "dist_m": 420.3,
+     "osm_way": "w1237936514",
+     "highway": "service",
+     "name": ""
+    },
+    "pop": 185
+   },
+   {
+    "id": "useong-10",
+    "default": {
+     "dist_m": 283.0,
+     "osm_way": "w1124767372",
+     "highway": "motorway",
+     "name": "",
+     "tags_flag": "highway=motorway"
+    },
+    "access": {
+     "dist_m": 367.7,
+     "osm_way": "w1126438012",
+     "highway": "residential",
+     "name": ""
+    },
+    "pop": 96
+   },
+   {
+    "id": "useong-16",
+    "default": {
+     "dist_m": 71.7,
+     "osm_way": "w118690944",
+     "highway": "motorway",
+     "name": "서천공주고속도로",
+     "tags_flag": "highway=motorway"
+    },
+    "access": {
+     "dist_m": 86.8,
+     "osm_way": "w1126576155",
+     "highway": "unclassified",
+     "name": ""
+    },
+    "pop": 236
+   }
+  ],
+  "facilities": [
+   {
+    "id": "useong",
+    "default": {
+     "dist_m": 115.3,
+     "osm_way": "w429962406",
+     "highway": "trunk",
+     "name": "동대리길",
+     "tags_flag": "expressway=yes"
+    },
+    "access": {
+     "dist_m": 145.6,
+     "osm_way": "w46424721",
+     "highway": "tertiary",
+     "name": "동대리길"
+    }
+   }
+  ],
+  "max_access_m": 910.5
+ },
+ "r1_to_r2": "pipeline/reports/r1_to_r2.json",
+ "known_issues": [
+  {
+   "id": "far_access_point",
+   "detail": "대표점에서 가장 가까운 일반 도로 접근점이 800 m보다 멀다. OSM 마을 점 위치나 도로 수록 범위의 한계일 수 있다",
+   "points": [
+    {
+     "id": "jeongan-02",
+     "access_m": 910.5
+    }
+   ]
+  },
+  {
+   "id": "disconnected_nearest_road",
+   "detail": "가장 가까운 일반 도로가 OSM에서 도로망 본체와 이어지지 않은 조각이라 다음으로 가까운 이어진 도로를 썼다",
+   "points": [
+    {
+     "id": "yugu-06",
+     "skipped_candidates": 15
+    },
+    {
+     "id": "uidang-08",
+     "skipped_candidates": 21
+    },
+    {
+     "id": "jeongan-05",
+     "skipped_candidates": 39
+    }
+   ]
+  }
+ ]
+}

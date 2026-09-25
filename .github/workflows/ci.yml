@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 저장소 위생: 바뀐 줄의 공백, Git 기록 전체의 비밀값 검사(원본 Gongju xlsx·키가 들어오지 않았는지).
+  repository:
+    name: repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Changed-line whitespace
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^0+$ ]]; then
+            git diff --check "$BASE_SHA" HEAD
+          else
+            git show --format= --check HEAD
+          fi
+
+      - name: Scan Git history for secrets
+        run: |
+          docker run --rm --network none \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            zricethezav/gitleaks:v8.24.2 \
+            git /repo --config /repo/.gitleaks.toml --log-opts=--all --redact=100 --no-banner
+
+  # 데이터 검사는 저장소에 들어 있는 원자료·파생 결과만 쓰고 네트워크·docker·OSRM을 부르지 않는다
+  # (fetch·osm·route·routes 단계는 개발 PC에서만 돈다, README 「데이터 재생성」).
+  pipeline:
+    name: pipeline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      # 편집 설치(-e)여야 파이프라인이 저장소 안의 sources/·derived/를 찾는다.
+      - name: Pipeline lint and tests
+        working-directory: pipeline
+        run: |
+          python -m pip install --quiet -e ".[dev]"
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m pytest -q
+
+      # 불변식(161·10·161×10·결측) + 앱 데이터를 다시 만들어 바이트 대조 + data.lock.json 대조.
+      - name: Verify committed app data is reproducible
+        working-directory: pipeline
+        run: python -m scl_pipeline verify
+
+  app:
+    name: app
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # 엔진 = 파이썬 골든 값(10·15·20분), 금지어 검사, 흐름 리듀서, 패널 키보드 플레이(jsdom).
+      # 브라우저 QA(scripts/browser-qa.mjs)는 Edge·WebGL이 필요해 CI 밖에서 사람이 돌린다.
+      - name: App type check, build and tests
+        working-directory: app
+        run: |
+          npm ci --no-fund --no-audit
+          npm run build
+          npm test

@@ -1,0 +1,39 @@
+# 텍스트는 저장소에서 LF. 앱 데이터 JSON은 파이프라인이 바이트 단위로 대조하므로 줄바꿈이 바뀌면 안 된다.
+* text=auto eol=lf
+*.py            text eol=lf
+*.ts            text eol=lf
+*.tsx           text eol=lf
+*.js            text eol=lf
+*.mjs           text eol=lf
+*.json          text eol=lf
+*.css           text eol=lf
+*.html          text eol=lf
+*.md            text eol=lf
+*.txt           text eol=lf
+*.toml          text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.lua           text eol=lf
+Dockerfile      text eol=lf
+Dockerfile.*    text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+
+# 바이너리(terrain.bin은 앱 데이터, 나머지는 들어오면 안 되지만 들어와도 변환하지 않게)
+*.bin           binary
+*.png           binary
+*.jpg           binary
+*.webp          binary
+*.woff          binary
+*.woff2         binary
+*.wav           binary
+*.pbf           binary
+*.osrm          binary
+*.tif           binary
+*.zip           binary
+*.gz            binary
+*.xlsx          binary
+*.pdf           binary
+
+# 폰트 라이선스 원문은 그대로 둔다(원문의 줄 끝 공백 포함). 공백 검사에서 뺀다.
+app/public/licenses/*.txt -whitespace

@@ -1,0 +1,41 @@
+# Shrinking City Lab
+
+# --- 원자료·중간 파일(Git 밖) ---------------------------------------------------------------
+# OSM 추출본, OSRM car 그래프, DEM 타일, 행정동 경계 원본. 재생성 방법과 해시는 pipeline/sources/sources.json.
+# 공주시 인구 xlsx·보건소 일정 발췌 원본도 cache/sources/에만 둔다. 공공누리 표시가 없어 재배포 허락을
+# 확인하지 못했다(sources.json의 redistribution). 저장소에는 계산 입력 값만 둔다.
+pipeline/cache/
+*.osm.pbf
+*.pbf
+*.osrm
+*.osrm.*
+*.xlsx
+
+# --- Node -----------------------------------------------------------------------------
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+
+# 브라우저 QA·소리 청취·디자인 검토 캡처(scripts/browser-qa.mjs, sound-audition.mjs)
+qa-shots/
+
+# --- Python ---------------------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- 편집기·OS ---------------------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.part
+.env
+.env.*

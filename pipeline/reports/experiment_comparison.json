@@ -1,0 +1,140 @@
+{
+ "experiment": {
+  "what": "2026-09 반증 실험(Compact City Lab 실험 2) 산출물. 개발 PC 임시 폴더 scratchpad/exp2",
+  "file_sha256": {
+   "matrix": "25bea31c9aad04e29bce172a78e32ce605335c65462122eee8bc543c49a69c5a",
+   "demand": "3ea4be16de5b5268ffed114247c3b4f1784e8db7bcaf5ebe5bfe424ab4b98e27",
+   "var_tau10": "350454851ad8d65f6b6a189a507852e5e0a89c5359dedfacdc538de37f724433",
+   "var_tau15": "0d3e7c8a0be999e6d4b7cb6dbaeae196ebed62c1fcb704a7152d7f411e3d4a2c",
+   "var_tau20": "e4b3d697d075df585f074cdb66bde74e05af51a93039babe7f3a8173940a54b7"
+  }
+ },
+ "data_version": "scl01-gongju-r1",
+ "demand_points": {
+  "identical": 161,
+  "of": 161
+ },
+ "facilities": {
+  "identical": 10,
+  "of": 10
+ },
+ "matrix": {
+  "shape": [
+   161,
+   10
+  ],
+  "max_abs_diff_minutes_raw": 0.0,
+  "reach_membership_mismatches_after_ceil_0_1min": {
+   "10": 0,
+   "15": 0,
+   "20": 0
+  },
+  "note": "원시 OSRM 초 값은 실험과 같다. 앱은 0.1분 올림 정수로 저장해 t ≤ T 판정이 원시 값과 같다"
+ },
+ "current_actual_kpis": {
+  "10": {
+   "ours": {
+    "mean_days": 1.35,
+    "worst_emd_days": 0.0,
+    "worst_emd": "계룡면",
+    "cov1_pct": 44.72,
+    "cov3_pct": 13.47,
+    "p90_min": 22.4,
+    "gap_days": 4.16
+   },
+   "experiment": {
+    "mean_days": 1.35,
+    "worst_emd_days": 0.0,
+    "worst_emd": "계룡면",
+    "cov1_pct": 44.72,
+    "cov3_pct": 13.47,
+    "p90_min": 22.4,
+    "gap_days": 4.16
+   },
+   "numbers_equal": true,
+   "worst_emd_equal": true
+  },
+  "15": {
+   "ours": {
+    "mean_days": 2.01,
+    "worst_emd_days": 0.0,
+    "worst_emd": "반포면",
+    "cov1_pct": 60.13,
+    "cov3_pct": 21.4,
+    "p90_min": 22.4,
+    "gap_days": 4.81
+   },
+   "experiment": {
+    "mean_days": 2.01,
+    "worst_emd_days": 0.0,
+    "worst_emd": "반포면",
+    "cov1_pct": 60.13,
+    "cov3_pct": 21.4,
+    "p90_min": 22.4,
+    "gap_days": 4.81
+   },
+   "numbers_equal": true,
+   "worst_emd_equal": true
+  },
+  "20": {
+   "ours": {
+    "mean_days": 3.09,
+    "worst_emd_days": 1.72,
+    "worst_emd": "계룡면",
+    "cov1_pct": 83.78,
+    "cov3_pct": 41.95,
+    "p90_min": 22.4,
+    "gap_days": 3.28
+   },
+   "experiment": {
+    "mean_days": 3.09,
+    "worst_emd_days": 1.72,
+    "worst_emd": "계룡면",
+    "cov1_pct": 83.78,
+    "cov3_pct": 41.95,
+    "p90_min": 22.4,
+    "gap_days": 3.28
+   },
+   "numbers_equal": true,
+   "worst_emd_equal": true
+  }
+ },
+ "coarse_front": {
+  "B10_T10": {
+   "ours": 2,
+   "experiment": 2,
+   "same_allocations_same_order": true
+  },
+  "B15_T10": {
+   "ours": 5,
+   "experiment": 5,
+   "same_allocations_same_order": true
+  },
+  "B10_T15": {
+   "ours": 2,
+   "experiment": 2,
+   "same_allocations_same_order": true
+  },
+  "B15_T15": {
+   "ours": 6,
+   "experiment": 6,
+   "same_allocations_same_order": true
+  },
+  "B10_T20": {
+   "ours": 1,
+   "experiment": 1,
+   "same_allocations_same_order": true
+  },
+  "B15_T20": {
+   "ours": 2,
+   "experiment": 2,
+   "same_allocations_same_order": true
+  }
+ },
+ "summary": {
+  "identical": true,
+  "differences": [
+   "가장 불리한 읍·면이 동률(주 0일)일 때 설계안 4-6의 동률 규칙(0일 주민이 많은 곳)을 적용한다. 실험은 앞 순서를 골랐다. 값은 같고 이름만 다를 수 있다"
+  ]
+ }
+}

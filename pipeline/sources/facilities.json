@@ -1,0 +1,117 @@
+{
+ "_about": "공주시 읍·면 보건지소 10곳(REAL DATA). 좌표는 HIRA 병원정보서비스 값을 쓰되, HIRA 주소가 공주시보건소 공식 주소와 다른 지소는 OSM 객체 좌표로 바꾼다. 시내(동 지역) 보건소·보건진료소·민간 의원은 넣지 않는다(설계안 4-1).",
+ "official_address_source": {
+  "title": "공주시보건소 보건기관안내(보건지소)",
+  "url": "https://www.gongju.go.kr/health/sub01_05.do",
+  "retrieved": "2026-09-24",
+  "page_sha256_at_retrieval": "84626639aeca45f6cd0a92a2e5f9775b2093ed200d525efd954b954bd98953bb",
+  "page_date": "날짜 표기 없음"
+ },
+ "hira_source": {
+  "title": "건강보험심사평가원 전국 병의원 및 약국 현황 2026.6 — 병원정보서비스",
+  "file": "전국 병의원 및 약국 현황 2026.6.zip",
+  "member": "전국 병의원 및 약국 현황 2026.6/1.병원정보서비스(2026.6.).xlsx",
+  "reference_month": "2026-06",
+  "note": "걸어봄 data/raw/에 사용자가 받아 둔 공식 배포본. 저장소에는 넣지 않는다. 아래 hira 값은 그 파일의 종별코드명=보건지소 행을 옮긴 것이며, `python -m scl_pipeline check-hira --zip <경로>`로 원본과 대조한다."
+ },
+ "facilities": [
+  {
+   "id": "yugu",
+   "name": "유구보건지소",
+   "emd": "유구읍",
+   "official_road_address": "유구읍 유구초교길 40",
+   "hira": {"name": "공주시유구읍보건지소", "address": "충청남도 공주시 유구읍 중앙1길 87-1, 87", "lon": 126.9504, "lat": 36.552825},
+   "address_check": "differs",
+   "coordinate": {
+    "method": "osm_feature",
+    "match": {"name": "유구보건지소"},
+    "reason": "HIRA 주소(중앙1길 87-1)가 공식 주소(유구초교길 40)와 다르다. 공식 주소 건물은 OSM에 없어, 같은 이름으로 표시된 OSM 시설 객체의 중심점을 쓴다."
+   }
+  },
+  {
+   "id": "iin",
+   "name": "이인보건지소",
+   "emd": "이인면",
+   "official_road_address": "이인면 검바위로 239",
+   "hira": {"name": "공주시이인면보건지소", "address": "충청남도 공주시 이인면 검바위로 239, (이인면)", "lon": 127.0640686, "lat": 36.3633058},
+   "address_check": "match",
+   "coordinate": {"method": "hira"}
+  },
+  {
+   "id": "tancheon",
+   "name": "탄천보건지소",
+   "emd": "탄천면",
+   "official_road_address": "탄천면 통산3길 4-11",
+   "hira": {"name": "공주시탄천면보건지소", "address": "충청남도 공주시 탄천면 통산3길 4-11, 4", "lon": 127.0275258, "lat": 36.3305988},
+   "address_check": "match",
+   "coordinate": {"method": "hira"}
+  },
+  {
+   "id": "gyeryong",
+   "name": "계룡보건지소",
+   "emd": "계룡면",
+   "official_road_address": "계룡면 월암송정길 10",
+   "hira": {"name": "공주시계룡면보건지소", "address": "충청남도 공주시 계룡면 월암송정길 10, 10", "lon": 127.1416345, "lat": 36.3610239},
+   "address_check": "match",
+   "coordinate": {"method": "hira"}
+  },
+  {
+   "id": "banpo",
+   "name": "반포보건지소",
+   "emd": "반포면",
+   "official_road_address": "반포면 수실1길 8-8",
+   "hira": {"name": "공주시반포면보건지소", "address": "충청남도 공주시 반포면 수실1길 8, 8", "lon": 127.2511936, "lat": 36.3979538},
+   "address_check": "notation_only",
+   "coordinate": {"method": "hira", "note": "번지 표기만 다르다(8-8 / 8, 8). 같은 도로·같은 필지 묶음이라 HIRA 좌표를 유지한다(반증 실험과 같음)."}
+  },
+  {
+   "id": "uidang",
+   "name": "의당보건지소",
+   "emd": "의당면",
+   "official_road_address": "의당면 의당로 257",
+   "hira": {"name": "공주시의당면보건지소", "address": "충청남도 공주시 의당면 의당로 257, 257", "lon": 127.1359358, "lat": 36.494711},
+   "address_check": "match",
+   "coordinate": {"method": "hira"}
+  },
+  {
+   "id": "jeongan",
+   "name": "정안보건지소",
+   "emd": "정안면",
+   "official_road_address": "정안면 정안중앙길 157",
+   "hira": {"name": "공주시정안면보건지소", "address": "충청남도 공주시 정안면 광정장터길 16, 16", "lon": 127.1224731, "lat": 36.6087053},
+   "address_check": "differs",
+   "coordinate": {
+    "method": "osm_feature",
+    "match": {"addr:street": "정안중앙길", "addr:housenumber": "157", "building": "*"},
+    "reason": "HIRA 주소(광정장터길 16)가 공식 주소(정안중앙길 157)와 다르다. 공식 주소가 붙은 OSM 건물 면의 중심점을 쓴다."
+   }
+  },
+  {
+   "id": "useong",
+   "name": "우성보건지소",
+   "emd": "우성면",
+   "official_road_address": "우성면 동대3길 11",
+   "hira": {"name": "공주시우성면보건지소", "address": "충청남도 공주시 우성면 동대3길 11, (우성면)", "lon": 127.0507591, "lat": 36.4711648},
+   "address_check": "match",
+   "coordinate": {"method": "hira"}
+  },
+  {
+   "id": "sagok",
+   "name": "사곡보건지소",
+   "emd": "사곡면",
+   "official_road_address": "사곡면 호계장터2길 9-1",
+   "hira": {"name": "공주시사곡면보건지소", "address": "충청남도 공주시 사곡면 호계장터2길 9-1, 9", "lon": 127.026437, "lat": 36.5022845},
+   "address_check": "match",
+   "coordinate": {"method": "hira"}
+  },
+  {
+   "id": "sinpung",
+   "name": "신풍보건지소",
+   "emd": "신풍면",
+   "official_road_address": "신풍면 신풍길 81-11",
+   "hira": {"name": "공주시신풍면보건지소", "address": "충청남도 공주시 신풍면 신풍길 81-11, 81", "lon": 126.957909, "lat": 36.5158873},
+   "address_check": "match",
+   "coordinate": {"method": "hira"}
+  }
+ ]
+}
