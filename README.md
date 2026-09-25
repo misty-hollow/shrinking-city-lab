@@ -138,7 +138,7 @@ cd pipeline
 | 무엇 | 설정 |
 |---|---|
 | Docker Desktop(엔진은 WSL2) | — |
-| 충청권 OSM 추출본 `chungcheong.osm.pbf` (sha256 `fe454e43…`, 2026-09-11 Geofabrik south-korea-latest에서 충청권 경계로 자른 것, Git 밖) | 기본 위치 `pipeline/cache/osm/chungcheong.osm.pbf`. 다른 곳이면 `SCL_OSM_PBF=<경로>`. 해시가 다르면 멈춘다 |
+| 충청권 OSM 추출본 `chungcheong.osm.pbf` (sha256 `fe454e43…`, 2026-09-11 Geofabrik south-korea-latest에서 충청권을 덮는 사각형으로 자른 것, Git 밖) | 기본 위치 `pipeline/cache/osm/chungcheong.osm.pbf`. 다른 곳이면 `SCL_OSM_PBF=<경로>`. 해시가 다르면 멈춘다 |
 | osmium 이미지 | `docker build -t scl-osmium:local -f pipeline/osrm/Dockerfile.osmium pipeline/osrm` (이름을 바꾸면 `SCL_OSMIUM_IMAGE`) |
 | OSRM 이미지 | `pipeline/osrm/versions.json`의 `ghcr.io/project-osrm/osrm-backend:v5.27.1`(digest 대조) |
 

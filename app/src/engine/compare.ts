@@ -3,7 +3,7 @@
  */
 
 import type { LandscapeCombo, MissionData, MissionKpi } from '../data/types'
-import { type Kpis, tierOf } from './kpi'
+import { type Kpis, tenthsToMinutes, tierOf } from './kpi'
 
 export type Change = 'better' | 'same' | 'worse'
 
@@ -160,8 +160,20 @@ export interface KpiDelta {
   now: number | null
   base: number | null
   delta: number | null
+  /** 화면 단위로 반올림한 두 값의 차이(명 · 분 · 0.1일). 표기와 좋아짐·나빠짐은 이것으로 정한다 */
+  shown: number | null
   /** 좋아짐(▲) / 나빠짐(▼) / 같음 */
   change: Change
+}
+
+/**
+ * 화면에 적는 값의 정수 눈금: 명, 분(0.1분 값을 반올림), 0.1일. 차이는 이 눈금끼리 뺀다.
+ * 원래 값끼리 빼서 반올림하면 "22분 → 23분인데 ±0"처럼 옆의 두 값과 어긋난다(p90 222 → 225).
+ */
+function shownTicks(key: KpiKey, v: number): number {
+  if (key === 'cov1Pop' || key === 'cov3Pop') return Math.round(v)
+  if (key === 'p90Tenths') return tenthsToMinutes(v)
+  return Math.round(v * 10)
 }
 
 export function kpiDeltas(now: Kpis, base: Kpis): KpiDelta[] {
@@ -169,11 +181,11 @@ export function kpiDeltas(now: Kpis, base: Kpis): KpiDelta[] {
   return keys.map((key) => {
     const a = now[key]
     const b = base[key]
-    if (a === null || b === null) return { key, now: a, base: b, delta: null, change: 'same' }
-    const d = a - b
-    const eps = key === 'cov1Pop' || key === 'cov3Pop' || key === 'p90Tenths' ? 0.5 : 0.05
-    const good = HIGHER_IS_BETTER[key] ? d : -d
-    return { key, now: a, base: b, delta: d, change: good >= eps ? 'better' : good <= -eps ? 'worse' : 'same' }
+    if (a === null || b === null) return { key, now: a, base: b, delta: null, shown: null, change: 'same' }
+    const ticks = shownTicks(key, a) - shownTicks(key, b)
+    const shown = key === 'cov1Pop' || key === 'cov3Pop' || key === 'p90Tenths' ? ticks : ticks / 10
+    const good = HIGHER_IS_BETTER[key] ? ticks : -ticks
+    return { key, now: a, base: b, delta: a - b, shown, change: good > 0 ? 'better' : good < 0 ? 'worse' : 'same' }
   })
 }
 

@@ -227,7 +227,7 @@
    "title": "HangJeongDong_ver20260701.geojson",
    "download_url": "https://raw.githubusercontent.com/vuski/admdongkor/7360288277dfd12d74e54b959c59bdd66f852e3a/ver20260701/HangJeongDong_ver20260701.geojson",
    "reference_date": "2026-07-01",
-   "license": "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0으로 배포된다."
+   "license": "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)으로 배포된다. Shrinking City Lab이 이를 투영·단순화하고 시내 동 6곳을 하나로 합쳤다."
   },
   "terrain": {
    "publisher": "NASA/USGS SRTM 1 arc-second, Mapzen/Tilezen Terrain Tiles(AWS Open Data elevation-tiles-prod, skadi 형식)",

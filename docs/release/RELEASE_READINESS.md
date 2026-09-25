@@ -1,6 +1,6 @@
 # 공개 전 릴리스 준비 상태
 
-기준일: 2026-09-25. 기준 저장소: `misty-hollow/shrinking-city-lab`(private) main `e935692` + RC 감사 수정(브랜치 `rc/audit-fixes`).
+기준일: 2026-09-25. 기준 저장소: `misty-hollow/shrinking-city-lab` main(release candidate 기준선 `4b35307` + 최종 검토 수정).
 이 문서는 **무엇이 끝났고, 무엇을 사람이 해야 하고, 무엇이 외부 회신을 기다리는지**를 한곳에 둡니다.
 
 ## 1. 게이트 현황
@@ -22,8 +22,8 @@
 
 1. **원본 백업을 C: 밖에 한 벌 더 둔다 (필수, 미완료).**
    - 지금 있는 사본은 둘뿐이고, 둘 다 같은 C: 디스크에 있습니다.
-     - `C:\Users\sdsdo\Documents\shrinking-city-lab\pipeline\cache\`
-     - `C:\Users\sdsdo\Backups\shrinking-city-lab\pipeline-cache-2026-09-25\`(40개 파일, 439 MB, `SHA256SUMS` 포함)
+     - 개발 PC의 `<저장소>/pipeline/cache/`
+     - 개발 PC의 `<백업 폴더>/shrinking-city-lab/pipeline-cache-2026-09-25/`(40개 파일, 439 MB, `SHA256SUMS` 포함)
    - 외장 디스크·USB나 **비공개** 개인 클라우드에 백업 폴더를 통째로 복사합니다.
    - 복사한 곳에서 `SHA256SUMS`로 한 번 대조합니다. 예: Git Bash에서 `sha256sum -c SHA256SUMS`.
    - 공주시 xlsx·일정 발췌는 재배포 허락이 없습니다. 공유 링크·공개 폴더에 두지 않습니다.
@@ -89,7 +89,7 @@ headless의 rAF는 이 PC 모니터(180 Hz)에 맞춰 돌기 때문에, fps 값�
 
 ## 6. geoleobom.kr 교체 배포·되돌리기
 
-걸어봄 운영의 웹 릴리스 방식을 그대로 씁니다.
+걸어봄 운영의 웹 릴리스 방식을 그대로 씁니다. 모든 명령은 개발 PC의 **Git Bash**에서 실행합니다(PowerShell·WSL bash 아님).
 - 서버: `/srv/geoleobom/web/<릴리스 ID>/`에 불변 디렉터리를 두고, `current`·`previous` 링크를 원자적으로 바꿉니다.
 - Caddy: 설정은 **바꾸지 않습니다.** `current`를 서빙하고, `/assets/*`는 immutable로 캐시하며 없으면 previous에서 찾고, 그 밖의 주소는 index.html로 보냅니다(SPA 물러섬).
 - 릴리스 ID: `scl-<커밋>`. 걸어봄 릴리스(40자 SHA)와 섞이지 않습니다.
@@ -135,7 +135,7 @@ python deploy/smoke.py --base-url https://geoleobom.kr --pages-only --check-asse
   ```
   (cat deploy/web_release.sh; echo "switch_current /srv/geoleobom/web <걸어봄 릴리스 ID>") | ssh geoleobom bash -s
   ```
-  그다음 위 `smoke.py`로 확인합니다.
+  릴리스 ID는 `ls /srv/geoleobom/web`에 보이는 **40자 전체**를 씁니다(줄이면 '릴리스 디렉터리가 없다'로 멈추고 아무것도 바꾸지 않습니다). 그다음 위 `smoke.py`로 확인합니다.
 - 릴리스 디렉터리는 지우지 않으므로, 어느 쪽이든 다시 갈 수 있습니다.
 
 **배포 뒤 알고 있어야 할 것**

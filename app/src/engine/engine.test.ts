@@ -12,6 +12,7 @@ import { canDecrement, canIncrement, decrement, increment, remaining } from './a
 import { kpiDeltas, lostVillages, missionStatus, topGains, topPercent } from './compare'
 import { allocDays, people, signed, weekDays } from './format'
 import { type Threshold, buildModel, computeKpis, tierOf } from './kpi'
+import { diffText } from '../ui/kpiText'
 
 const dataDir = resolve(__dirname, '../../public/data')
 const read = <T>(name: string): T => JSON.parse(readFileSync(resolve(dataDir, name), 'utf-8')) as T
@@ -200,6 +201,23 @@ describe('comparison and mission judgement', () => {
     const p90 = d.find((v) => v.key === 'p90Tenths')!
     expect(p90.delta!).toBeGreaterThan(0)
     expect(p90.change).toBe('worse')
+  })
+
+  it('the shown difference agrees with the two shown values (no "22분 → 23분 · ±0")', () => {
+    // 회귀: 원래 값끼리 빼서 반올림했다. p90 222 → 225(22분 → 23분)가 ±0, 222 → 215(22분 → 22분)가 −1분으로 나왔다.
+    const base = computeKpis(model, scenario.current_allocation, 15)
+    const withP90 = (t: number) => ({ ...base, p90Tenths: t })
+    const up = kpiDeltas(withP90(225), withP90(222)).find((v) => v.key === 'p90Tenths')!
+    expect(up.shown).toBe(1)
+    expect(diffText(up)).toBe('+1분')
+    expect(up.change).toBe('worse')
+    const flat = kpiDeltas(withP90(215), withP90(222)).find((v) => v.key === 'p90Tenths')!
+    expect(diffText(flat)).toBe('±0')
+    expect(flat.change).toBe('same')
+    // 진료일(0.1일 표기)도 같다: 1.34 → 1.26은 1.3 → 1.3이라 ±0
+    const days = kpiDeltas({ ...base, meanDays: 1.26 }, { ...base, meanDays: 1.34 }).find((v) => v.key === 'meanDays')!
+    expect(diffText(days)).toBe('±0')
+    expect(days.change).toBe('same')
   })
 })
 

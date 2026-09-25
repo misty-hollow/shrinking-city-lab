@@ -34,10 +34,11 @@ export function fmtKpi(key: KpiKey, v: number | null, k?: Kpis, scenario?: Scena
 
 /** 차이 표기: `+0.7일` `−5,752명` `+1분`, 변화 없음은 단위 없이 `±0`(§4.3) */
 export function diffText(d: KpiDelta): string {
-  if (d.delta === null) return ''
+  if (d.shown === null) return ''
   const pop = d.key === 'cov1Pop' || d.key === 'cov3Pop'
   const time = d.key === 'p90Tenths'
-  const s = pop ? signed(d.delta, 0) : time ? signed(Math.round(d.delta / 10), 0) : signed(d.delta)
+  // 옆에 적힌 두 값(반올림한 값)의 차이를 적는다(kpiDeltas.shown)
+  const s = pop || time ? signed(d.shown, 0) : signed(d.shown)
   if (s === '±0') return s
   const unit = pop ? '명' : time ? '분' : '일'
   return s + unit
