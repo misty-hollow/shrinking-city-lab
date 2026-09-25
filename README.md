@@ -59,6 +59,9 @@
     reports/                대조 기록(2026-09 반증 실험 1회 대조, r1→r2, 행정안전부 인구 대조 mois_crosscheck.json)
     data.lock.json          파생·앱 데이터 sha256
     scl_pipeline/           단계별 모듈(아래 명령)
+  deploy/                   geoleobom.kr 교체 배포(deploy_geoleobom.sh) · 커밋 빌드(build_release.sh, --base=/) ·
+                            배포 확인(smoke_web.py) · 로컬 예행연습(dryrun_local.sh, 운영 Caddyfile). 절차는
+                            docs/release/RELEASE_READINESS.md 6절
   app/                      React 18 + TypeScript + Vite + three.js 정적 앱
     public/data/            앱이 읽는 정적 데이터(파이프라인 출력) + manifest.json(provenance)
     src/engine/             KPI 엔진(순수 함수, 파이썬 model.py와 같은 정의)
@@ -77,6 +80,7 @@ cd app
 npm ci
 npm run dev                 # http://localhost:5173  (?kiosk=0 이면 90초 복귀를 끈다)
 npm run build && npm run preview   # 정적 빌드 확인(dist/, 상대 경로라 어느 하위 경로에 올려도 된다)
+npm run build -- --base=/          # 사이트 뿌리에 SPA 물러섬으로 올릴 때(geoleobom.kr). 라이선스 고지는 dist/licenses/
 ```
 
 ## 검사

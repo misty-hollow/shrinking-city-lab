@@ -1,6 +1,6 @@
 # 공개 전 릴리스 준비 상태
 
-기준일: 2026-09-25. 기준 저장소: `misty-hollow/shrinking-city-lab`(private) main `ed5d995` + 이 준비 작업(커밋 전).
+기준일: 2026-09-25. 기준 저장소: `misty-hollow/shrinking-city-lab`(private) main `e935692` + RC 감사 수정(브랜치 `rc/audit-fixes`).
 이 문서는 **무엇이 끝났고, 무엇을 사람이 해야 하고, 무엇이 외부 회신을 기다리는지**를 한곳에 둡니다.
 
 ## 1. 게이트 현황
@@ -15,6 +15,7 @@
 | 사람 플레이테스트 | **사람 필요** | `PLAYTEST.md` |
 | 스피커 소리 청취 | **사람 필요** | `SOUND_QA.md` |
 | 원본 백업(C: 밖) | **필수 수동 작업, 미완료** | 아래 2절 |
+| geoleobom.kr 교체 배포·되돌리기 | **준비됨, 실행 안 함** | 아래 6절. 운영과 같은 Caddyfile·Caddy 이미지·릴리스 함수로 로컬 예행연습 통과 |
 | S7 실험실 | 릴리스 범위 밖 | 이번 공개에 넣지 않는다(설계안 Must 목록에는 있으나 사용자가 릴리스 blocker에서 뺐다) |
 
 ## 2. 필수 수동 작업
@@ -31,11 +32,7 @@
      - 공주시 원본: 게시물이 내려갈 수 있습니다.
 2. **코드 라이선스(MIT)와 저작권자 표기를 확정한다.** `LICENSE`는 기본값으로 MIT, "Shrinking City Lab contributors"라고 적어 두었습니다. 팀·지도교수·학교 규정에 맞는지 확인합니다.
 3. **원본 페이지 공공누리 표시를 브라우저로 한 번 더 육안 확인한다.** 대상은 공주시 인구현황 게시물과 보건소 진료안내 페이지의 하단 배너입니다. 지금까지의 조사는 페이지 텍스트 기준입니다.
-4. **진료일정 회신을 반영한다.** 회신 내용을 다음 네 곳에 그대로 옮깁니다.
-   - `DATA_LICENSE.md` 2절
-   - `pipeline/sources/sources.json`의 `clinic_schedule.usage_status`·`redistribution`
-   - `python -m scl_pipeline build`로 manifest 재생성(그러면 앱 S8 표기도 바뀝니다)
-   - 회신 기록(개인정보 제외)은 `docs/data-provenance/`에 보관
+4. **진료일정 회신을 반영한다.** 회신 종류별 최소 조치는 아래 7절.
 5. 전시 기기 성능 실측·플레이테스트·소리 청취(아래 3절, `PLAYTEST.md`, `SOUND_QA.md`).
 
 ## 3. 성능 점검 (2026-09-25, 운영 빌드, 1920×1080, DPR 1)
@@ -89,3 +86,97 @@ headless의 rAF는 이 PC 모니터(180 Hz)에 맞춰 돌기 때문에, fps 값�
 - [ ] 이 준비 작업을 PR로 병합하고 main CI green
 - [ ] public 전환 직전 `gitleaks git --log-opts=--all`과 `git log --all --name-only | grep -iE "xlsx|medical_table|pbf"`를 다시 확인
 - [ ] 공개 후 저장소 About에 `DATA_LICENSE.md` 안내
+
+## 6. geoleobom.kr 교체 배포·되돌리기
+
+걸어봄 운영의 웹 릴리스 방식을 그대로 씁니다.
+- 서버: `/srv/geoleobom/web/<릴리스 ID>/`에 불변 디렉터리를 두고, `current`·`previous` 링크를 원자적으로 바꿉니다.
+- Caddy: 설정은 **바꾸지 않습니다.** `current`를 서빙하고, `/assets/*`는 immutable로 캐시하며 없으면 previous에서 찾고, 그 밖의 주소는 index.html로 보냅니다(SPA 물러섬).
+- 릴리스 ID: `scl-<커밋>`. 걸어봄 릴리스(40자 SHA)와 섞이지 않습니다.
+- 빌드: `deploy/build_release.sh`가 커밋에서 `--base=/`로 빌드합니다. 그래서 옛 걸어봄 주소(`/p/...`, `/c/...`, `/search`, `/about`)로 들어와도 앱이 뜹니다.
+
+**전제 (하나라도 아니면 배포하지 않는다)**
+- [ ] 사용자의 명시적 배포 승인
+- [ ] SCL main 커밋의 CI가 success(스크립트가 `gh run list`로 확인)
+- [ ] 진료일정 회신 처리(7절)
+- [ ] 결정: `index.html`의 `noindex` 유지 여부
+- [ ] 결정: 웹 방문자에게도 90초 무입력 복귀를 켤지. 기본 켬이고, `?kiosk=0`이면 끕니다
+- [ ] 결정: 걸어봄 `/api/*`를 되돌리기 기간에 계속 둘지(기본: 둔다)
+- [ ] 로컬 예행연습 통과. SCL 저장소에서 `bash deploy/dryrun_local.sh <커밋> --geoleobom-repo ../geoleobom`
+  - 운영 Caddyfile·Caddy 이미지·`web_release.sh`로 다음을 확인합니다: 설치·전환 → smoke → 되돌리기 → 앞으로
+- [ ] 지금 서빙 중인 릴리스 기록: `ssh geoleobom 'ls -l /srv/geoleobom/web/current /srv/geoleobom/web/previous'`(걸어봄 STATUS.md와 대조)
+
+**배포 (SCL 저장소에서)**
+```
+bash deploy/deploy_geoleobom.sh <SCL main 커밋 40자> --geoleobom-repo ../geoleobom --approved
+```
+스크립트가 순서대로 하는 일:
+1. 커밋 확인(origin/main 조상, CI success)
+2. git archive → `npm ci` → 테스트 → `vite build --base=/`
+3. 릴리스 지문 → tar로 staging에 올림
+4. 서버에서 `install_release`(지문 대조, 불변) → `switch_current`(previous = 지금의 걸어봄)
+5. `deploy/smoke_web.py` 확인
+   - `/`와 자산의 형식
+   - 앱 자료 6개가 **data.lock의 sha256과 바이트 동일**한지
+   - 라이선스 고지
+   - 깊은 주소 `/p/36.47130,127.14020`
+   - 직전 걸어봄 자산이 previous에서 여전히 열리는지
+
+smoke가 실패하면 바로 아래 되돌리기를 합니다.
+배포 뒤 사람이 확인합니다: 브라우저로 `https://geoleobom.kr/`에서 한 판(시작 → 미션 1 확정), S8 원본 주소 링크, `https://geoleobom.kr/p/36.47130,127.14020`.
+
+**되돌리기 (걸어봄 저장소에서, 링크만 맞바꿈 — 수 초)**
+```
+bash deploy/rollback.sh web --host geoleobom
+python deploy/smoke.py --base-url https://geoleobom.kr --pages-only --check-assets
+```
+- 다시 실행하면 SCL로 다시 앞으로 갑니다.
+- `previous`는 한 단계뿐입니다. SCL을 두 번 배포한 뒤에는 previous가 이전 SCL입니다. 이때 걸어봄으로 가려면 걸어봄 릴리스 ID(STATUS.md의 web current, 예: `5eca67e…`)로 직접 전환합니다.
+  ```
+  (cat deploy/web_release.sh; echo "switch_current /srv/geoleobom/web <걸어봄 릴리스 ID>") | ssh geoleobom bash -s
+  ```
+  그다음 위 `smoke.py`로 확인합니다.
+- 릴리스 디렉터리는 지우지 않으므로, 어느 쪽이든 다시 갈 수 있습니다.
+
+**배포 뒤 알고 있어야 할 것**
+- `/api/*`는 그대로 걸어봄 API로 갑니다(되돌리기용). 끌지는 따로 결정합니다.
+- 걸어봄 저장소에서 `deploy_web.sh`를 실행하면 SCL이 걸어봄으로 다시 바뀝니다. `deploy_api.sh`와 `rollback.sh code`는 Caddyfile을 다시 올리지만 웹 링크는 바꾸지 않습니다.
+- Caddy에 압축(`encode`)이 없습니다. 첫 방문에 JS 약 960 KB·CSS 160 KB·자료 약 820 KB를 압축 없이 받습니다(글꼴은 필요한 조각만).
+  - 줄이려면 걸어봄 Caddyfile에 `encode zstd gzip`을 더합니다.
+  - 이것은 걸어봄 운영 변경(`deploy_api.sh` 경로)이라 별도 승인이 필요합니다.
+- HSTS·CSP 헤더는 지금 걸어봄 설정에도 없습니다(같은 이유로 별도 결정).
+- Caddy 접근 기록은 허용 목록 밖 경로를 템플릿으로만 남깁니다. SCL의 `/data/…`는 `/`로 기록되며, 개인정보 규칙에 어긋나지 않습니다.
+- 배포하면 걸어봄 저장소 STATUS.md의 web current/previous 기록을 갱신합니다.
+
+## 7. 공주시 진료일정 회신별 최소 후속 조치
+
+공통 조치:
+- 회신 원문을 개인정보를 빼고 `docs/data-provenance/`에 보관합니다(날짜·부서·요지).
+- 아래 순서로 반영합니다.
+  1. `pipeline/sources/sources.json`의 `clinic_schedule.usage_status`·`redistribution`
+  2. `DATA_LICENSE.md` 2절과 "출처 표기 문구"
+  3. `cd pipeline && python -m scl_pipeline build && python -m scl_pipeline verify`(manifest가 바뀌어 S8 표기도 바뀝니다)
+  4. `app/src/screens/screens.test.tsx`의 "확인 중" 단언을 회신 문구에 맞게 고칩니다(회신 전 표기를 지키던 검사)
+  5. PR → CI → 병합
+- "방문 전 확인" 안내는 이용허락과 별개(정보의 최신성)라 어느 경우에도 남깁니다.
+
+| 회신 | 최소 조치 | 공개 |
+|---|---|---|
+| **공개 가능** (공공누리 유형 적용 또는 서면 허락) | 공통 조치. `usage_status`를 "공주시 확인(날짜·부서): 공개 가능 — 공공누리 제n유형"처럼 **회신 그대로** 씁니다. 유형이 정해지면 그 유형의 출처 표기 문구를 씁니다 | 6절 전제가 채워지면 가능 |
+| **조건부 가능** | 공통 조치 + 조건을 그대로 반영합니다.<br>① 출처 문구 지정 → `usage_status`·DATA_LICENSE에 그 문구 그대로<br>② 비영리 한정 → DATA_LICENSE 2절에 제한을 명시(코드 MIT와 별개)<br>③ "최신 일정 반영" 요구 → 새 기준일 일정으로 갱신. 데이터 판본(r3)·계산 결과가 바뀌므로 **사용자 결정**<br>④ "웹 표시만, 파일 재배포 불가" → 요일표 값이 저장소 파일(`source_facts`·`scenario`·`manifest`)에 있으므로 **저장소 public 전환은 보류**, 사이트 배포만 검토(사용자 결정) | ①②는 가능. ③④는 결정 뒤 |
+| **공개 불가** | 공개·배포하지 않습니다(저장소 private 유지). 선택지는 **사용자 결정**입니다.<br>(가) 공공데이터포털 제공신청(공공데이터법 제27조, 10일 안 결정)으로 공식 경로를 찾습니다<br>(나) 현재 배분을 실제 자료가 아닌 **게임 가정**으로 바꿉니다. 제품 의미(현재 실제 10일, 튜토리얼 기준선, `실제 10 + 가정 5`)와 데이터 판본이 바뀌므로 설계안부터 고칩니다 | 불가 |
+
+
+## 8. 남겨 둔 알려진 문제 (RC 감사 2026-09-25, 제품·디자인 결정이 필요해 고치지 않음)
+
+| 문제 | 영향 | 결정할 사람 |
+|---|---|---|
+| 폭이 768 px 아래로 내려가면(창을 반으로 줄임·150% 확대) 안내 화면으로 바뀌고 진행 중인 판이 처음으로 돌아간다 | 공개 웹의 저시력 확대 사용자. 전시에는 영향 없음 | 제품(5-10 모바일 범위) |
+| 768~1023 px 하단 시트 없음(설계안 5-10) | 플레이는 되지만 설계 배치와 다름 | 제품 |
+| 기준일 칩이 S0와 1280 px 미만에서 안 보인다(8-1·8-3 "항상 표시"와 차이, UI_DESIGN_SYSTEM §12.4에 기록된 선택) | 세 기준일이 동시에 안 보이는 화면이 있다 | 제품·UX |
+| 기준 스위치가 소개·브리핑 화면에서도 켜져 있지만 미션 시작 때 15분으로 돌아간다 | 누른 선택이 사라지는 것처럼 보인다 | UX |
+| 마을 도구설명(닿는 지소·도로망 분)은 3D 가리키기로만 볼 수 있고, − 미리보기는 마우스로만 된다 | 5-11 "무대 정보는 패널에도"와 차이(스크린리더에는 라이브 영역 문장이 있음) | UX |
+| 위에서 보기·겹쳐 보기 버튼은 `aria-pressed`와 뒤집히는 이름을 함께 쓴다 | 스크린리더가 "비스듬히 보기, 눌림"처럼 읽는다. 고치면 QA 이름이 바뀐다 | UX(작은 수정) |
+| 지역 카드·지표 자세히를 닫을 때 포커스가 문서 처음으로 간다. 날아가는 동안 ↶가 `disabled` | 키보드 사용자가 위치를 잃는다 | UX(작은 수정) |
+| 지소 건물을 두 번 누르면 하루가 두 번 놓이고 카메라가 다가간다 | 드문 조작 | UX |
+| 90초 무입력 복귀가 기본 켬(공개 웹에서도 S8을 읽는 중에 돌아간다) | 6절 전제의 결정 항목 | 제품 |
