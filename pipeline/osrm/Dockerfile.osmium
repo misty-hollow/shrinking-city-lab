@@ -1,0 +1,16 @@
+# osmium-tool 실행 이미지(데이터 재생성의 osm·route 단계).
+# 빌드: docker build -t scl-osmium:local -f pipeline/osrm/Dockerfile.osmium pipeline/osrm
+#
+# osmium-tool에는 공식 Docker 이미지가 없다. 관리 주체를 알 수 없는 제3자 이미지를
+# 쓰는 대신 Debian 패키지를 직접 설치한다. 자체 컴파일이나 apt snapshot 고정까지는
+# 하지 않는다 — 추출 단계는 결과 파일을 검증하므로 그만한 재현성이 필요하지 않다.
+#
+# base image digest는 pipeline/osrm/versions.json(osmium_base)과 같다.
+FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends --yes osmium-tool \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /data
+ENTRYPOINT ["osmium"]

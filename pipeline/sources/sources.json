@@ -1,0 +1,128 @@
+{
+ "_about": "Shrinking City Lab 원자료 목록. cache_path는 내려받아 pipeline/cache/에 두는 파일(Git 밖)이다. sha256이 다르면 파이프라인이 멈춘다. 공주시 원자료는 재배포 허락이 확인되지 않아 원본을 저장소에 두지 않는다.",
+ "population_tongban": {
+  "classification": "REAL_DATA",
+  "role": "법정리 인구(통·반 총인구 합산)",
+  "publisher": "공주시 스마트정보과",
+  "title": "2026년 8월 인구현황 — 법정동별통반별인구현황(2026.8.).xlsx",
+  "page_url": "https://www.gongju.go.kr/bbs/BBSMSTR_000000000697/view.do?nttId=B000000336750Xz4qT4b",
+  "download_url": "https://www.gongju.go.kr/cmm/fms/FileDown.do?atchFileId=FILE_0000141160Ci1xN&fileSn=0",
+  "posted": "2026-09-07",
+  "reference_date": "2026-08-31",
+  "retrieved": "2026-09-24",
+  "original_filename": "법정동별통반별인구현황(2026.8.).xlsx",
+  "sha256": "d16c49b42c000d312a0bf81e6b84a704acba9eb7986bea76ecee633cc254b8e8",
+  "license": "공공누리 표시 없음. 재배포 허락 확인 안 됨(redistribution 참고)",
+  "cache_path": "cache/sources/population/gongju_tongban_population_2026-08.xlsx",
+  "redistribution": {
+   "checked": "2026-09-24",
+   "kogl_mark_on_post": "없음 (게시물 '공공누리유형' 영역이 비어 있다)",
+   "notice_in_file": "없음 (xlsx 안에 공공누리·저작권 표시 없음)",
+   "site_policy": "https://www.gongju.go.kr/kr/sitemap_04.do — 공공누리가 부착된 저작물만 별도 허락 없이 자유이용. '공공누리가 부착되지 않은 자료들을 이용하고자 할 경우에는 공공저작물 실무담당자와 사전에 협의'",
+   "site_footer": "COPYRIGHT ⓒ GONGJU CITY. ALL RIGHTS RESERVED.",
+   "decision": "원본 파일은 저장소에 넣지 않는다. 공식 URL에서 cache/로 받고 sha256으로 고정한다. 저장소에는 계산에 쓰는 값만 derived/source_facts.json으로 둔다",
+   "unverified": "계산값(법정리별 인구 등)을 앱 데이터로 공개 배포하는 것에 대한 공주시의 입장은 확인하지 않았다. 공개 배포 전 실무담당자(문화체육과) 협의가 필요한지 사용자가 판단한다"
+  }
+ },
+ "population_households_age": {
+  "classification": "REAL_DATA",
+  "role": "읍·면 총인구, 읍·면 65세 이상 인구",
+  "publisher": "공주시 스마트정보과",
+  "title": "2026년 8월 인구현황 — 인구 및 세대현황(2026.8.).xlsx",
+  "page_url": "https://www.gongju.go.kr/bbs/BBSMSTR_000000000697/view.do?nttId=B000000336750Xz4qT4b",
+  "download_url": "https://www.gongju.go.kr/cmm/fms/FileDown.do?atchFileId=FILE_0000141160Ci1xN&fileSn=1",
+  "posted": "2026-09-07",
+  "reference_date": "2026-08-31",
+  "retrieved": "2026-09-24",
+  "original_filename": "인구 및 세대현황(2026.8.).xlsx",
+  "sha256": "953bbe8e6684e2d95cf07bd9520e2ac1e95322d3d9e41f3696d75e0c7173a8b1",
+  "license": "공공누리 표시 없음. 재배포 허락 확인 안 됨(redistribution 참고)",
+  "cache_path": "cache/sources/population/gongju_population_households_age_2026-08.xlsx",
+  "redistribution": {
+   "checked": "2026-09-24",
+   "kogl_mark_on_post": "없음 (게시물 '공공누리유형' 영역이 비어 있다)",
+   "notice_in_file": "없음 (xlsx 안에 공공누리·저작권 표시 없음)",
+   "site_policy": "https://www.gongju.go.kr/kr/sitemap_04.do — 공공누리가 부착된 저작물만 별도 허락 없이 자유이용. '공공누리가 부착되지 않은 자료들을 이용하고자 할 경우에는 공공저작물 실무담당자와 사전에 협의'",
+   "site_footer": "COPYRIGHT ⓒ GONGJU CITY. ALL RIGHTS RESERVED.",
+   "decision": "원본 파일은 저장소에 넣지 않는다. 공식 URL에서 cache/로 받고 sha256으로 고정한다. 저장소에는 계산에 쓰는 값만 derived/source_facts.json으로 둔다",
+   "unverified": "계산값(법정리별 인구 등)을 앱 데이터로 공개 배포하는 것에 대한 공주시의 입장은 확인하지 않았다. 공개 배포 전 실무담당자(문화체육과) 협의가 필요한지 사용자가 판단한다"
+  }
+ },
+ "clinic_schedule": {
+  "classification": "REAL_DATA",
+  "role": "보건지소 의과(일반진료) 순회근무 요일",
+  "publisher": "공주시보건소",
+  "title": "진료안내 — 공주시보건소 순회근무 현황 (2026. 4. 13. 기준), 의과 진료 표",
+  "page_url": "https://www.gongju.go.kr/health/sub02_01.do",
+  "reference_date": "2026-04-13",
+  "retrieved": "2026-09-24",
+  "excerpt_note": "페이지 전체(세션마다 바이트가 달라진다)가 아니라 순회근무 제목 h2와 의과 표 table만 잘라 sha256을 고정한다(scl_pipeline.schedule.extract_excerpt). 2026-09 반증 실험이 받아 둔 페이지의 같은 발췌와 한 글자도 다르지 않다.",
+  "conversion_rule": "요일 칸 ○ = 주 1일, 격주 = 주 0.5일(격주 평균), 빈 칸 = 0일",
+  "sha256": "d401fc4fc495e50e8260a07e8f3049f7bf30c59e2e2d0d108bbca0ccb62ed9d0",
+  "license": "공공누리 표시 없음. 재배포 허락 확인 안 됨(redistribution 참고)",
+  "cache_path": "cache/sources/clinic_schedule/gongju_health_sub02_01_medical_table.html",
+  "redistribution": {
+   "checked": "2026-09-24",
+   "kogl_mark_on_post": "없음 (게시물 '공공누리유형' 영역이 비어 있다)",
+   "notice_in_file": "해당 없음(HTML 페이지)",
+   "site_policy": "https://www.gongju.go.kr/kr/sitemap_04.do — 공공누리가 부착된 저작물만 별도 허락 없이 자유이용. '공공누리가 부착되지 않은 자료들을 이용하고자 할 경우에는 공공저작물 실무담당자와 사전에 협의'",
+   "site_footer": "COPYRIGHT ⓒ GONGJU CITY. ALL RIGHTS RESERVED.",
+   "decision": "페이지 발췌는 저장소에 넣지 않는다. 페이지를 받아 발췌를 만들고 sha256으로 대조한다. 저장소에는 요일표 값만 둔다",
+   "unverified": "계산값(법정리별 인구 등)을 앱 데이터로 공개 배포하는 것에 대한 공주시의 입장은 확인하지 않았다. 공개 배포 전 실무담당자(문화체육과) 협의가 필요한지 사용자가 판단한다"
+  }
+ },
+ "osm_extract": {
+  "classification": "REAL_DATA",
+  "role": "도로망(car 라우팅), 법정리 대표점 후보(place 점), 도로·하천 표시, 지소 좌표 보정",
+  "publisher": "OpenStreetMap contributors (Geofabrik 배포)",
+  "title": "chungcheong.osm.pbf — Geofabrik south-korea-latest(2026-09-11 내려받음)에서 걸어봄 data/osrm/build_graph.sh가 추출",
+  "cache_path": "cache/osm/chungcheong.osm.pbf",
+  "sha256": "fe454e43bc499df22733c7f3aa97892448dccd9c4caa2397ecfd80241fce89ed",
+  "osm_latest_object_timestamp": "2026-09-10T14:58:34Z",
+  "license": "ODbL 1.0 (© OpenStreetMap contributors)",
+  "note": "파일은 Git 밖이다. 같은 바이트가 없으면 OSM 파생 단계(osm·route)는 멈추고, 저장소의 derived/ 결과로만 빌드할 수 있다."
+ },
+ "admin_boundaries": {
+  "classification": "REAL_DATA",
+  "role": "읍·면 10곳과 시내(동 6곳) 경계",
+  "publisher": "통계청 SGIS 행정동 경계(공공누리 제1유형), 가공 vuski/admdongkor (CC BY 4.0)",
+  "title": "HangJeongDong_ver20260701.geojson",
+  "download_url": "https://raw.githubusercontent.com/vuski/admdongkor/7360288277dfd12d74e54b959c59bdd66f852e3a/ver20260701/HangJeongDong_ver20260701.geojson",
+  "reference_date": "2026-07-01",
+  "retrieved": "2026-09-24",
+  "cache_path": "cache/boundaries/HangJeongDong_ver20260701.geojson",
+  "sha256": "c01ef44a0eb00978662ba7a6240ccb1da287fb52abd85104a1758969d391132f",
+  "license": "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0으로 배포된다.",
+  "note": "OSM에는 공주시 읍·면 경계 관계가 없어(2026-09-10 추출본에서 확인) 공공 경계를 쓴다."
+ },
+ "dem_srtm": {
+  "classification": "REAL_DATA",
+  "role": "지형 고도(시각 표현 전용, 계산에 쓰지 않는다)",
+  "publisher": "NASA/USGS SRTM 1 arc-second, Mapzen/Tilezen Terrain Tiles(AWS Open Data elevation-tiles-prod, skadi 형식)",
+  "title": "SRTM HGT 1°×1° 타일 N36E126, N36E127",
+  "tiles": {
+   "N36E126": {
+    "download_url": "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N36/N36E126.hgt.gz",
+    "cache_path": "cache/dem/N36E126.hgt.gz",
+    "sha256": "cc3ba98fc39b1c41ae78756165e3c18eb8afddc3003bc74dd4d2fdf057efe444"
+   },
+   "N36E127": {
+    "download_url": "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N36/N36E127.hgt.gz",
+    "cache_path": "cache/dem/N36E127.hgt.gz",
+    "sha256": "2c319768aa062b613d4195655fdbd20b8b61729f4c7a7b1cc0b27e46a6589676"
+   }
+  },
+  "retrieved": "2026-09-24",
+  "license": "SRTM은 미국 정부 저작물(퍼블릭 도메인). Terrain Tiles 출처 표기: Mapzen/Tilezen, SRTM(NASA)."
+ },
+ "hira_hospitals": {
+  "classification": "REAL_DATA",
+  "role": "보건지소 좌표(대조용 원본)",
+  "publisher": "건강보험심사평가원",
+  "title": "전국 병의원 및 약국 현황 2026.6 — 1.병원정보서비스(2026.6.).xlsx",
+  "repo_path": "data/raw/전국 병의원 및 약국 현황 2026.6.zip",
+  "reference_date": "2026-06",
+  "license": "공공데이터포털 개방 자료",
+  "note": "선택 입력. 있으면 check-hira가 sources/facilities.json의 hira 값을 원본과 대조한다."
+ }
+}
