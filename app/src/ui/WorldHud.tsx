@@ -4,6 +4,8 @@
  * 아이콘 버튼은 aria-label과 hover 툴팁(한국어 동사 + 단축키)을 함께 가진다.
  */
 
+import { useEffect, useRef } from 'react'
+
 import { copy } from '../content/copy'
 import type { Threshold } from '../engine/kpi'
 import { SoundToggle } from './Hud'
@@ -11,14 +13,25 @@ import { SoundToggle } from './Hud'
 const THRESHOLDS: Threshold[] = [10, 15, 20]
 
 export function ThresholdSwitch({ T, onT, locked, coach }: { T: Threshold; onT(t: Threshold): void; locked: boolean; coach: boolean }) {
+  // 방향키로 고르면 포커스도 새로 고른 칸으로 옮긴다(roving tabindex). 안 옮기면 포커스가 tabindex=-1이 된
+  // 옛 칸에 남아 포커스 링이 사라지고 스크린리더가 새 선택을 읽지 않는다.
+  const group = useRef<HTMLDivElement>(null)
+  const moved = useRef(false)
+  useEffect(() => {
+    if (!moved.current) return
+    moved.current = false
+    group.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus()
+  }, [T])
   const onKey = (e: React.KeyboardEvent) => {
     if (locked) return
     const i = THRESHOLDS.indexOf(T)
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault()
+      moved.current = true
       onT(THRESHOLDS[Math.min(2, i + 1)])
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault()
+      moved.current = true
       onT(THRESHOLDS[Math.max(0, i - 1)])
     }
   }
@@ -27,7 +40,7 @@ export function ThresholdSwitch({ T, onT, locked, coach }: { T: Threshold; onT(t
       <span className="t-label" id="t-label">
         {copy.threshold.label}
       </span>
-      <div className="t-group" role="radiogroup" aria-labelledby="t-label" aria-describedby="t-help" onKeyDown={onKey}>
+      <div ref={group} className="t-group" role="radiogroup" aria-labelledby="t-label" aria-describedby="t-help" onKeyDown={onKey}>
         {THRESHOLDS.map((t) => (
           <button key={t} type="button" role="radio" aria-checked={T === t} tabIndex={T === t ? 0 : -1} disabled={locked} onClick={() => onT(t)}>
             {copy.threshold.option(t)}

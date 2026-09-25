@@ -887,6 +887,12 @@ body {
   right: 420px;
 }
 
+/* 지표 자세히(오른쪽 380px)가 열리면 손이 시트 밑에 깔리지 않을 만큼만 왼쪽으로(1024). 넓은 화면은 가운데 그대로.
+   손의 반폭 약 150px + 시트 380px + 여백 16px */
+.app.has-details .hand {
+  left: min(50%, calc(100% - 546px));
+}
+
 .t-switch {
   display: flex;
   align-items: center;
@@ -2253,8 +2259,10 @@ body {
     animation: none;
   }
 
+  /* 전역 규칙(app.css: animation-duration 0.001ms !important)보다 앞서야 결과 숫자가 보인다(움직임 없이 머물다 사라짐) */
   .marker-pop {
     animation: pop-still 1900ms linear both;
+    animation-duration: 1900ms !important;
   }
 
   .mk-head,
