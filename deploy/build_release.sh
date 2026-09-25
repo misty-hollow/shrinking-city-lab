@@ -17,7 +17,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 git -C "$REPO" cat-file -e "$SHA^{commit}" 2>/dev/null || { echo "커밋이 없다: $SHA (git fetch 먼저)" >&2; exit 1; }
 
 rm -rf "$OUT" && mkdir -p "$OUT/src"
-git -C "$REPO" archive "$SHA" app pipeline/data.lock.json | tar -x -C "$OUT/src"
+git -C "$REPO" archive "$SHA" app pipeline/data.lock.json pipeline/reports | tar -x -C "$OUT/src"
 cp "$OUT/src/pipeline/data.lock.json" "$OUT/data.lock.json"
 
 (

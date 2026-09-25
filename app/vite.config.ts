@@ -31,12 +31,12 @@ function thirdPartyNotices(): Plugin {
         '',
       ]
       for (const name of [...pkgs].sort()) {
-        const dir = join(__dirname, 'node_modules', name)
+        const dir = join(import.meta.dirname, 'node_modules', name)
         const meta = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf-8')) as { version: string; license?: string }
         const file = readdirSync(dir).find((f) => /^(licen[cs]e|copying)(\.|$)/i.test(f))
         parts.push('='.repeat(78), `${name}@${meta.version} — ${meta.license ?? 'UNKNOWN'}`, '='.repeat(78))
         if (file) parts.push(readFileSync(join(dir, file), 'utf-8').trim())
-        else if (SEPARATE[name] && existsSync(join(__dirname, 'public', SEPARATE[name]))) parts.push(`라이선스 원문: ${SEPARATE[name]}`)
+        else if (SEPARATE[name] && existsSync(join(import.meta.dirname, 'public', SEPARATE[name]))) parts.push(`라이선스 원문: ${SEPARATE[name]}`)
         else this.error(`${name}: 라이선스 원문 파일이 없다`)
         parts.push('')
       }
