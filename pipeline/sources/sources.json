@@ -154,7 +154,7 @@
   "retrieved": "2026-09-24",
   "cache_path": "cache/boundaries/HangJeongDong_ver20260701.geojson",
   "sha256": "c01ef44a0eb00978662ba7a6240ccb1da287fb52abd85104a1758969d391132f",
-  "license": "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0으로 배포된다.",
+  "license": "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)으로 배포된다. Shrinking City Lab이 이를 투영·단순화하고 시내 동 6곳을 하나로 합쳤다.",
   "note": "OSM에는 공주시 읍·면 경계 관계가 없어(2026-09-10 추출본에서 확인) 공공 경계를 쓴다."
  },
  "dem_srtm": {

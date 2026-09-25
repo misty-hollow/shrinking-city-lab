@@ -51,6 +51,7 @@
 
 - 출처: © OpenStreetMap contributors (Geofabrik 배포, 최신 객체 2026-09-10T14:58:34Z)
 - 이용조건: Open Database License 1.0 (https://opendatacommons.org/licenses/odbl/1-0/)
+- OSM에서 파생된 부분(아래 목록)만 ODbL 1.0을 따릅니다. 같은 파일 안의 인구·진료일정 값에는 1·2절 조건이 그대로 적용됩니다.
 - OSM에서 파생된 데이터베이스는 ODbL 1.0을 따릅니다. 이용할 때 "© OpenStreetMap contributors" 표기가 필요하고, 파생 데이터베이스를 공개할 때도 같은 조건을 유지해야 합니다.
   - `pipeline/derived/osm_features.json`
   - `pipeline/derived/osrm_car_table.json`(161×10 접근시간·접근점)
@@ -63,7 +64,8 @@
 ## 5. 읍·면 경계 — CC BY 4.0
 
 - 출처: 통계청 통계지리정보서비스(SGIS) 행정동 경계(공공누리 제1유형), 가공 vuski/admdongkor `ver20260701`
-- 이용조건: CC BY 4.0. 출처 표기 문구: "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0으로 배포된다."
+- 이용조건: CC BY 4.0. 출처 표기 문구: "본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)으로 배포된다. Shrinking City Lab이 이를 투영·단순화하고 시내 동 6곳을 하나로 합쳤다."
+- 변경: 이 저장소가 경계를 평면 좌표로 투영하고 단순화(0.03 km)했으며, 공주 시내 동 6곳을 하나로 합쳤습니다(`pipeline/scl_pipeline/boundaries_step.py`).
 - 들어 있는 파일: `pipeline/derived/boundaries.json`, `app/public/data/geometry.json`의 경계
 
 ## 6. 지형 — 퍼블릭 도메인
@@ -99,6 +101,6 @@ KPI, 배분 지형도, 미션 목표치, 참고 배분, 골든 값(`golden.json`
 - 인구: 행정안전부, 「지역별(법정동)·(행정동) 성별 연령별 주민등록 인구수」(2026-08-31 기준), 공공데이터포털 — 이용허락범위 제한 없음(공공데이터포털 표시)
 - 진료일정: 공주시보건소 「진료안내」 순회근무 현황(2026-04-13 기준) — 이용조건 기관 확인 중(회신 전). 공공누리 표시가 없어 공주시 저작권정책상 사전 협의 대상이다. 확정된 이용허락이 아니다
 - 보건지소 위치: 건강보험심사평가원 「전국 병의원 및 약국 현황 2026.6」 병원정보서비스 — 공공누리 제1유형(출처표시) — 공공데이터포털 데이터셋 페이지 표시, 2026-09-25 확인
-- 도로망: ODbL 1.0 (© OpenStreetMap contributors)
-- 경계: 본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0으로 배포된다.
+- 도로망: ODbL 1.0 (© OpenStreetMap contributors, https://www.openstreetmap.org/copyright)
+- 경계: 본 데이터는 통계청 통계지리정보서비스(SGIS)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor), CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)으로 배포된다. Shrinking City Lab이 이를 투영·단순화하고 시내 동 6곳을 하나로 합쳤다.
 - 지형: SRTM은 미국 정부 저작물(퍼블릭 도메인). Terrain Tiles 출처 표기: Mapzen/Tilezen, SRTM(NASA).
