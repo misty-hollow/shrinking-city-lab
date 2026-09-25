@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from scl_pipeline import build_step, config, import_step, model, schedule, verify_step
+from scl_pipeline import build_step, config, import_step, model, mois_check, schedule, verify_step
 from scl_pipeline.util import read_json, sha256_file, write_json
 
 DATA = config.APP_DATA_DIR
@@ -252,6 +252,17 @@ def test_derived_files_record_current_step_code():
         write_json(Path(tmp) / "osrm_car_routes.json", routes)
         errs = verify_step.provenance_invariants(Path(tmp))
         assert len(errs) == 1 and errs[0].startswith("osrm_car_routes.json")
+
+
+def test_population_matches_mois_open_data(scenario):
+    """인구 값 = 같은 기준일 행정안전부 공공데이터포털 개방 자료(법정리 161·읍면 10×2·시 2·시내 동 6·수요점 161)."""
+    facts = read_json(config.DERIVED_DIR / "source_facts.json")
+    rep = mois_check.compare(facts, scenario)
+    assert rep["result"] == "MATCH" and rep["checked"] == 350
+    assert rep == read_json(mois_check.REPORT)
+    # 한 값이라도 다르면 잡는다(대조가 실제로 값을 본다).
+    facts["population"]["emds"][0]["ri"][0][1] += 1
+    assert mois_check.compare(facts, scenario)["mismatches"]
 
 
 def test_table_keeps_only_deterministic_osrm_values():

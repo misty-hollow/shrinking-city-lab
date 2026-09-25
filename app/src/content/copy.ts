@@ -485,6 +485,10 @@ export const copy = {
       '소리는 조작을 거드는 효과음이에요. 소리 없이도 모든 정보를 화면에서 볼 수 있어요.',
     ],
     attributionTitle: '데이터 출처 표기',
+    visitNotice: (date: string) =>
+      `진료 일정은 ${date} 기준 공주시보건소 진료안내 페이지를 옮긴 것이에요. 운영 여부는 수시로 바뀌니, 방문 전에 해당 보건(지)소에 꼭 확인해 주세요.`,
+    populationCheck: (date: string) =>
+      `인구 값은 공주시 인구현황 파일(${date} 기준)로 계산했고, 같은 기준일의 행정안전부 공개 자료와 값이 모두 같아요.`,
   },
 
   classes: {

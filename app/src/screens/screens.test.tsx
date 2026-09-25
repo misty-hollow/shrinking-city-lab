@@ -14,6 +14,7 @@ import type { Geometry, Landscape, Manifest, Scenario } from '../data/types'
 import { zeroOverlap, zeroVillages } from '../engine/compare'
 import { buildModel, computeKpis } from '../engine/kpi'
 import { type MissionResult, type Results, comboFor, finaleResults, makeEvaluate } from '../state/results'
+import { DataLimits } from './DataLimits'
 import { DebriefPanel } from './Debrief'
 import { FinaleBoard, FinalePanel, type FinaleResults, finaleSummary } from './Finale'
 
@@ -201,5 +202,30 @@ describe('S6 세 개의 공주', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: '어디에도 빈 곳이 없게 배분을 무대에서 크게 보기' }))
     expect(opened).toEqual(['m2'])
+  })
+})
+
+describe('S8 자료와 한계: 출처·이용조건 표기', () => {
+  it('진료일정은 기준일·원본 주소·방문 전 확인과 함께, 이용조건은 확인 중으로만 적는다', () => {
+    render(<DataLimits manifest={manifest} onClose={() => {}} />)
+    const dialog = screen.getByRole('dialog')
+    const s = manifest.sources.schedule
+    expect(within(dialog).getByRole('link', { name: s.page_url })).toHaveProperty('href', s.page_url)
+    expect(dialog.textContent).toContain(`${s.reference_date} 기준`)
+    expect(dialog.textContent).toContain('방문 전에 해당 보건(지)소에 꼭 확인해 주세요')
+    expect(s.usage_status).toContain('확인 중')
+    expect(dialog.textContent).toContain(s.usage_status)
+    expect(dialog.textContent).not.toMatch(/공공누리 제\s*\d\s*유형[^.]*진료/)
+  })
+
+  it('인구 출처는 이용허락범위가 확인된 행정안전부 개방 자료이고, 계산 파일과의 대조를 밝힌다', () => {
+    render(<DataLimits manifest={manifest} onClose={() => {}} />)
+    const dialog = screen.getByRole('dialog')
+    const p = manifest.sources.population
+    expect(p.publisher).toBe('행정안전부')
+    expect(p.page_url).toMatch(/^https:\/\/www\.data\.go\.kr\/data\/15099158\//)
+    expect(within(dialog).getByRole('link', { name: p.page_url })).toBeTruthy()
+    expect(dialog.textContent).toContain(p.attribution)
+    expect(dialog.textContent).toContain('행정안전부 공개 자료와 값이 모두 같아요')
   })
 })

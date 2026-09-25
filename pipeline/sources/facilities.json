@@ -12,7 +12,7 @@
   "file": "전국 병의원 및 약국 현황 2026.6.zip",
   "member": "전국 병의원 및 약국 현황 2026.6/1.병원정보서비스(2026.6.).xlsx",
   "reference_month": "2026-06",
-  "note": "걸어봄 data/raw/에 사용자가 받아 둔 공식 배포본. 저장소에는 넣지 않는다. 아래 hira 값은 그 파일의 종별코드명=보건지소 행을 옮긴 것이며, `python -m scl_pipeline check-hira --zip <경로>`로 원본과 대조한다."
+  "note": "건강보험심사평가원 공식 배포본(공공데이터포털 https://www.data.go.kr/data/15051059/fileData.do, 공공누리 제1유형 출처표시). 원본 zip은 저장소에 넣지 않는다. 아래 hira 값은 그 파일의 종별코드명=보건지소 행을 옮긴 것이며, `python -m scl_pipeline check-hira --zip <경로>`로 원본과 대조한다."
  },
  "facilities": [
   {

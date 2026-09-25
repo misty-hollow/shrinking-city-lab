@@ -5,12 +5,14 @@
  "data_version_date": "2026-09-24",
  "reproducibility": {
   "pipeline_version": "0.1.0",
-  "code_sha256": "99da49c0055b3aaed46e96203ebd16094cd9d3b337e56ba49c89e11d82d868fc",
+  "code_sha256": "f139cd8f269b6b83ec0a352fbb580135ddd3fc4699d461e585efef757c974ccf",
   "inputs": {
    "population_tongban": "d16c49b42c000d312a0bf81e6b84a704acba9eb7986bea76ecee633cc254b8e8",
    "population_households_age": "953bbe8e6684e2d95cf07bd9520e2ac1e95322d3d9e41f3696d75e0c7173a8b1",
+   "population_mois_stdg": "7cf88190899453e6b7f7441ebe26495a7aac7d475daee023d07b57407ced6281",
+   "population_mois_admdong": "0cbb5983a9efad7951548a89ae11c295ed08e95f8d222d15bc5e5e46d5701e24",
    "clinic_schedule": "d401fc4fc495e50e8260a07e8f3049f7bf30c59e2e2d0d108bbca0ccb62ed9d0",
-   "facilities_json": "5eff3c561312eb3cd52938583a6da5334264963f17862e4179423fa9651583ca",
+   "facilities_json": "16eb6068b22a1333cc2332f73196698b05cbec57341292079aceaecc5dfbcee8",
    "osm_pbf": "fe454e43bc499df22733c7f3aa97892448dccd9c4caa2397ecfd80241fce89ed",
    "admin_boundaries": "c01ef44a0eb00978662ba7a6240ccb1da287fb52abd85104a1758969d391132f",
    "dem_tiles": {
@@ -42,12 +44,21 @@
  },
  "sources": {
   "population": {
-   "publisher": "공주시 스마트정보과",
-   "title": "2026년 8월 인구현황 — 법정동별통반별인구현황(2026.8.).xlsx",
-   "page_url": "https://www.gongju.go.kr/bbs/BBSMSTR_000000000697/view.do?nttId=B000000336750Xz4qT4b",
+   "publisher": "행정안전부",
+   "title": "행정안전부_지역별(법정동) 성별 연령별 주민등록 인구수_20260831",
+   "page_url": "https://www.data.go.kr/data/15099158/fileData.do",
    "reference_date": "2026-08-31",
-   "license": "공공누리 표시 없음. 재배포 허락 확인 안 됨(redistribution 참고)",
-   "also": "2026년 8월 인구현황 — 인구 및 세대현황(2026.8.).xlsx",
+   "license": "이용허락범위 제한 없음(공공데이터포털 표시)",
+   "scope": "주민등록 인구(외국인 제외)",
+   "attribution": "행정안전부, 「지역별(법정동)·(행정동) 성별 연령별 주민등록 인구수」(2026-08-31 기준), 공공데이터포털 — 이용허락범위 제한 없음(공공데이터포털 표시)",
+   "computed_from": {
+    "publisher": "공주시 스마트정보과",
+    "page_url": "https://www.gongju.go.kr/bbs/BBSMSTR_000000000697/view.do?nttId=B000000336750Xz4qT4b",
+    "reference_date": "2026-08-31",
+    "title": "2026년 8월 인구현황(법정동별통반별인구현황·인구 및 세대현황 xlsx)",
+    "note": "계산 입력. 원본 파일은 배포하지 않는다"
+   },
+   "crosscheck": "공주시 xlsx에서 계산한 인구 값이 같은 기준일 행정안전부 자료와 모두 같다 (pipeline/reports/mois_crosscheck.json)",
    "method": "법정리 인구 = 같은 법정리의 통·반 총인구 합. 읍·면 합계와 일치를 검사한다"
   },
   "schedule": {
@@ -56,6 +67,8 @@
    "page_url": "https://www.gongju.go.kr/health/sub02_01.do",
    "reference_date": "2026-04-13",
    "conversion_rule": "요일 칸 ○ = 주 1일, 격주 = 주 0.5일(격주 평균), 빈 칸 = 0일",
+   "usage_status": "이용조건 기관 확인 중(회신 전). 공공누리 표시가 없어 공주시 저작권정책상 사전 협의 대상이다. 확정된 이용허락이 아니다",
+   "visit_notice": "진료 운영 여부는 수시로 바뀐다. 원본 페이지 안내대로 방문 전 해당 보건(지)소에 문의한다",
    "rows": [
     {
      "facility": "yugu",
@@ -184,7 +197,8 @@
    "reference_month": "2026-06",
    "official_address": "https://www.gongju.go.kr/health/sub01_05.do",
    "coordinates": "HIRA 병원정보서비스 2026.6 좌표. 공식 주소와 HIRA 주소가 다른 유구·정안은 OSM 객체 중심점",
-   "excluded": "공주 시내(동 지역) 보건소·병원, 보건진료소, 민간 의원, 다른 시군의 시설"
+   "excluded": "공주 시내(동 지역) 보건소·병원, 보건진료소, 민간 의원, 다른 시군의 시설",
+   "attribution": "건강보험심사평가원 「전국 병의원 및 약국 현황 2026.6」 병원정보서비스 — 공공누리 제1유형(출처표시) — 공공데이터포털 데이터셋 페이지 표시, 2026-09-25 확인"
   },
   "road_network": {
    "publisher": "OpenStreetMap contributors (Geofabrik 배포)",

@@ -961,11 +961,13 @@ export class StageController {
   /**
    * 적응 화질(설계안 6-12 5항: 통합 GPU 1080p 60fps): 이어서 그린 프레임이 느리면(가운데값 26 ms 넘게, 약 90프레임)
    * 픽셀 비율을 한 칸 낮추고, 가장 낮은 칸에서도 느리면 나무를 절반으로 줄인다. 데이터 표현(집·빛·탑)은 줄이지 않는다.
+   * 아주 느린 GPU(10fps 안팎)에서는 90프레임이 10초를 넘으므로, 3초 동안 12프레임 이상 모이면 그때 판단한다.
    */
   private adaptQuality(dt: number): void {
     if (this.renderedLast) this.frameGaps.push(dt * 1000)
     this.renderedLast = true
-    if (this.frameGaps.length < 90) return
+    const n = this.frameGaps.length
+    if (n < 90 && !(n >= 12 && this.frameGaps.reduce((a, b) => a + b, 0) >= 3000)) return
     const sorted = [...this.frameGaps].sort((a, b) => a - b)
     const med = sorted[sorted.length >> 1]
     this.frameGaps.length = 0

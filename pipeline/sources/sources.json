@@ -1,8 +1,8 @@
 {
- "_about": "Shrinking City Lab 원자료 목록. cache_path는 내려받아 pipeline/cache/에 두는 파일(Git 밖)이다. sha256이 다르면 파이프라인이 멈춘다. 공주시 원자료는 재배포 허락이 확인되지 않아 원본을 저장소에 두지 않는다.",
+ "_about": "Shrinking City Lab 원자료 목록. cache_path는 내려받아 pipeline/cache/에 두는 파일(Git 밖), local_path는 저장소에 들어 있는 파일이다. sha256이 다르면 파이프라인이 멈춘다. 공주시 원자료는 재배포 허락이 확인되지 않아 원본을 저장소에 두지 않는다. 이용조건 요약은 저장소 루트 DATA_LICENSE.md",
  "population_tongban": {
   "classification": "REAL_DATA",
-  "role": "법정리 인구(통·반 총인구 합산)",
+  "role": "법정리 인구(통·반 총인구 합산) — 계산 입력(원본은 저장소 밖). 공개 출처 표기는 행정안전부 개방 자료(population_mois_*)",
   "publisher": "공주시 스마트정보과",
   "title": "2026년 8월 인구현황 — 법정동별통반별인구현황(2026.8.).xlsx",
   "page_url": "https://www.gongju.go.kr/bbs/BBSMSTR_000000000697/view.do?nttId=B000000336750Xz4qT4b",
@@ -21,12 +21,12 @@
    "site_policy": "https://www.gongju.go.kr/kr/sitemap_04.do — 공공누리가 부착된 저작물만 별도 허락 없이 자유이용. '공공누리가 부착되지 않은 자료들을 이용하고자 할 경우에는 공공저작물 실무담당자와 사전에 협의'",
    "site_footer": "COPYRIGHT ⓒ GONGJU CITY. ALL RIGHTS RESERVED.",
    "decision": "원본 파일은 저장소에 넣지 않는다. 공식 URL에서 cache/로 받고 sha256으로 고정한다. 저장소에는 계산에 쓰는 값만 derived/source_facts.json으로 둔다",
-   "unverified": "계산값(법정리별 인구 등)을 앱 데이터로 공개 배포하는 것에 대한 공주시의 입장은 확인하지 않았다. 공개 배포 전 실무담당자(문화체육과) 협의가 필요한지 사용자가 판단한다"
+   "unverified": "공주시 xlsx 파일 그대로의 재배포는 공주시 저작권정책상 사전 협의 대상이라 하지 않는다. 앱과 저장소의 인구 값은 같은 기준일의 행정안전부 공공데이터포털 개방 자료(이용허락범위 제한 없음)와 한 값도 다르지 않음을 대조했다(population_mois_*, reports/mois_crosscheck.json). 협의 창구: 공주시 문화예술과 문화정책팀(공공저작물 실무담당)"
   }
  },
  "population_households_age": {
   "classification": "REAL_DATA",
-  "role": "읍·면 총인구, 읍·면 65세 이상 인구",
+  "role": "읍·면 총인구, 읍·면 65세 이상 인구 — 계산 입력(원본은 저장소 밖). 공개 출처 표기는 행정안전부 개방 자료(population_mois_*)",
   "publisher": "공주시 스마트정보과",
   "title": "2026년 8월 인구현황 — 인구 및 세대현황(2026.8.).xlsx",
   "page_url": "https://www.gongju.go.kr/bbs/BBSMSTR_000000000697/view.do?nttId=B000000336750Xz4qT4b",
@@ -45,8 +45,40 @@
    "site_policy": "https://www.gongju.go.kr/kr/sitemap_04.do — 공공누리가 부착된 저작물만 별도 허락 없이 자유이용. '공공누리가 부착되지 않은 자료들을 이용하고자 할 경우에는 공공저작물 실무담당자와 사전에 협의'",
    "site_footer": "COPYRIGHT ⓒ GONGJU CITY. ALL RIGHTS RESERVED.",
    "decision": "원본 파일은 저장소에 넣지 않는다. 공식 URL에서 cache/로 받고 sha256으로 고정한다. 저장소에는 계산에 쓰는 값만 derived/source_facts.json으로 둔다",
-   "unverified": "계산값(법정리별 인구 등)을 앱 데이터로 공개 배포하는 것에 대한 공주시의 입장은 확인하지 않았다. 공개 배포 전 실무담당자(문화체육과) 협의가 필요한지 사용자가 판단한다"
+   "unverified": "공주시 xlsx 파일 그대로의 재배포는 공주시 저작권정책상 사전 협의 대상이라 하지 않는다. 앱과 저장소의 인구 값은 같은 기준일의 행정안전부 공공데이터포털 개방 자료(이용허락범위 제한 없음)와 한 값도 다르지 않음을 대조했다(population_mois_*, reports/mois_crosscheck.json). 협의 창구: 공주시 문화예술과 문화정책팀(공공저작물 실무담당)"
   }
+ },
+ "population_mois_stdg": {
+  "classification": "REAL_DATA",
+  "publisher": "행정안전부",
+  "reference_date": "2026-08-31",
+  "retrieved": "2026-09-25",
+  "encoding": "cp949",
+  "license": "이용허락범위 제한 없음(공공데이터포털 표시)",
+  "redistribution": "공공데이터포털 이용허락범위 제한 없음 = 자유이용(변형·재배포 가능). 원본 CSV를 저장소 sources/mois/에 그대로 둔다",
+  "role": "인구 파생값 대조(법정리 인구, 읍·면 총인구·65세 이상, 시 전체). 앱의 인구 출처 표기",
+  "title": "행정안전부_지역별(법정동) 성별 연령별 주민등록 인구수_20260831",
+  "page_url": "https://www.data.go.kr/data/15099158/fileData.do",
+  "download_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000007647273&fileDetailSn=1&insertDataPrcus=N",
+  "local_path": "sources/mois/mois_stdg_age_population_20260831.csv",
+  "sha256": "7cf88190899453e6b7f7441ebe26495a7aac7d475daee023d07b57407ced6281",
+  "note": "월간 갱신 데이터셋이다(차기 등록 예정 2026-10-10). 같은 페이지의 파일이 다음 달 자료로 바뀌므로 이 기준일 판은 저장소 사본으로 고정한다"
+ },
+ "population_mois_admdong": {
+  "classification": "REAL_DATA",
+  "publisher": "행정안전부",
+  "reference_date": "2026-08-31",
+  "retrieved": "2026-09-25",
+  "encoding": "cp949",
+  "license": "이용허락범위 제한 없음(공공데이터포털 표시)",
+  "redistribution": "공공데이터포털 이용허락범위 제한 없음 = 자유이용(변형·재배포 가능). 원본 CSV를 저장소 sources/mois/에 그대로 둔다",
+  "role": "인구 파생값 대조(공주 시내 행정동 6곳 총인구)",
+  "title": "행정안전부_지역별(행정동) 성별 연령별 주민등록 인구수_20260831",
+  "page_url": "https://www.data.go.kr/data/15097972/fileData.do",
+  "download_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000007644704&fileDetailSn=1&insertDataPrcus=N",
+  "local_path": "sources/mois/mois_admdong_age_population_20260831.csv",
+  "sha256": "0cbb5983a9efad7951548a89ae11c295ed08e95f8d222d15bc5e5e46d5701e24",
+  "note": "월간 갱신 데이터셋이다. 이 기준일 판은 저장소 사본으로 고정한다"
  },
  "clinic_schedule": {
   "classification": "REAL_DATA",
@@ -68,19 +100,49 @@
    "site_policy": "https://www.gongju.go.kr/kr/sitemap_04.do — 공공누리가 부착된 저작물만 별도 허락 없이 자유이용. '공공누리가 부착되지 않은 자료들을 이용하고자 할 경우에는 공공저작물 실무담당자와 사전에 협의'",
    "site_footer": "COPYRIGHT ⓒ GONGJU CITY. ALL RIGHTS RESERVED.",
    "decision": "페이지 발췌는 저장소에 넣지 않는다. 페이지를 받아 발췌를 만들고 sha256으로 대조한다. 저장소에는 요일표 값만 둔다",
-   "unverified": "계산값(법정리별 인구 등)을 앱 데이터로 공개 배포하는 것에 대한 공주시의 입장은 확인하지 않았다. 공개 배포 전 실무담당자(문화체육과) 협의가 필요한지 사용자가 판단한다"
-  }
+   "unverified": "요일표 값을 앱 데이터로 공개하는 것에 대해 공주시에 확인을 요청했고 회신 전이다. 회신 전에는 기준일·원본 URL·방문 전 확인 안내와 함께 원본 페이지를 참조한 재구성 자료로만 표기한다"
+  },
+  "usage_status": "이용조건 기관 확인 중(회신 전). 공공누리 표시가 없어 공주시 저작권정책상 사전 협의 대상이다. 확정된 이용허락이 아니다",
+  "visit_notice": "진료 운영 여부는 수시로 바뀐다. 원본 페이지 안내대로 방문 전 해당 보건(지)소에 문의한다"
  },
  "osm_extract": {
   "classification": "REAL_DATA",
   "role": "도로망(car 라우팅), 법정리 대표점 후보(place 점), 도로·하천 표시, 지소 좌표 보정",
   "publisher": "OpenStreetMap contributors (Geofabrik 배포)",
-  "title": "chungcheong.osm.pbf — Geofabrik south-korea-latest(2026-09-11 내려받음)에서 걸어봄 data/osrm/build_graph.sh가 추출",
+  "title": "chungcheong.osm.pbf — Geofabrik south-korea-latest(2026-09-11 내려받음)를 충청권 사각형으로 자른 추출본",
   "cache_path": "cache/osm/chungcheong.osm.pbf",
   "sha256": "fe454e43bc499df22733c7f3aa97892448dccd9c4caa2397ecfd80241fce89ed",
   "osm_latest_object_timestamp": "2026-09-10T14:58:34Z",
   "license": "ODbL 1.0 (© OpenStreetMap contributors)",
-  "note": "파일은 Git 밖이다. 같은 바이트가 없으면 OSM 파생 단계(osm·route)는 멈추고, 저장소의 derived/ 결과로만 빌드할 수 있다."
+  "note": "파일은 Git 밖이다. 같은 바이트가 없으면 OSM 파생 단계(osm·route)는 멈추고, 저장소의 derived/ 결과로만 빌드할 수 있다.",
+  "extract": {
+   "source_url": "https://download.geofabrik.de/asia/south-korea-latest.osm.pbf",
+   "downloaded": "2026-09-11",
+   "polygon": [
+    [
+     125.23,
+     35.92
+    ],
+    [
+     128.72,
+     35.92
+    ],
+    [
+     128.72,
+     37.32
+    ],
+    [
+     125.23,
+     37.32
+    ],
+    [
+     125.23,
+     35.92
+    ]
+   ],
+   "command": "osmium extract --polygon <위 사각형 GeoJSON> --output chungcheong.osm.pbf south-korea-latest.osm.pbf (osmium-tool 1.15.0)",
+   "note": "Geofabrik latest는 매일 바뀌어 같은 바이트를 다시 받을 수 없다. 이 판은 sha256으로 고정하고 Git 밖 사본(백업)으로 보존한다"
+  }
  },
  "admin_boundaries": {
   "classification": "REAL_DATA",
@@ -120,9 +182,9 @@
   "role": "보건지소 좌표(대조용 원본)",
   "publisher": "건강보험심사평가원",
   "title": "전국 병의원 및 약국 현황 2026.6 — 1.병원정보서비스(2026.6.).xlsx",
-  "repo_path": "data/raw/전국 병의원 및 약국 현황 2026.6.zip",
   "reference_date": "2026-06",
-  "license": "공공데이터포털 개방 자료",
-  "note": "선택 입력. 있으면 check-hira가 sources/facilities.json의 hira 값을 원본과 대조한다."
+  "license": "공공누리 제1유형(출처표시) — 공공데이터포털 데이터셋 페이지 표시, 2026-09-25 확인",
+  "note": "선택 입력(저장소 밖). 건강보험심사평가원 공공데이터포털 개방 zip 「전국 병의원 및 약국 현황 2026.6」을 받아 `python -m scl_pipeline check-hira --zip <경로>`로 sources/facilities.json의 hira 값을 원본과 대조한다",
+  "page_url": "https://www.data.go.kr/data/15051059/fileData.do"
  }
 }

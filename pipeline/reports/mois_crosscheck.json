@@ -1,0 +1,32 @@
+{
+ "purpose": "계산에 읽은 공주시 인구현황 xlsx의 파생값이 같은 기준일의 행정안전부 공공데이터포털 주민등록 인구와 같은지 대조한 기록. 앱의 인구 출처 표기 근거",
+ "reference_date": "2026-08-31",
+ "sources": {
+  "population_mois_stdg": {
+   "publisher": "행정안전부",
+   "title": "행정안전부_지역별(법정동) 성별 연령별 주민등록 인구수_20260831",
+   "page_url": "https://www.data.go.kr/data/15099158/fileData.do",
+   "license": "이용허락범위 제한 없음(공공데이터포털 표시)",
+   "sha256": "7cf88190899453e6b7f7441ebe26495a7aac7d475daee023d07b57407ced6281",
+   "local_path": "sources/mois/mois_stdg_age_population_20260831.csv"
+  },
+  "population_mois_admdong": {
+   "publisher": "행정안전부",
+   "title": "행정안전부_지역별(행정동) 성별 연령별 주민등록 인구수_20260831",
+   "page_url": "https://www.data.go.kr/data/15097972/fileData.do",
+   "license": "이용허락범위 제한 없음(공공데이터포털 표시)",
+   "sha256": "0cbb5983a9efad7951548a89ae11c295ed08e95f8d222d15bc5e5e46d5701e24",
+   "local_path": "sources/mois/mois_admdong_age_population_20260831.csv"
+  }
+ },
+ "compared": {
+  "legal_ri_population": 161,
+  "emd_total_and_65plus": 20,
+  "city_total_and_65plus": 2,
+  "city_core_admin_dong_total": 6,
+  "scenario_demand_points": 161
+ },
+ "checked": 350,
+ "mismatches": [],
+ "result": "MATCH"
+}
