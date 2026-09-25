@@ -1382,9 +1382,10 @@ input {
   background: var(--amber);
 }
 
+/* 닿지 않게 된 소식 = 나빠짐(코랄). 파랑은 좋아짐 전용(§3.2) */
 .toast-loss i {
   background: transparent;
-  border: 2px solid var(--cool);
+  border: 2px solid var(--worse);
 }
 
 .toast-same i {
@@ -1809,7 +1810,8 @@ input {
   color: var(--text);
 }
 
-.landscape svg {
+/* 차트 한 장만(범례의 16px 견본까지 늘어나 기호와 글이 떨어지지 않게) */
+.landscape > svg {
   display: block;
   width: 100%;
   height: auto;
