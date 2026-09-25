@@ -141,16 +141,37 @@ export interface Manifest {
   reproducibility: { pipeline_version: string; code_sha256: string; outputs: Record<string, string> }
   display_dates: { population: string; schedule: string; road_network: string }
   sources: {
-    population: { publisher: string; title: string; page_url: string; reference_date: string; license: string; method: string }
+    population: {
+      publisher: string
+      title: string
+      page_url: string
+      reference_date: string
+      license: string
+      scope: string
+      attribution: string
+      computed_from: { publisher: string; title: string; page_url: string; reference_date: string; note: string }
+      crosscheck: string
+      method: string
+    }
     schedule: {
       publisher: string
       title: string
       page_url: string
       reference_date: string
       conversion_rule: string
+      /** 이용조건 확인 상태(기관 회신 전에는 "확인 중"). 확정된 이용허락처럼 쓰지 않는다 */
+      usage_status: string
+      visit_notice: string
       rows: { facility: string; cells: string[]; note: string; weekly_days: number }[]
     }
-    facilities: { title: string; reference_month: string; official_address: string; coordinates: string; excluded: string }
+    facilities: {
+      title: string
+      reference_month: string
+      official_address: string
+      coordinates: string
+      excluded: string
+      attribution: string
+    }
     road_network: {
       publisher: string
       license: string

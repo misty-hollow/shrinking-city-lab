@@ -1,7 +1,8 @@
 """앱 데이터 검증.
 
 1. 불변식: 수요점 161, 시설 10, 행렬 161×10, 결측·NaN·음수·비정상 시간 없음,
-   인구 합계, 현재 10일, provenance 항목 존재, 파생 파일에 적힌 단계 코드 해시 = 지금 코드.
+   인구 합계, 현재 10일, provenance 항목 존재, 파생 파일에 적힌 단계 코드 해시 = 지금 코드,
+   인구 값 = 행정안전부 공공데이터포털 개방 자료(mois_check).
 2. 재현: 임시 폴더에 build를 다시 돌려 저장소의 app 데이터와 바이트가 같은지.
 3. 잠금: data.lock.json(파생·앱 산출물 sha256)과 현재 파일이 같은지.
 """
@@ -13,7 +14,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from . import access, build_step, config
+from . import access, build_step, config, mois_check
 from .util import module_sha256, read_json, sha256_file, write_json
 
 APP_FILES = (
@@ -96,6 +97,7 @@ def invariants(data_dir: Path) -> list[str]:
     errs.extend(access_invariants(sc, mf))
     errs.extend(route_invariants(sc, read_json(data_dir / "geometry.json")))
     errs.extend(provenance_invariants(config.DERIVED_DIR))
+    errs.extend(mois_check.invariants(data_dir))
     return errs
 
 

@@ -35,5 +35,8 @@ Dockerfile.*    text eol=lf
 *.xlsx          binary
 *.pdf           binary
 
+# 행정안전부 공공데이터포털 원본 CSV(cp949, CRLF). sha256으로 고정하므로 바이트를 바꾸지 않는다.
+pipeline/sources/mois/*.csv binary
+
 # 폰트 라이선스 원문은 그대로 둔다(원문의 줄 끝 공백 포함). 공백 검사에서 뺀다.
 app/public/licenses/*.txt -whitespace

@@ -2202,6 +2202,18 @@ input {
   white-space: nowrap;
 }
 
+/* 원본 페이지 주소: 긴 URL이 표를 밀어내지 않게 아무 곳에서나 줄을 바꾼다 */
+.data-sheet a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.data-sheet .notice {
+  font-weight: 600;
+}
+
 .data-head {
   display: flex;
   justify-content: space-between;

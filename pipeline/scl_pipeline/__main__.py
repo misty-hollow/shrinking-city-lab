@@ -9,10 +9,11 @@ python -m scl_pipeline routes       20분 안 쌍의 OSRM car 경로 형상(dock
 python -m scl_pipeline terrain      DEM → app/public/data/terrain.bin, derived/terrain.json
 python -m scl_pipeline build        앱 데이터(JSON) 생성, data.lock.json 갱신
 python -m scl_pipeline verify       불변식 + 다시 만들어 바이트 대조 + 잠금 대조
-python -m scl_pipeline all          fetch → import → boundaries → osm → route → terrain → build → verify
+python -m scl_pipeline all          fetch → import → boundaries → osm → route → routes → terrain → build → check-mois → verify
 python -m scl_pipeline compare DIR  반증 실험 산출물(exp2 폴더)과 1회 대조 → reports/
 python -m scl_pipeline compare-r1 DIR   r1 스냅숏(DIR/derived, DIR/appdata)과 비교 → reports/r1_to_r2.json
 python -m scl_pipeline check-hira --zip PATH   facilities.json의 HIRA 값을 원본과 대조
+python -m scl_pipeline check-mois   인구 값을 행정안전부 공공데이터포털 자료(sources/mois/)와 대조 → reports/mois_crosscheck.json
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from . import (
     compare_step,
     hira_check,
     import_step,
+    mois_check,
     osm_step,
     route_step,
     routes_step,
@@ -42,7 +44,18 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(prog="scl_pipeline")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("fetch", "import", "boundaries", "osm", "route", "routes", "terrain", "build", "all"):
+    for name in (
+        "fetch",
+        "import",
+        "boundaries",
+        "osm",
+        "route",
+        "routes",
+        "terrain",
+        "build",
+        "check-mois",
+        "all",
+    ):
         sub.add_parser(name)
     v = sub.add_parser("verify")
     v.add_argument("--no-rebuild", action="store_true")
@@ -71,6 +84,8 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd in ("build", "all"):
         build_step.run()
         verify_step.write_lock()
+    if a.cmd in ("check-mois", "all") and not mois_check.run():
+        return 1
     if a.cmd in ("verify", "all"):
         return 0 if verify_step.run(rebuild=not getattr(a, "no_rebuild", False)) else 1
     if a.cmd == "compare":

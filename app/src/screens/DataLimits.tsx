@@ -24,9 +24,9 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
     }
   }, [onClose])
   const s = manifest.sources
-  const rows: { item: string; source: string; date: string; cls: 'REAL_DATA' | 'DERIVED' }[] = [
-    { item: '법정리 인구, 읍·면 65세 이상', source: `${s.population.publisher} · ${s.population.title}`, date: s.population.reference_date, cls: 'REAL_DATA' },
-    { item: '보건지소 의과 순회진료 일정', source: `${s.schedule.publisher} · ${s.schedule.title}`, date: s.schedule.reference_date, cls: 'REAL_DATA' },
+  const rows: { item: string; source: string; url?: string; date: string; cls: 'REAL_DATA' | 'DERIVED' }[] = [
+    { item: '법정리 인구, 읍·면 65세 이상', source: `${s.population.title} · ${s.population.license}`, url: s.population.page_url, date: s.population.reference_date, cls: 'REAL_DATA' },
+    { item: '보건지소 의과 순회진료 일정', source: `${s.schedule.publisher} · ${s.schedule.title}`, url: s.schedule.page_url, date: s.schedule.reference_date, cls: 'REAL_DATA' },
     { item: '보건지소 10곳 위치', source: s.facilities.coordinates, date: s.facilities.reference_month, cls: 'REAL_DATA' },
     { item: '도로망', source: `${s.road_network.publisher} · ${s.road_network.license}`, date: manifest.display_dates.road_network, cls: 'REAL_DATA' },
     { item: '도로망 접근시간 161×10', source: `${s.routing.engine} ${s.routing.profile} · ${s.routing.conditions}`, date: manifest.display_dates.road_network, cls: 'DERIVED' },
@@ -62,7 +62,17 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
             {rows.map((r) => (
               <tr key={r.item}>
                 <td>{r.item}</td>
-                <td>{r.source}</td>
+                <td>
+                  {r.source}
+                  {r.url && (
+                    <>
+                      <br />
+                      <a href={r.url} target="_blank" rel="noopener noreferrer">
+                        {r.url}
+                      </a>
+                    </>
+                  )}
+                </td>
                 <td className="num">{r.date}</td>
                 <td>
                   <Badge cls={r.cls} />
@@ -74,6 +84,8 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
         <p className="small">
           {s.schedule.conversion_rule}. {manifest.semantics.current_total}
         </p>
+        <p className="small notice">{copy.dataPage.visitNotice(s.schedule.reference_date)}</p>
+        <p className="small">{copy.dataPage.populationCheck(s.population.computed_from.reference_date)}</p>
 
         <h3>{copy.dataPage.methodTitle}</h3>
         <ol>
@@ -141,10 +153,14 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
 
         <h3>{copy.dataPage.attributionTitle}</h3>
         <ul className="small">
+          <li>{s.facilities.attribution}</li>
           <li>{s.road_network.license} — OpenStreetMap</li>
           <li>{s.boundaries.license}</li>
           <li>{s.terrain.license}</li>
-          <li>{s.population.license}</li>
+          <li>{s.population.attribution}</li>
+          <li>
+            {s.schedule.publisher} 「진료안내」 순회근무 현황({s.schedule.reference_date} 기준) — {s.schedule.usage_status}
+          </li>
         </ul>
 
         <h3>{copy.dataPage.creditsTitle}</h3>

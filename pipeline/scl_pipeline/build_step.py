@@ -402,6 +402,8 @@ def build_manifest(inp: dict[str, Any], outputs: dict[str, str]) -> dict[str, An
             "inputs": {
                 "population_tongban": reg["population_tongban"]["sha256"],
                 "population_households_age": reg["population_households_age"]["sha256"],
+                "population_mois_stdg": reg["population_mois_stdg"]["sha256"],
+                "population_mois_admdong": reg["population_mois_admdong"]["sha256"],
                 "clinic_schedule": reg["clinic_schedule"]["sha256"],
                 "facilities_json": sha256_file(config.SOURCES_DIR / "facilities.json"),
                 "osm_pbf": osm_prov["pbf_sha256"],
@@ -418,14 +420,37 @@ def build_manifest(inp: dict[str, Any], outputs: dict[str, str]) -> dict[str, An
             "road_network": road_date,
         },
         "sources": {
+            # 공개 출처 표기는 이용허락범위가 확인된 행정안전부 개방 자료. 계산은 같은 값의 공주시 xlsx에서 읽었다
+            # (값이 모두 같음을 verify가 매번 대조: mois_check, reports/mois_crosscheck.json).
             "population": {
-                **src("population_tongban", "publisher", "title", "page_url", "reference_date", "license"),
-                "also": reg["population_households_age"]["title"],
+                **src("population_mois_stdg", "publisher", "title", "page_url", "reference_date", "license"),
+                "scope": "주민등록 인구(외국인 제외)",
+                "attribution": (
+                    f"{reg['population_mois_stdg']['publisher']}, 「지역별(법정동)·(행정동) 성별 연령별 주민등록 인구수」"
+                    f"({reg['population_mois_stdg']['reference_date']} 기준), 공공데이터포털 — "
+                    f"{reg['population_mois_stdg']['license']}"
+                ),
+                "computed_from": {
+                    **src("population_tongban", "publisher", "page_url", "reference_date"),
+                    "title": "2026년 8월 인구현황(법정동별통반별인구현황·인구 및 세대현황 xlsx)",
+                    "note": "계산 입력. 원본 파일은 배포하지 않는다",
+                },
+                "crosscheck": (
+                    "공주시 xlsx에서 계산한 인구 값이 같은 기준일 행정안전부 자료와 모두 같다 "
+                    "(pipeline/reports/mois_crosscheck.json)"
+                ),
                 "method": "법정리 인구 = 같은 법정리의 통·반 총인구 합. 읍·면 합계와 일치를 검사한다",
             },
             "schedule": {
                 **src(
-                    "clinic_schedule", "publisher", "title", "page_url", "reference_date", "conversion_rule"
+                    "clinic_schedule",
+                    "publisher",
+                    "title",
+                    "page_url",
+                    "reference_date",
+                    "conversion_rule",
+                    "usage_status",
+                    "visit_notice",
                 ),
                 "rows": schedule_rows,
             },
@@ -435,6 +460,10 @@ def build_manifest(inp: dict[str, Any], outputs: dict[str, str]) -> dict[str, An
                 "official_address": fac_meta["official_address_source"]["url"],
                 "coordinates": "HIRA 병원정보서비스 2026.6 좌표. 공식 주소와 HIRA 주소가 다른 유구·정안은 OSM 객체 중심점",
                 "excluded": "공주 시내(동 지역) 보건소·병원, 보건진료소, 민간 의원, 다른 시군의 시설",
+                "attribution": (
+                    f"{reg['hira_hospitals']['publisher']} 「{fac_meta['hira_source']['title'].split(' — ')[0].removeprefix('건강보험심사평가원 ')}」 "
+                    f"병원정보서비스 — {reg['hira_hospitals']['license']}"
+                ),
             },
             "road_network": {
                 "publisher": reg["osm_extract"]["publisher"],
