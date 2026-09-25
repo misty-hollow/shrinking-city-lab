@@ -1,7 +1,7 @@
 """앱 데이터 검증.
 
 1. 불변식: 수요점 161, 시설 10, 행렬 161×10, 결측·NaN·음수·비정상 시간 없음,
-   인구 합계, 현재 10일, provenance 항목 존재.
+   인구 합계, 현재 10일, provenance 항목 존재, 파생 파일에 적힌 단계 코드 해시 = 지금 코드.
 2. 재현: 임시 폴더에 build를 다시 돌려 저장소의 app 데이터와 바이트가 같은지.
 3. 잠금: data.lock.json(파생·앱 산출물 sha256)과 현재 파일이 같은지.
 """
@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from . import access, build_step, config
-from .util import read_json, sha256_file, write_json
+from .util import module_sha256, read_json, sha256_file, write_json
 
 APP_FILES = (
     "scenario.json",
@@ -95,6 +95,33 @@ def invariants(data_dir: Path) -> list[str]:
         errs.append(f"분류 세 가지가 모두 있어야 한다: {classes}")
     errs.extend(access_invariants(sc, mf))
     errs.extend(route_invariants(sc, read_json(data_dir / "geometry.json")))
+    errs.extend(provenance_invariants(config.DERIVED_DIR))
+    return errs
+
+
+# 파생 파일 → 그 파일을 만든 단계 모듈. 모듈이 하나면 provenance.step_code_sha256은 문자열, 여럿이면 {모듈: 해시}.
+STEP_MODULES: dict[str, tuple[str, ...]] = {
+    "source_facts.json": ("import_step", "population", "schedule"),
+    "boundaries.json": ("boundaries_step",),
+    "osm_features.json": ("osm_step",),
+    "osrm_car_table.json": ("route_step", "access"),
+    "osrm_car_routes.json": ("routes_step",),
+}
+
+
+def provenance_invariants(derived_dir: Path) -> list[str]:
+    """파생 파일이 지금 코드로 만들어졌는지. 단계 코드를 고치고 그 단계를 다시 돌리지 않으면 여기서 걸린다
+    (docker가 필요한 osm·route·routes 단계는 CI가 돌리지 않으므로 이 대조가 유일한 안전장치다)."""
+    errs: list[str] = []
+    pkg = Path(__file__).resolve().parent
+    for name, modules in STEP_MODULES.items():
+        rec = read_json(derived_dir / name)["provenance"].get("step_code_sha256")
+        cur = {m: module_sha256(str(pkg / f"{m}.py")) for m in modules}
+        want: Any = cur[modules[0]] if len(modules) == 1 else cur
+        if rec != want:
+            errs.append(
+                f"{name}: provenance.step_code_sha256이 지금 코드({', '.join(modules)})와 다르다 — 그 단계를 다시 돌려라"
+            )
     return errs
 
 

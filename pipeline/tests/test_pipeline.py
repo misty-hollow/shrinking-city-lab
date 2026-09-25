@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from scl_pipeline import build_step, config, import_step, model, schedule, verify_step
-from scl_pipeline.util import read_json, sha256_file
+from scl_pipeline.util import read_json, sha256_file, write_json
 
 DATA = config.APP_DATA_DIR
 
@@ -239,6 +239,27 @@ def test_route_shapes_cover_reachable_pairs(scenario):
     )
     # 경로 시간은 표의 시간과 같은 계산이다(접근점이 같으니 2% 안).
     assert len(routes["provenance"]["table_route_mismatch"]) <= len(routes["routes"]) * 0.02
+
+
+def test_derived_files_record_current_step_code():
+    """파생 파일의 step_code_sha256 = 지금 코드. 코드를 고치고 단계를 다시 안 돌리면 verify가 잡는다."""
+    assert verify_step.provenance_invariants(config.DERIVED_DIR) == []
+    with tempfile.TemporaryDirectory() as tmp:
+        for name in verify_step.STEP_MODULES:
+            (Path(tmp) / name).write_bytes((config.DERIVED_DIR / name).read_bytes())
+        routes = read_json(Path(tmp) / "osrm_car_routes.json")
+        routes["provenance"]["step_code_sha256"] = "0" * 64
+        write_json(Path(tmp) / "osrm_car_routes.json", routes)
+        errs = verify_step.provenance_invariants(Path(tmp))
+        assert len(errs) == 1 and errs[0].startswith("osrm_car_routes.json")
+
+
+def test_table_keeps_only_deterministic_osrm_values():
+    """MLD /table의 distance는 그래프를 만들 때마다 0.1 m씩 흔들려(osrm-partition) 저장하지 않는다.
+    duration은 분할과 무관하게 같다 — 계산은 이것만 쓴다."""
+    table = read_json(config.DERIVED_DIR / "osrm_car_table.json")
+    assert set(table) == {"provenance", "sources", "destinations", "durations_s"}
+    assert "annotations=duration " in table["provenance"]["call"]
 
 
 def test_golden_boundaries_straddle_mission_targets(sc):
