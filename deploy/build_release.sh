@@ -24,7 +24,8 @@ cp "$OUT/src/pipeline/data.lock.json" "$OUT/data.lock.json"
 	cd "$OUT/src/app"
 	npm ci --no-fund --no-audit
 	npm test
-	npm run build -- --base=/
+	# Git Bash는 '/'로 시작하는 인자를 Windows 경로로 바꾼다(--base=/ → C:/Program Files/Git/). 이 인자만 뺀다. 리눅스에서는 무시된다.
+	MSYS2_ARG_CONV_EXCL='--base=' npm run build -- --base=/
 )
 mv "$OUT/src/app/dist" "$OUT/dist"
 rm -rf "$OUT/src"
