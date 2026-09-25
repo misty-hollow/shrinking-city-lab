@@ -468,7 +468,12 @@ export function MissionCard(p: MissionCardProps) {
             ? copy.missionCard.achieved(status.topPercent)
             : `${isPop ? copy.missionCard.remainingPop(people(status.remaining)) : copy.missionCard.remainingDays(days1(status.remaining))} · ${copy.missionCard.notYet(status.topPercent)}`}
         </span>
-        {p.previewValue && <span className="hv-preview">{copy.world.preview.hud(p.previewValue)}</span>}
+        {/* 미리보기가 없을 때도 자리는 남긴다(말풍선을 가리킬 때마다 아래 표가 한 줄씩 들썩이지 않게) */}
+        {p.previewValue !== undefined && (
+          <span className={`hv-preview${p.previewValue ? '' : ' is-idle'}`} aria-hidden={p.previewValue ? undefined : true}>
+            {copy.world.preview.hud(p.previewValue ?? value)}
+          </span>
+        )}
       </div>
       {status.achieved && (
         <span key="stamp" className="stamp" aria-hidden="true">

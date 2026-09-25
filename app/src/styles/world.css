@@ -475,7 +475,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: preview-in 200ms ease-out both;
+  animation: vpin-in 200ms ease-out both;
 }
 
 .vpin span {
@@ -659,6 +659,10 @@ body {
   line-height: 18px;
   color: var(--text);
   white-space: nowrap;
+}
+
+.hv-preview.is-idle {
+  visibility: hidden;
 }
 
 .hud-left .stamp {
@@ -2224,6 +2228,18 @@ body {
   to {
     opacity: 1;
     translate: 0 0;
+  }
+}
+
+/* 잃은 마을 표지: preview-in과 같은 움직임이지만 가운데 맞춤(-50%)을 끝 프레임에 담는다(both가 translate를 덮어 표지가 마을 옆으로 밀리지 않게) */
+@keyframes vpin-in {
+  from {
+    opacity: 0;
+    translate: -50% 4px;
+  }
+  to {
+    opacity: 1;
+    translate: -50% 0;
   }
 }
 

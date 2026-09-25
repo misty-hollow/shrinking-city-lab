@@ -17,6 +17,7 @@ import { type MissionId, type MissionResult, missionNumber } from '../state/resu
 import { Badge, Cells, ClinicGlyph, Delta } from '../ui/common'
 import { GOAL_KPI, KPI_KEYS, KPI_NAME, fmtKpi } from '../ui/kpiText'
 import { MiniMap } from '../ui/MiniMap'
+import { ArrowIcon } from '../ui/WorldHud'
 
 export type FinaleResults = readonly [MissionResult, MissionResult, MissionResult]
 
@@ -416,10 +417,11 @@ export function FinalePanel(p: PanelProps) {
         <p>{copy.finale.closing}</p>
       </section>
       <div className="actions">
-        <button type="button" className="btn btn-primary" onClick={p.onHome}>
+        <button type="button" className="btn btn-primary btn-big" onClick={p.onHome}>
           {copy.finale.home}
+          <ArrowIcon />
         </button>
-        <button type="button" className="btn" onClick={p.onData}>
+        <button type="button" className="link-button" onClick={p.onData}>
           {copy.dataAndLimits}
         </button>
       </div>
