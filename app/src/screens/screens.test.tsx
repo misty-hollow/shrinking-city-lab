@@ -206,14 +206,16 @@ describe('S6 세 개의 공주', () => {
 })
 
 describe('S8 자료와 한계: 출처·이용조건 표기', () => {
-  it('진료일정은 기준일·원본 주소·방문 전 확인과 함께, 이용조건은 확인 중으로만 적는다', () => {
+  it('진료일정은 기준일·원본 주소·방문 전 확인과 함께, 이용조건은 별도 확인 필요로만 적는다', () => {
     render(<DataLimits manifest={manifest} onClose={() => {}} />)
     const dialog = screen.getByRole('dialog')
     const s = manifest.sources.schedule
     expect(within(dialog).getByRole('link', { name: s.page_url })).toHaveProperty('href', s.page_url)
     expect(dialog.textContent).toContain(`${s.reference_date} 기준`)
     expect(dialog.textContent).toContain('방문 전에 해당 보건(지)소에 꼭 확인해 주세요')
-    expect(s.usage_status).toContain('확인 중')
+    expect(s.usage_status).toContain('별도 확인 필요')
+    // 기관에 문의·회신한 적이 없다. 회신·확인 요청이 있었던 것처럼 적지 않는다
+    expect(s.usage_status).not.toMatch(/회신|확인 중|확인을 요청/)
     expect(dialog.textContent).toContain(s.usage_status)
     expect(dialog.textContent).not.toMatch(/공공누리 제\s*\d\s*유형[^.]*진료/)
   })
