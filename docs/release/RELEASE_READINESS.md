@@ -10,7 +10,7 @@
 | 데이터·OSRM 전체 재생성 재현성 | **닫힘** | PR #2(`ed5d995`). 원본부터 새로 만든 결과가 바이트 동일, verify가 코드 해시 대조 |
 | 인구 값 공식 개방 자료 대조 | **닫힘** | 행정안전부 공공데이터포털(이용허락범위 제한 없음)과 350개 값 일치. `pipeline/reports/mois_crosscheck.json`, verify가 매번 대조 |
 | 코드 라이선스·데이터 이용조건 분리 | **닫힘**(소유자 확인 필요) | `LICENSE`(MIT), `DATA_LICENSE.md`. 앱 S8이 같은 출처·조건 표기 |
-| 진료일정 이용조건 | **외부 회신 대기** | 공주시 회신 전. S8·DATA_LICENSE는 "기관 확인 중"으로만 표기하고, 기준일·원본 주소·방문 전 확인 안내를 함께 둔다 |
+| 진료일정 이용조건 | **별도 확인 필요** | 공주시에 문의·회신 없음(2026-09-29 사용자 확인). S8·DATA_LICENSE는 "이용조건 별도 확인 필요"로만 표기하고, 기준일·원본 주소·방문 전 확인 안내를 함께 둔다 |
 | 전시 기기 성능 | **사람 실측 필요** | 아래 3절. 개발 PC·저사양 흉내는 쟀고, 실제 전시 기기(통합 GPU)는 재지 않았다 |
 | 사람 플레이테스트 | **사람 필요** | `PLAYTEST.md` |
 | 스피커 소리 청취 | **사람 필요** | `SOUND_QA.md` |
@@ -73,7 +73,7 @@ headless의 rAF는 이 PC 모니터(180 Hz)에 맞춰 돌기 때문에, fps 값�
 | 확인한 것 | 결과 |
 |---|---|
 | 인구 출처 표기(README·DATA_LICENSE·설계안 4-1·manifest·앱 S8) | 모두 "행정안전부 공공데이터포털, 제한 없음 + 공주시 xlsx로 계산, 값 일치"로 같음 |
-| 진료일정 표기 | 모든 곳에서 "기관 확인 중", 기준일 2026-04-13, 원본 주소, 방문 전 확인. "확정된 이용허락" 표현 없음(앱 테스트가 검사) |
+| 진료일정 표기 | 모든 곳에서 "이용조건 별도 확인 필요"(2026-09-29 고침, 전에는 "기관 확인 중"), 기준일 2026-04-13, 원본 주소, 방문 전 확인. "확정된 이용허락" 표현 없음(앱 테스트가 검사) |
 | 경계·지형·도로망·보건지소 좌표 출처 | manifest ↔ DATA_LICENSE ↔ 앱 S8 같은 문구 |
 | 저장소 이력의 원본 파일 | xlsx·일정 발췌·pbf·cache 파일이 이력 전체에 없음(git log 전수, gitleaks) |
 | 다른 저장소(걸어봄) 경로 의존 | 데이터 출처 기록에 남아 있던 `data/raw/`·`build_graph.sh` 참조를 이 저장소 기준 설명으로 바꿈. 코드 의존 없음 |
@@ -156,7 +156,7 @@ python deploy/smoke.py --base-url https://geoleobom.kr --pages-only --check-asse
   1. `pipeline/sources/sources.json`의 `clinic_schedule.usage_status`·`redistribution`
   2. `DATA_LICENSE.md` 2절과 "출처 표기 문구"
   3. `cd pipeline && python -m scl_pipeline build && python -m scl_pipeline verify`(manifest가 바뀌어 S8 표기도 바뀝니다)
-  4. `app/src/screens/screens.test.tsx`의 "확인 중" 단언을 회신 문구에 맞게 고칩니다(회신 전 표기를 지키던 검사)
+  4. `app/src/screens/screens.test.tsx`의 "별도 확인 필요" 단언을 회신 문구에 맞게 고칩니다(확인 전 표기를 지키던 검사)
   5. PR → CI → 병합
 - "방문 전 확인" 안내는 이용허락과 별개(정보의 최신성)라 어느 경우에도 남깁니다.
 

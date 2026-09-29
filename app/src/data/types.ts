@@ -159,7 +159,7 @@ export interface Manifest {
       page_url: string
       reference_date: string
       conversion_rule: string
-      /** 이용조건 확인 상태(기관 회신 전에는 "확인 중"). 확정된 이용허락처럼 쓰지 않는다 */
+      /** 이용조건 확인 상태(기관에서 확인하기 전에는 "별도 확인 필요"). 확정된 이용허락처럼 쓰지 않는다 */
       usage_status: string
       visit_notice: string
       rows: { facility: string; cells: string[]; note: string; weekly_days: number }[]
