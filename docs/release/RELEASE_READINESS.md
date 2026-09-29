@@ -89,6 +89,8 @@ headless의 rAF는 이 PC 모니터(180 Hz)에 맞춰 돌기 때문에, fps 값�
 
 ## 6. geoleobom.kr 교체 배포·되돌리기
 
+> 2026-09-29 공개 뒤 production은 GitHub Pages입니다(`PRODUCTION.md`). 이 절의 VPS 경로는 DNS 전환 기간에만 썼고, VPS를 종료하면 쓸 수 없습니다.
+
 걸어봄 운영의 웹 릴리스 방식을 그대로 씁니다. 모든 명령은 개발 PC의 **Git Bash**에서 실행합니다(PowerShell·WSL bash 아님).
 - 서버: `/srv/geoleobom/web/<릴리스 ID>/`에 불변 디렉터리를 두고, `current`·`previous` 링크를 원자적으로 바꿉니다.
 - Caddy: 설정은 **바꾸지 않습니다.** `current`를 서빙하고, `/assets/*`는 immutable로 캐시하며 없으면 previous에서 찾고, 그 밖의 주소는 index.html로 보냅니다(SPA 물러섬).

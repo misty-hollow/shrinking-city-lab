@@ -9,6 +9,7 @@
   고정값과 osmium 이미지 정의는 `pipeline/osrm/`에 있고, 충청권 OSM 추출본은 Git 밖 파일로 경로를 설정한다(아래).
 - 런타임은 정적 파일뿐이다. 서버·OSRM·지도 타일·외부 API 호출이 없다.
 - 라이선스: 코드는 `LICENSE`(MIT), 데이터는 원 기관의 이용조건을 따른다 — `DATA_LICENSE.md`(앱 S8 「자료와 한계」와 같은 표기).
+- production 운영(구조·새 릴리스·되돌리기): `docs/release/PRODUCTION.md`
 - 공개 전 준비 상태·사람이 할 일·성능 점검: `docs/release/RELEASE_READINESS.md` · 플레이테스트 `docs/release/PLAYTEST.md` · 소리 청취 `docs/release/SOUND_QA.md`
 
 ## 구현 범위
@@ -59,9 +60,9 @@
     reports/                대조 기록(2026-09 반증 실험 1회 대조, r1→r2, 행정안전부 인구 대조 mois_crosscheck.json)
     data.lock.json          파생·앱 데이터 sha256
     scl_pipeline/           단계별 모듈(아래 명령)
-  deploy/                   geoleobom.kr 교체 배포(deploy_geoleobom.sh) · 커밋 빌드(build_release.sh, --base=/) ·
-                            배포 확인(smoke_web.py) · 로컬 예행연습(dryrun_local.sh, 운영 Caddyfile). 절차는
-                            docs/release/RELEASE_READINESS.md 6절
+  deploy/                   커밋 빌드(build_release.sh, --base=/) · 배포 확인(smoke_web.py). production은 GitHub Pages
+                            (gh-pages 브랜치, geoleobom.kr) — 새 릴리스·되돌리기는 docs/release/PRODUCTION.md.
+                            deploy_geoleobom.sh·dryrun_local.sh는 옛 VPS 전환 기간용(RELEASE_READINESS.md 6절)
   app/                      React 18 + TypeScript + Vite + three.js 정적 앱
     public/data/            앱이 읽는 정적 데이터(파이프라인 출력) + manifest.json(provenance)
     src/engine/             KPI 엔진(순수 함수, 파이썬 model.py와 같은 정의)
