@@ -205,7 +205,7 @@ describe('mission cards 2 and 3', () => {
   it('mission 2 puts the worst 읍·면 and the regional gap at the centre, with a target line', () => {
     render(<Card m="m2" x={bx('boundary_m2_below')} T={15} />)
     const card = document.querySelector('.mission-card')!
-    expect(card.textContent).toContain('미션 2 · 어디에도 빈 곳이 없게')
+    expect(card.textContent).toContain('미션 2 · 가장 불리한 읍·면을 끌어올려라')
     expect(card.textContent).toContain('가장 불리한 읍·면 · 15분')
     // 반올림하면 1.0이지만 미달이라 두 자리로 보인다.
     expect(card.textContent).toContain('주 0.99일')

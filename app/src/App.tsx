@@ -726,7 +726,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     if (s.tutorialTriedT === null) return null
     const a = computeKpis(model, current, 15).cov1Pop
     const b = computeKpis(model, current, s.tutorialTriedT).cov1Pop
-    return copy.tutorial.step2Changed(people(a), people(b))
+    return copy.tutorial.step2Changed(15, people(a), s.tutorialTriedT, people(b))
   }, [model, current, s.tutorialTriedT])
   const tutorialResult = useMemo(() => {
     if (s.screen !== 'tutorial' || s.tutorialPlaced === null) return null
@@ -1047,6 +1047,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
           onAgain={() => dispatch({ type: 'replay' })}
           detailsOpen={details}
           onDetails={() => setDetails(true)}
+          mapVsCurrent={!s.debriefCompare}
         />
       )}
 

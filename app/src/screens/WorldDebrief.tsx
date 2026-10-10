@@ -31,6 +31,8 @@ interface Props {
   onNext(): void
   onAgain(): void
   detailsOpen: boolean
+  /** 지도 증감(▲▼)이 현재 실제 대비인가. 앞 미션 비교를 켜 두면 ▼가 이 요약과 다른 기준이라 지도 문장을 뺀다 */
+  mapVsCurrent: boolean
   onDetails(): void
 }
 
@@ -80,18 +82,24 @@ export function WorldDebrief(p: Props) {
           ))}
         </tbody>
       </table>
-      <div className={`wr-lost${p.lost.lost.length ? ' has-lost' : ''}`}>
+      {/* 잃은 것 = 닿지 않게 된 마을 + 닿기는 하지만 하루 이상 줄어든 마을(설계안 5-6, 4-7). 끊긴 곳이 없어도 줄어든 곳은 말한다 */}
+      <div className={`wr-lost${p.lost.lost.length || p.lost.thinner.length ? ' has-lost' : ''}`}>
         <span className="wr-lost-label">{copy.world.lostLabel}</span>
-        {p.lost.lost.length > 0 ? (
+        {p.lost.lost.length > 0 && (
           <>
             <b className="num">{copy.world.lostLine(p.lost.lost.length, people(p.lost.lostPop))}</b>
             <p className="num">
               {copy.world.lostDetail(lostNames, p.lost.lost.length - LOST_NAMES)} — {copy.world.lostOnMap}
             </p>
           </>
-        ) : (
-          <b>{copy.world.lostNone}</b>
         )}
+        {p.lost.thinner.length > 0 && (
+          <>
+            <b className="num">{copy.world.thinnerLine(p.lost.thinner.length, people(p.lost.thinnerPop))}</b>
+            {p.mapVsCurrent && <p>{p.lost.lost.length > 0 ? copy.world.thinnerOnMapWithLost : copy.world.thinnerOnMap}</p>}
+          </>
+        )}
+        {p.lost.lost.length === 0 && p.lost.thinner.length === 0 && <b>{copy.world.lostNone}</b>}
       </div>
       <div className="wr-basis">
         <span className="wr-tags">

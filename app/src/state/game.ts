@@ -213,7 +213,8 @@ export function reducer(cfg: GameConfig) {
       case 'setT': {
         if (a.T === s.T || thresholdLocked(s)) return s
         const next = { ...s, T: a.T, lastTChange: { from: s.T, seq: s.seq + 1 }, seq: s.seq + 1 }
-        if (s.screen === 'tutorial' && s.tutorialStep === 2 && a.T !== 15 && s.tutorialTriedT === null) {
+        // 튜토리얼 2단계 문장은 마지막으로 눌러 본 기준을 말한다(여러 번 바꾸면 그때마다 따라간다).
+        if (s.screen === 'tutorial' && s.tutorialStep === 2 && a.T !== 15) {
           next.tutorialTriedT = a.T
         }
         return next

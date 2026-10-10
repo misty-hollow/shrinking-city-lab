@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { copy } from '../content/copy'
 import type { Landscape, Scenario } from '../data/types'
 import { remaining, total } from '../engine/allocation'
 import { buildModel } from '../engine/kpi'
@@ -316,5 +317,26 @@ describe('missions 1 → 2 → 3 → S6', () => {
     expect(s.results.m1?.alloc).toEqual(A1)
     expect(s.results.m2?.alloc).toEqual(A2)
     expect(s.results.m3?.alloc).toEqual(A3)
+  })
+})
+
+describe('튜토리얼 2단계는 마지막으로 눌러 본 기준을 따른다', () => {
+  it('records the last non-15 threshold, not the first, and keeps it after returning to 15', () => {
+    let s = run({ type: 'start' }, { type: 'introNext' }, { type: 'introNext' }, { type: 'introNext' }, { type: 'tutorialNext' })
+    expect(s.tutorialStep).toBe(2)
+    s = step(s, { type: 'setT', T: 10 })
+    expect(s.tutorialTriedT).toBe(10)
+    // 15 → 10 → 20: 문장은 지금 화면의 20분을 말해야 한다(첫 값 10에 머물면 지표와 어긋난다)
+    s = step(s, { type: 'setT', T: 20 })
+    expect(s.tutorialTriedT).toBe(20)
+    s = step(s, { type: 'setT', T: 15 })
+    expect(s.tutorialTriedT).toBe(20)
+    expect(canTutorialNext(s)).toBe(true)
+  })
+
+  it('the sentence names both thresholds in order (15 first, then the one tried)', () => {
+    expect(copy.tutorial.step2Changed(15, '24,846명', 20, '34,146명')).toBe(
+      '같은 배분인데 주 1일 이상 닿는 주민이 15분 기준 24,846명에서 20분 기준 34,146명으로 바뀌었어요. 기준도 선택이에요.',
+    )
   })
 })
