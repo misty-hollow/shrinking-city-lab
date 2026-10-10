@@ -1,6 +1,6 @@
 작업: UX 개선 PR B — 결산(S5)·S6 결과를 나아진 주민 / 불리해진 주민으로, 지역 카드 정보 구조, 미리보기·실제/가정 안내 중복, 문체 정리
-결과: 검증 대기
-다음 할 일: push 후 CI 확인 → PR 생성. 병합은 사용자 지시로만. 배포(정식·테스트 사이트)는 별도 승인
+결과: 완료
+다음 할 일: 사용자 — 화면 확인(아래 "사람 확인") 후 병합 여부 결정("PR #N 병합해"). 배포(정식·테스트 사이트)는 별도 승인
 
 ## 위험도: 고, S5·S6 결과 화면(판정 결과를 학생에게 읽히는 방식)과 문구 체계(설계안 5-12)를 바꾸고 설계안 5-6·5-7을 고친다. 계산·데이터·미션 목표치·판정·학습 목표는 바꾸지 않았다(`engine/`·`state/`·`app/public`·`pipeline` diff 0)
 
@@ -74,13 +74,19 @@ No actionable regressions were identified in the changes against the specified m
 
   조치: 필수 지적 없음. Codex 환경에서 테스트가 막혔다는 부분은 위 로컬 검증(메인 실행, 171 passed)과 push 뒤 CI로 확인한다.
 
-## CI 결과
+## CI 결과 (push 실행 38056388728, head `609c779` — 마지막 코드 변경 `424eb54` 위에 보고서만 고친 commit)
 
-없음(push 전).
+| job | 결과 |
+|---|---|
+| repository(위생·gitleaks) | success |
+| pipeline(ruff·pytest·verify) | success |
+| app(npm ci·build·test·뿌리 기준 빌드 smoke) | success |
+
+이 뒤 commit은 이 보고서만 고친다(그 CI는 확인만 하고 다시 쓰지 않는다).
 
 ## 수행하지 못한 검증과 영향
 
-- gitleaks·뿌리 기준 빌드 smoke: push 후 CI.
+- gitleaks·뿌리 기준 빌드 smoke는 로컬에서 못 돌리고 CI(위)에서 통과했다.
 - 사람 확인: 1280×720·1024×768에서 결산 판 길이와 스크롤, 두 칸 줄바꿈(좁은 폭에서 칸당 약 190px), 지역 카드(닿지 않는 마을이 있는 읍·면에서 요약 줄과 접힌 목록 — 로컬 미리보기에서 열어 보지 못했다), 명사형 알림·미리보기의 톤, 시트·S6 본문에 남은 "얻은 것/잃은 것" 용어와의 혼동 여부.
 
 ## 미해결 문제
@@ -89,4 +95,4 @@ No actionable regressions were identified in the changes against the specified m
 
 ## commit 해시
 
-이 보고서가 들어 있는 중간 commit(로컬, push 안 함). 기준: `origin/main` `8c1f276cb25df23984b1291c1b7ba37c0868ecc5`.
+`813471a`(기능) · `424eb54`(Codex P2 수정) + 보고서만 고친 commit. 기준: `origin/main` `8c1f276cb25df23984b1291c1b7ba37c0868ecc5`.
