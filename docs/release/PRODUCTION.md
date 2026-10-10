@@ -1,6 +1,6 @@
 # Production 운영 (geoleobom.kr)
 
-기준일: 2026-09-29. 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
+기준일: 2026-10-10(최초 2026-09-29). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
 공개 전 준비 기록은 `RELEASE_READINESS.md`에 있습니다(그 6절의 VPS 배포는 전환 기간에만 썼습니다).
 
 ## 1. 구조
@@ -32,8 +32,9 @@ bash deploy/build_release.sh "$SHA" "$OUT"            # git archive → npm ci �
 git fetch origin gh-pages
 git worktree add ../scl-gh-pages origin/gh-pages --detach
 cd ../scl-gh-pages
-git rm -rq . && cp -r "$OUT/dist/." . && printf 'geoleobom.kr\n' > CNAME && : > .nojekyll && cp index.html 404.html
-git add -A && git commit -m "release: Shrinking City Lab $SHA"
+git rm -rq . && cp -r "$OUT/dist/." . && git checkout origin/gh-pages -- CNAME && : > .nojekyll && cp index.html 404.html
+git add -A && git diff --cached --name-status origin/gh-pages   # 바뀐 파일이 예상(앱 자산·index.html·404.html)뿐인지 본다
+git commit -m "release: Shrinking City Lab $SHA"
 git push origin HEAD:gh-pages                          # force push 하지 않는다(이력 = 릴리스 기록)
 ```
 
@@ -61,13 +62,23 @@ git revert --no-edit HEAD && git push origin HEAD:gh-pages
 
 | 항목 | 값 |
 |---|---|
-| 앱 커밋(main) | `b323c8a86385682fb9d88a1788e4357660e50e9f` (CI success) — RC `01b0da7` + 진료일정 이용조건 표기 수정(PR #9, `data/manifest.json` 한 줄) |
-| `gh-pages` 커밋 | `caf9acd` |
-| 직전 릴리스(되돌리기 대상) | 앱 `01b0da7` = `gh-pages` `5873af0`. 3절 `git revert HEAD`가 이것으로 돌아갑니다. `67939c5`→`5873af0`은 GitHub가 도메인 재등록 때 CNAME을 지웠다 다시 만든 커밋이고 앱 파일은 같습니다 |
-| 주 자산 | `assets/index-0xOS-18U.js` |
-| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`) |
-| 공개 | 2026-09-29. DNS 전환 21:55 KST, 인증서 발급 22:13 KST(만료 2026-12-28, GitHub 자동 갱신) |
-| 공개 뒤 확인 | `01b0da7`: 파일 195개 SHA256 = 빌드, smoke 실패 0, 브라우저 QA 433 PASS / 0 FAIL, 요청 호스트 `geoleobom.kr` 하나(GitHub IP). `b323c8a`: 빌드 차이 `data/manifest.json` 하나, 공개 manifest = 빌드, smoke 실패 0, S8(1440·390 폭)에 새 표기만 보임 |
+| 앱 커밋(main) | `2ee1431b5926e98eda640063d6887f32e978d8ea` (main CI success, run 38056697367) — PR #12(튜토리얼 기준 수치·미션 2 이름·결산 줄어든 마을) + PR #13(결산·S6 나아진/불리해진 주민, 지역 카드, 미리보기·문체). 두 PR 모두 Codex 독립 리뷰 통과 |
+| `gh-pages` 커밋 | `e388749` (2026-10-10 23:21 KST, `caf9acd` 위 fast-forward) |
+| 직전 릴리스(되돌리기 대상) | 앱 `b323c8a` = `gh-pages` `caf9acd`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
+| 주 자산 | `assets/index-n64CaXCs.js` |
+| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일) |
+| 공개 | 2026-10-10 Pages build `built` 23:22 KST. 도메인·HTTPS 설정 변경 없음(cname `geoleobom.kr`, Enforce HTTPS 켬) |
+| 공개 뒤 확인 | `caf9acd` 대비 바뀐 파일 4개(`index.html`·`404.html`·주 JS·CSS). 자료 6개·라이선스 3개·`CNAME`·`.nojekyll` 바이트 동일. 커밋된 파일 = 빌드(`dist` 195개 SHA256). smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404). 실제 사이트 브라우저(1440×900): 새 주 자산 로드, 튜토리얼 2단계 문장(15분 → 20분 두 기준), 미션 2 제목, S6 미션 탭·나아진/불리해진 주민 두 행, 콘솔 오류 0. 결산(S5) 두 칸은 같은 커밋의 팀원용 테스트 사이트(`misty-hollow/scl-playtest` `6b9fdc2`)에서 확인 |
+
+이전 릴리스 기록:
+
+| 날짜 | 앱 커밋 | `gh-pages` | 메모 |
+|---|---|---|---|
+| 2026-10-10 | `2ee1431` | `e388749` | 위 표 |
+| 2026-09-29 | `b323c8a` | `caf9acd` | RC `01b0da7` + 진료일정 이용조건 표기 수정(PR #9, `data/manifest.json` 한 줄). 빌드 차이 manifest 하나, smoke 실패 0, S8(1440·390 폭)에 새 표기만 보임. 주 자산 `index-0xOS-18U.js` |
+| 2026-09-29 | `01b0da7` | `5873af0` | 첫 공개(DNS 전환 21:55 KST, 인증서 발급 22:13 KST, 만료 2026-12-28 자동 갱신). 파일 195개 SHA256 = 빌드, smoke 실패 0, 브라우저 QA 433 PASS / 0 FAIL, 요청 호스트 `geoleobom.kr` 하나. `67939c5`→`5873af0`은 GitHub가 도메인 재등록 때 CNAME을 지웠다 다시 만든 커밋이고 앱 파일은 같다 |
+
+`CNAME`은 GitHub가 만든 줄바꿈 없는 `geoleobom.kr`입니다. 2절처럼 기존 파일을 그대로 가져옵니다(새로 쓰면 바이트가 바뀝니다, 2026-10-10 릴리스에서 확인).
 
 DNS를 다시 바꿀 때 알아 둘 것(2026-09-29 전환에서 겪음):
 - 호스팅케이알의 ns1·ns3은 몇 분 안에 바뀌지만 **ns2·ns4(`43.201.141.93`)는 약 1시간 뒤에** 따라왔습니다(SOA 일련번호는 같았음). 그동안 GitHub는 "GitHub 아닌 IP가 섞여 있다"며 인증서를 내주지 않습니다.
