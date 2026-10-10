@@ -1,18 +1,21 @@
 name: CI
 
+# 작업 브랜치 push에서도 돈다: PR을 만들기 전에 head 커밋의 CI를 확인한다(CLAUDE.md 2절 9단계).
+# gh-pages는 빌드 산출물만 있는 운영 배포 브랜치라 CI 대상이 아니다.
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: ["**", "!gh-pages"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# 같은 PR·브랜치의 이전 실행은 취소하되, main 실행은 끝까지 돈다.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # 저장소 위생: 바뀐 줄의 공백, Git 기록 전체의 비밀값 검사(원본 Gongju xlsx·키가 들어오지 않았는지).

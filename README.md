@@ -10,6 +10,7 @@
 - 런타임은 정적 파일뿐이다. 서버·OSRM·지도 타일·외부 API 호출이 없다.
 - 라이선스: 코드는 `LICENSE`(MIT), 데이터는 원 기관의 이용조건을 따른다 — `DATA_LICENSE.md`(앱 S8 「자료와 한계」와 같은 표기).
 - 공개 전 준비 상태·사람이 할 일·성능 점검: `docs/release/RELEASE_READINESS.md` · 플레이테스트 `docs/release/PLAYTEST.md` · 소리 청취 `docs/release/SOUND_QA.md`
+- 개발 운영 규칙(AI 개발 플로우): `CLAUDE.md` · 결정 기록 `docs/DECISIONS.md` · 작업 상태 `docs/REPORT.md`
 
 ## 구현 범위
 
