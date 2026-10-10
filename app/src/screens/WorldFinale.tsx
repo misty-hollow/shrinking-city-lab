@@ -9,9 +9,11 @@ import { useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
 import type { Scenario } from '../data/types'
-import type { Model } from '../engine/kpi'
+import { people } from '../engine/format'
+import type { Kpis, Model } from '../engine/kpi'
 import type { FinaleBase } from '../state/game'
 import { type MissionId, missionNumber } from '../state/results'
+import { changeSummary } from '../ui/changeSummary'
 import { Badge } from '../ui/common'
 import { GOAL_KPI, KPI_KEYS, KPI_NAME, fmtKpi } from '../ui/kpiText'
 import { ArrowIcon } from '../ui/WorldHud'
@@ -21,6 +23,8 @@ interface Props {
   results: FinaleResults
   scenario: Scenario
   model: Model
+  /** 현재 실제(10일) 배분의 15분 결과. 표 아래 나아진·불리해진 주민의 기준선 */
+  current15: Kpis
   /** 좁은 화면(<1100): 표가 왼쪽 단을 차지하므로 무대가 그 오른쪽에 섬을 놓게 한다(Stage의 inset-left) */
   narrow?: boolean
   focus: MissionId
@@ -37,6 +41,7 @@ export function WorldFinale(p: Props) {
     h.current?.focus()
   }, [])
   const summary = finaleSummary(p.results, p.model)
+  const changes = p.results.map((r) => changeSummary(r.k15, p.current15, p.model))
   const options: { id: FinaleBase; label: string }[] = [
     { id: 'current', label: copy.finale.baseCurrent },
     ...p.results.filter((r) => r.mission !== p.focus).map((r) => ({ id: r.mission as FinaleBase, label: copy.finale.baseMission(missionNumber(r.mission)) })),
@@ -119,6 +124,24 @@ export function WorldFinale(p: Props) {
                     </td>
                   )
                 })}
+              </tr>
+            ))}
+          </tbody>
+          {/* 세 배분이 현재 실제보다 나아지게·불리하게 만든 주민(설계안 5-7, 2026-10-10). 지도 증감 기준 [현재 실제]와 같은 비교 */}
+          <tbody className="wf-change">
+            <tr>
+              <th scope="rowgroup" colSpan={p.results.length + 1}>
+                {copy.finale.changeHead}
+              </th>
+            </tr>
+            {(['better', 'worse'] as const).map((k) => (
+              <tr key={k}>
+                <th scope="row">{k === 'better' ? copy.world.betterLabel : copy.world.worseLabel}</th>
+                {p.results.map((r, i) => (
+                  <td key={r.mission} className={`num${r.mission === p.focus ? ' is-on' : ''}`}>
+                    {copy.finale.changeCell(people(changes[i][k].pop), changes[i][k].villages.length)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

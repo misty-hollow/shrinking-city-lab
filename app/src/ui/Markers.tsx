@@ -188,7 +188,6 @@ export function ClinicMarkers(p: MarkersProps) {
                     <>
                       <span className="pv-head">
                         <span>{pv.dir > 0 ? copy.world.preview.headInc(f.short) : copy.world.preview.headDec(f.short)}</span>
-                        <span className="pv-tag">{copy.world.preview.tag}</span>
                       </span>
                       <span className="pv-main">
                         <b className="num">{pv.big}</b>

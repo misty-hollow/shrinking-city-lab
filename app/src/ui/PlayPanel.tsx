@@ -471,6 +471,7 @@ export function MissionCard(p: MissionCardProps) {
         {/* 미리보기가 없을 때도 자리는 남긴다(말풍선을 가리킬 때마다 아래 표가 한 줄씩 들썩이지 않게) */}
         {p.previewValue !== undefined && (
           <span className={`hv-preview${p.previewValue ? '' : ' is-idle'}`} aria-hidden={p.previewValue ? undefined : true}>
+            <span className="sr-only">{copy.world.preview.hudLabel} </span>
             {copy.world.preview.hud(p.previewValue ?? value)}
           </span>
         )}
@@ -572,6 +573,8 @@ export function RegionCard(p: RegionCardProps) {
   const e = p.scenario.emds[p.m]
   const zero = p.scenario.villages.map((v, i) => ({ v, i })).filter(({ i }) => p.model.emd[i] === p.m && p.k.villageDays[i] < 1)
   const unreachable = new Set(unreachableVillages(p.model, p.t))
+  const zeroPop = zero.reduce((n, { v }) => n + v.pop, 0)
+  const zeroUnreachable = zero.filter(({ i }) => unreachable.has(i)).length
   const fj = p.scenario.facilities.findIndex((f) => f.emd === e.id)
   return (
     <aside className="hud-panel region-card" aria-label={e.name} data-occlude>
@@ -587,18 +590,26 @@ export function RegionCard(p: RegionCardProps) {
       </div>
       <div className="num region-days">{copy.region.days(weekDays(p.k.emdDays[p.m]))}</div>
       {fj >= 0 && <div className="small">{copy.region.facility(p.scenario.facilities[fj].name, p.alloc[fj] <= 0 ? copy.facility.closed : allocDays(p.alloc[fj]))}</div>}
+      {/* 규모와 비율을 먼저, 마을 목록은 접는다. 배분으로 바꿀 수 없는 마을(기준 안에 지소 없음)은 수만 따로 */}
       <div className="block-title region-zero-title">{copy.region.zeroTitle}</div>
       {zero.length === 0 ? (
         <div className="small">{copy.region.zeroNone}</div>
       ) : (
-        <ul className="num region-zero">
-          {zero.map(({ v, i }) => (
-            <li key={v.id}>
-              {v.name} · {people(v.pop)}
-              {unreachable.has(i) && <span className="small region-unreachable"> · {copy.region.unreachable(p.t)}</span>}
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="num region-zero-summary">{copy.region.zeroSummary(zero.length, people(zeroPop), ((zeroPop / e.pop) * 100).toFixed(0))}</div>
+          {zeroUnreachable > 0 && <div className="small">{copy.region.unreachableNote(zeroUnreachable, p.t)}</div>}
+          <details className="region-zero-list">
+            <summary className="small">{copy.region.zeroList}</summary>
+            <ul className="num region-zero">
+              {zero.map(({ v, i }) => (
+                <li key={v.id}>
+                  {v.name} · {people(v.pop)}
+                  {unreachable.has(i) && <span className="small region-unreachable"> · {copy.region.unreachable(p.t)}</span>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        </>
       )}
     </aside>
   )
