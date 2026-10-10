@@ -9,14 +9,19 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { APPROVED_NEGATIONS } from '../content/copy'
+import { APPROVED_NEGATIONS, copy } from '../content/copy'
 import type { Geometry, Landscape, Manifest, Scenario } from '../data/types'
-import { zeroOverlap, zeroVillages } from '../engine/compare'
+import { unreachableVillages, zeroOverlap, zeroVillages } from '../engine/compare'
+import { people } from '../engine/format'
 import { buildModel, computeKpis } from '../engine/kpi'
 import { type MissionResult, type Results, comboFor, finaleResults, makeEvaluate } from '../state/results'
+import { withEdgeInsets } from '../stage/Stage'
+import { RegionCard } from '../ui/PlayPanel'
+import { IntroCard, TutorialCard } from './Cards'
 import { DataLimits } from './DataLimits'
 import { DebriefPanel } from './Debrief'
 import { FinaleBoard, FinalePanel, type FinaleResults, finaleSummary } from './Finale'
+import { WorldFinale } from './WorldFinale'
 
 const dataDir = resolve(__dirname, '../../public/data')
 const read = <T,>(name: string): T => JSON.parse(readFileSync(resolve(dataDir, name), 'utf-8')) as T
@@ -158,20 +163,80 @@ describe('S6 세 개의 공주', () => {
     expect(document.querySelector('.badge-REAL_DATA')).toBeTruthy()
     expect(document.querySelector('.badge-DERIVED')).toBeTruthy()
     expect(document.querySelector('.badge-SIMULATION_ASSUMPTION')).toBeTruthy()
-    expect(text).toContain('같은 자원이라도 목표에 따라 좋은 배분이 달라요')
+    expect(text).toContain(copy.finale.closing)
+    expect(text).toContain(copy.finale.lead)
+    // 반례가 있는 단정(설계안 5-7 이전 문구)은 남지 않는다
+    expect(text).not.toContain('늘 어느 지역의 희생')
     for (const w of BANNED) expect(visibleText()).not.toContain(w)
   })
 
-  it('summary sentences use the computed values', () => {
-    const lines = finaleSummary(results)
-    const zeros = results.map((r) => zeroVillages(r.k15).length)
-    expect(lines[1]).toBe(`진료가 닿지 않는 마을은 ${zeros[0]} · ${zeros[1]} · ${zeros[2]}곳이에요.`)
+  it('the closing claim holds for the shipped data: pushing each goal to the top gives a different allocation', () => {
+    // 참고 배분 = 그 지표만 보면 가장 높은 배분. 다른 미션의 참고 배분은 그 지표에서 더 낮다(같은 배분이 둘을 동시에 최대로 만들지 않는다).
+    const ms = ['m1', 'm2', 'm3'] as const
+    const value = (x: readonly number[], m: (typeof ms)[number]) => {
+      const k = computeKpis(model, x, 15)
+      return m === 'm1' ? k.meanDays : m === 'm2' ? k.worstEmdDays : k.cov3Pop
+    }
+    for (const a of ms)
+      for (const b of ms)
+        if (a !== b) expect(value(landscape.missions[a].reference.x, b)).toBeLessThan(value(landscape.missions[b].reference.x, b))
+  })
+
+  it('summary sentences use the computed values and separate villages no allocation can reach', () => {
+    const lines = finaleSummary(results, model)
+    const zeros = results.map((r) => zeroVillages(r.k15))
+    expect(lines[1]).toBe(`진료가 닿지 않는 마을은 ${zeros[0].length} · ${zeros[1].length} · ${zeros[2].length}곳이에요.`)
+    // 행렬에서 바로: 15분 안에 지소가 하나도 없는 마을
+    const unreachable = scenario.matrix.tenths.map((row, i) => (row.every((v) => v > 150) ? i : -1)).filter((i) => i >= 0)
+    expect(unreachable.length).toBeGreaterThan(0)
+    const pop = unreachable.reduce((s, i) => s + scenario.villages[i].pop, 0)
+    expect(lines[2]).toBe(`그중 ${unreachable.length}곳(${people(pop)})은 도로망 15분 안에 보건지소가 하나도 없어서, 어느 지소에 진료일을 두어도 닿지 않아요.`)
+    // 세 배분의 차이는 배분 때문에 닿지 않는 마을에서만 센다
     const { union, all } = zeroOverlap(results.map((r) => r.k15))
-    expect(union.length).toBeGreaterThan(all.length)
-    expect(lines[2]).toContain(`${union.length}곳 가운데 세 배분 모두에서 닿지 않는 마을은 ${all.length}곳`)
+    const allocUnion = union.filter((i) => !unreachable.includes(i))
+    const allocAll = all.filter((i) => !unreachable.includes(i))
+    expect(allocUnion.length).toBeGreaterThan(allocAll.length)
+    expect(lines[3]).toContain(`세 배분 중 한 번이라도 ${allocUnion.length}곳이고, 그중 세 배분 모두에서 닿지 않는 곳은 ${allocAll.length}곳`)
     // 평균 폭이 0.5일을 넘으면 "비슷하지만"이라고 하지 않는다.
     const means = results.map((r) => r.k15.meanDays)
     expect(lines[0].includes('비슷하지만')).toBe(Math.max(...means) - Math.min(...means) <= 0.5)
+  })
+
+  it('the same allocation confirmed in all three missions is described as the same, not as different', () => {
+    // 세 미션 목표를 모두 넘는 배분(전수 계산에서 2,457개 중 하나): 유구 4 · 탄천 1 · 계룡 3 · 반포 1 · 정안 1 · 우성 4 · 신풍 1
+    const X = [4, 0, 1, 3, 1, 0, 1, 4, 0, 1]
+    const same: Results = { m1: evaluate('m1', X, 'played', 1), m2: evaluate('m2', X, 'played', 1), m3: evaluate('m3', X, 'played', 1) }
+    for (const m of ['m1', 'm2', 'm3'] as const) expect(same[m]!.status.achieved).toBe(true)
+    const r = finaleResults(same, landscape, evaluate) as FinaleResults
+    const lines = finaleSummary(r, model)
+    expect(lines[0]).not.toContain('비슷하지만')
+    expect(lines).toContain(copy.finale.sameAllocLine)
+    expect(lines.some((l) => l.includes('나머지는 배분에 따라 달라져요'))).toBe(false)
+    renderFinale(r)
+    const text = document.body.textContent ?? ''
+    expect(text).toContain(copy.finale.leadSameAlloc)
+    expect(text).not.toContain(copy.finale.lead)
+    expect(text).not.toContain('달라졌어요')
+    for (const w of BANNED) expect(visibleText()).not.toContain(w)
+  })
+
+  it('lists villages no allocation can reach once, apart from the per-mission lists', () => {
+    renderFinale()
+    const block = document.querySelector('.finale-unreachable')!
+    expect(block.textContent).toContain(copy.finale.unreachableTitle(15))
+    const names = unreachableVillages(model, 15).map((i) => scenario.villages[i].name)
+    for (const n of names) expect(block.textContent).toContain(n)
+    // 열별 목록에는 배분 때문에 0일이 된 마을만(어느 배분으로도 닿지 않는 마을은 빠진다)
+    const u = new Set(unreachableVillages(model, 15))
+    const items = [...document.querySelectorAll('.finale-zero > li')]
+    expect(items).toHaveLength(3)
+    items.forEach((li, c) => {
+      const expected = zeroVillages(results[c].k15).filter((i) => !u.has(i)).length
+      const summary = li.querySelector('summary')?.textContent ?? ''
+      const listed = [...summary.matchAll(/ (\d+)/g)].reduce((s, m) => s + Number(m[1]), 0)
+      expect(listed).toBe(expected)
+    })
+    expect(document.body.textContent).toContain(copy.finale.zeroTitle)
   })
 
   it('marks skipped missions as reference allocations', () => {
@@ -220,6 +285,27 @@ describe('S8 자료와 한계: 출처·이용조건 표기', () => {
     expect(dialog.textContent).not.toMatch(/공공누리 제\s*\d\s*유형[^.]*진료/)
   })
 
+  it('미션 목표치는 상위 10% 경계를 내림한 값이라고 밝힌다(목표를 넘어도 상위 n%가 10보다 클 수 있다)', () => {
+    render(<DataLimits manifest={manifest} onClose={() => {}} />)
+    const text = screen.getByRole('dialog').textContent ?? ''
+    expect(text).toContain('상위 10% 경계값을 진료일은 0.1일, 주민은 100명 단위로 내린 값이에요')
+    expect(text).toContain('목표를 넘는 배분은 10%보다 많을 수 있어요')
+    expect(copy.world.debriefKpiTitle).toContain('상위 10% 경계를 내림한 값')
+    // 문장의 근거: 전처리 규칙(내림)과 실제 비율. 목표를 넘는 배분 비율은 늘 10% 이상이고, 내림 규칙이 기록돼 있다.
+    for (const m of ['m1', 'm2', 'm3'] as const) {
+      const d = landscape.missions[m]
+      expect(d.share_at_or_above_target).toBeGreaterThanOrEqual(0.1)
+      expect(d.target_rule).toMatch(/상위 10% 경계값을 (0\.1일|100명) 단위로 내림/)
+    }
+    // 목표에 딱 맞춘 미션 1 배분은 '목표 달성'이면서 상위 10%를 넘는다 — 그래서 "상위 10% 경계"라고만 쓰면 모순이 된다.
+    const at = read<{ cases: { name: string; threshold_min: number; x: number[] }[] }>('golden.json').cases.find(
+      (c) => c.name === 'boundary_m1_at' && c.threshold_min === 15,
+    )!
+    const r = evaluate('m1', at.x, 'played', 1)
+    expect(r.status.achieved).toBe(true)
+    expect(r.status.topPercent).toBeGreaterThan(10)
+  })
+
   it('인구 출처는 이용허락범위가 확인된 행정안전부 개방 자료이고, 계산 파일과의 대조를 밝힌다', () => {
     render(<DataLimits manifest={manifest} onClose={() => {}} />)
     const dialog = screen.getByRole('dialog')
@@ -229,5 +315,144 @@ describe('S8 자료와 한계: 출처·이용조건 표기', () => {
     expect(within(dialog).getByRole('link', { name: p.page_url })).toBeTruthy()
     expect(dialog.textContent).toContain(p.attribution)
     expect(dialog.textContent).toContain('행정안전부 공개 자료와 값이 모두 같아요')
+  })
+})
+
+describe('지역 카드: 어느 배분으로도 닿지 않는 마을 표시', () => {
+  it('marks only villages with no clinic inside the current threshold, and the mark follows the threshold', () => {
+    for (const t of [10, 15, 20] as const) {
+      const k = computeKpis(model, scenario.current_allocation, t)
+      const u = new Set(unreachableVillages(model, t))
+      for (let m = 0; m < scenario.emds.length; m++) {
+        const { unmount } = render(
+          <RegionCard m={m} k={k} t={t} scenario={scenario} model={model} alloc={scenario.current_allocation} populationDate="2026-08-31" onClose={() => {}} />,
+        )
+        const dark = scenario.villages.filter((_, i) => model.emd[i] === m && k.villageDays[i] < 1)
+        const marked = scenario.villages.filter((_, i) => model.emd[i] === m && u.has(i))
+        const items = [...document.querySelectorAll('.region-zero li')]
+        expect(items).toHaveLength(dark.length)
+        expect(document.querySelectorAll('.region-unreachable')).toHaveLength(marked.length)
+        for (const li of items) {
+          const v = dark.find((d) => li.textContent?.startsWith(`${d.name} · `))!
+          expect(li.querySelector('.region-unreachable') !== null).toBe(marked.includes(v))
+          if (marked.includes(v)) expect(li.textContent).toContain(copy.region.unreachable(t))
+        }
+        unmount()
+      }
+    }
+  })
+})
+
+describe('S6 좁은 화면(768~1099): 표가 차지한 왼쪽 단을 무대가 피한다', () => {
+  const results = finaleResults(
+    { m1: evaluate('m1', A1, 'played', 1), m2: evaluate('m2', A2, 'played', 1), m3: evaluate('m3', A3, 'played', 1) },
+    landscape,
+    evaluate,
+  ) as FinaleResults
+  const world = (narrow: boolean) =>
+    render(
+      <WorldFinale
+        results={results}
+        scenario={scenario}
+        model={model}
+        narrow={narrow}
+        focus="m1"
+        onFocus={() => {}}
+        base="current"
+        onBase={() => {}}
+        onBoard={() => {}}
+        onHome={() => {}}
+      />,
+    )
+
+  it('marks the table as a left edge only on narrow screens', () => {
+    const { unmount } = world(true)
+    expect(document.querySelector('.wf-table')!.getAttribute('data-occlude')).toBe('inset-left')
+    unmount()
+    world(false)
+    // 넓은 화면은 지금까지처럼 피해야 할 판일 뿐(왼쪽 여백을 바꾸지 않는다)
+    expect(document.querySelector('.wf-table')!.getAttribute('data-occlude')).toBe('true')
+  })
+
+  it('turns an inset-left panel into the left inset and leaves other panels alone', () => {
+    const insets = { left: 0, right: 0, top: 16, bottom: 20 }
+    const edge = document.createElement('div')
+    edge.setAttribute('data-occlude', 'inset-left')
+    const plain = document.createElement('div')
+    plain.setAttribute('data-occlude', 'true')
+    const rect = (l: number, r: number) => ({ left: l, right: r, top: 100, bottom: 600, width: r - l, height: 500, x: l, y: 100, toJSON() {} }) as DOMRect
+    edge.getBoundingClientRect = () => rect(24, 415)
+    plain.getBoundingClientRect = () => rect(500, 760)
+    document.body.append(plain)
+    expect(withEdgeInsets(insets)).toBe(insets)
+    document.body.append(edge)
+    expect(withEdgeInsets(insets)).toEqual({ ...insets, left: 415 })
+    // 이미 더 큰 왼쪽 여백(시작 화면 등)은 줄이지 않는다
+    expect(withEdgeInsets({ ...insets, left: 600 }).left).toBe(600)
+    edge.remove()
+    plain.remove()
+  })
+})
+
+describe('도입부·튜토리얼 설명은 데이터의 규칙과 맞는다(S1·S2)', () => {
+  const intro = (step: 0 | 1 | 2) => render(<IntroCard step={step} scenario={scenario} manifest={manifest} onNext={() => {}} onSkip={() => {}} />)
+  const tutorial = (step: 1 | 2 | 3, result: string | null = null) =>
+    render(
+      <TutorialCard step={step} triedText={null} needReturn={false} canNext result={result} onNext={() => {}} onSkip={() => {}} onStartMission={() => {}} />,
+    )
+
+  it('S1-2: one clinic per 읍·면, and the every-other-week rule the numbers come from', () => {
+    // "읍·면마다 한 곳씩"의 근거: 지소 10곳이 읍·면 10곳에 하나씩
+    expect(new Set(scenario.facilities.map((f) => f.emd)).size).toBe(scenario.emds.length)
+    expect(scenario.facilities).toHaveLength(scenario.emds.length)
+    intro(1)
+    const text = document.body.textContent ?? ''
+    expect(text).toContain('읍·면마다 한 곳씩 있는 공공 보건기관')
+    expect(text).toContain('격주로 열리면 주 0.5일로 셌어요')
+    expect(manifest.sources.schedule.conversion_rule).toContain('격주 = 주 0.5일')
+  })
+
+  it('S1-3: the 10 days are the clinics’ 의과 days, not the whole medical supply of Gongju', () => {
+    intro(2)
+    const text = document.body.textContent ?? ''
+    expect(scenario.rules.current_total_days).toBe(10)
+    expect(text).toContain('읍·면 보건지소 10곳의 의과 진료일을 모두 더하면 지금 주 10일')
+    expect(text).toContain('의료진 수·진료 과목·시내 병원은 담지 않은 게임 단위')
+    expect(text).not.toContain('공주의 진료자원')
+    expect(document.querySelector('.badge-REAL_DATA')).toBeTruthy()
+    expect(document.querySelector('.badge-SIMULATION_ASSUMPTION')).toBeTruthy()
+  })
+
+  it('S2-1 states the calculation the game uses: clinic days within 15 minutes, capped at 5', () => {
+    tutorial(1)
+    const text = document.body.textContent ?? ''
+    expect(text).toContain('15분 안에 있는 보건지소들의 진료일을 더하면')
+    expect(text).toContain('최대 주 5일')
+    expect(scenario.rules.resident_cap_days).toBe(5)
+    expect(scenario.rules.mission_threshold_min).toBe(15)
+    // 엔진도 같은 정의: 기준 안 지소들의 진료일 합, 5일에서 멈춤
+    const x = scenario.current_allocation
+    const k = computeKpis(model, x, 15)
+    scenario.villages.forEach((_, i) => {
+      const sum = scenario.matrix.tenths[i].reduce((s, t, j) => s + (t <= 150 ? x[j] : 0), 0)
+      expect(k.villageDays[i]).toBe(Math.min(5, sum))
+    })
+  })
+
+  it('S2-2 names the buttons to press; S2-3 bridges to the mission with real 10 + assumed 5', () => {
+    const { unmount } = tutorial(2)
+    expect(document.body.textContent).toContain('오른쪽 위 10분 · 15분 · 20분 중 다른 시간을 눌러 보세요')
+    unmount()
+    tutorial(3, '신풍에 하루를 놓았어요.')
+    const text = document.body.textContent ?? ''
+    expect(text).toContain('실제 10일에 가정 5일을 더한 15일')
+    expect(scenario.rules.added_assumption_days).toBe(5)
+    expect(scenario.rules.mission_budget).toBe(15)
+    for (const w of BANNED) expect(visibleText()).not.toContain(w)
+  })
+
+  it('S2-3 result sentence uses 닿는 진료일 instead of the unexplained word 두께', () => {
+    expect(copy.tutorial.step3Result('신풍', 0, 29)).toBe('신풍에 하루를 놓았어요. 처음으로 닿은 마을은 없고, 의당 쪽 29개 마을은 닿는 진료일이 줄었어요.')
+    expect(copy.tutorial.step3Result('신풍', 3, 29)).not.toContain('두께')
   })
 })

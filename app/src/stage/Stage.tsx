@@ -46,6 +46,19 @@ function measureOccluders(): ScreenRect[] {
   return out
 }
 
+/**
+ * `data-occlude="inset-left"` 판은 왼쪽 단 하나를 통째로 차지한다(좁은 화면의 S6 표). 섬이 화면 가운데에 머물면 이 판을
+ * 피할 자리가 없으므로, 판의 오른쪽 끝까지를 왼쪽 여백으로 보고 남은 자리의 가운데에 섬을 놓는다.
+ */
+export function withEdgeInsets(i: Insets): Insets {
+  let left = i.left
+  document.querySelectorAll<HTMLElement>('[data-occlude="inset-left"]').forEach((el) => {
+    const r = el.getBoundingClientRect()
+    if (r.width > 0 && r.height > 0) left = Math.max(left, Math.round(r.right))
+  })
+  return left === i.left ? i : { ...i, left }
+}
+
 export const Stage = forwardRef<StageHandle, Props>(function Stage(props, ref) {
   const host = useRef<HTMLDivElement>(null)
   const labels = useRef<HTMLDivElement>(null)
@@ -77,7 +90,7 @@ export const Stage = forwardRef<StageHandle, Props>(function Stage(props, ref) {
     ctl.current = c
     c.setAnchors(anchors.current)
     c.update(cbRef.current.view)
-    c.setLayout(cbRef.current.insets, measureOccluders())
+    c.setLayout(withEdgeInsets(cbRef.current.insets), measureOccluders())
     return () => {
       c.dispose()
       ctl.current = null
@@ -91,7 +104,7 @@ export const Stage = forwardRef<StageHandle, Props>(function Stage(props, ref) {
 
   // HUD가 그려진 뒤(같은 프레임) 판을 재고, 창 크기가 바뀌면 다시 잰다.
   useLayoutEffect(() => {
-    const apply = () => ctl.current?.setLayout(cbRef.current.insets, measureOccluders())
+    const apply = () => ctl.current?.setLayout(withEdgeInsets(cbRef.current.insets), measureOccluders())
     apply()
     const id = window.setTimeout(apply, 120)
     window.addEventListener('resize', apply)

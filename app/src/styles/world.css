@@ -2143,6 +2143,8 @@ body {
     left: 24px;
     top: 146px;
     width: min(420px, 38vw);
+    /* 표가 판보다 넓으면 판을 표 폭까지 넓힌다. 무대는 이 판(data-occlude)을 피해 섬을 놓으므로, 판이 좁으면 말풍선이 표 위에 앉는다 */
+    min-width: min-content;
   }
 
   .wf-kpis {
@@ -2175,6 +2177,16 @@ body {
   .kpi-list .kpi {
     grid-template-columns: minmax(0, 1fr) auto 64px;
     column-gap: 8px;
+    /* HUD 폭 250에서는 긴 지표 이름("주 1일 이상 닿는 주민")이 말줄임으로 잘린다. 잘리지 않게 두 줄로 접는다 */
+    height: auto;
+    min-height: 28px;
+    padding: 4px 0;
+  }
+
+  .kpi-list .kpi-name {
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 16px;
   }
 
   .round-btn,
@@ -2193,6 +2205,20 @@ body {
 
   .wf-end .wf-closing {
     display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  /* S6 머리(제목·미션 탭·증감 기준)를 가운데에 두면 오른쪽 위 도구(기준 스위치·버튼)와 겹친다. 왼쪽 단(표)과 같은 줄에 맞춘다 */
+  .wf-top {
+    left: 24px;
+    translate: none;
+    align-items: flex-start;
+  }
+
+  /* 왼쪽에 맞춘 머리의 증감 기준 줄 바로 아래에 배지가 붙지 않게 표를 조금 내린다 */
+  .wf-table {
+    top: 168px;
   }
 }
 

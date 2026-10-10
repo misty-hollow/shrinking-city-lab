@@ -8,7 +8,7 @@ import { useState } from 'react'
 
 import { copy } from '../content/copy'
 import type { MissionData, Scenario } from '../data/types'
-import { type KpiDelta, type MissionStatus, kpiDeltas } from '../engine/compare'
+import { type KpiDelta, type MissionStatus, kpiDeltas, unreachableVillages } from '../engine/compare'
 import { allocDays, days1, minutes, missionDays, nearDays, pct, people, signed, weekDays } from '../engine/format'
 import { type Kpis, type Model, type Threshold, villagesReachedBy } from '../engine/kpi'
 import type { Emphasis, StageEvent } from '../stage/StageController'
@@ -559,6 +559,8 @@ function ThicknessBar({ k, total, target }: { k: Kpis; total: number; target: nu
 interface RegionCardProps {
   m: number
   k: Kpis
+  /** k를 계산한 기준(분). 이 기준 안에 지소가 하나도 없는 마을을 따로 표시한다 */
+  t: Threshold
   scenario: Scenario
   model: Model
   alloc: readonly number[]
@@ -569,6 +571,7 @@ interface RegionCardProps {
 export function RegionCard(p: RegionCardProps) {
   const e = p.scenario.emds[p.m]
   const zero = p.scenario.villages.map((v, i) => ({ v, i })).filter(({ i }) => p.model.emd[i] === p.m && p.k.villageDays[i] < 1)
+  const unreachable = new Set(unreachableVillages(p.model, p.t))
   const fj = p.scenario.facilities.findIndex((f) => f.emd === e.id)
   return (
     <aside className="hud-panel region-card" aria-label={e.name} data-occlude>
@@ -589,9 +592,10 @@ export function RegionCard(p: RegionCardProps) {
         <div className="small">{copy.region.zeroNone}</div>
       ) : (
         <ul className="num region-zero">
-          {zero.map(({ v }) => (
+          {zero.map(({ v, i }) => (
             <li key={v.id}>
               {v.name} · {people(v.pop)}
+              {unreachable.has(i) && <span className="small region-unreachable"> · {copy.region.unreachable(p.t)}</span>}
             </li>
           ))}
         </ul>

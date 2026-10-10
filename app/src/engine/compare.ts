@@ -3,7 +3,7 @@
  */
 
 import type { LandscapeCombo, MissionData, MissionKpi } from '../data/types'
-import { type Kpis, tenthsToMinutes, tierOf } from './kpi'
+import { type Kpis, type Model, type Threshold, reaches, tenthsToMinutes, tierOf } from './kpi'
 
 export type Change = 'better' | 'same' | 'worse'
 
@@ -96,9 +96,28 @@ export function zeroVillages(k: Kpis): number[] {
 
 /** 여러 배분의 닿지 않는 마을: 한 번이라도(합집합) / 모두에서(교집합). */
 export function zeroOverlap(ks: readonly Kpis[]): { union: number[]; all: number[] } {
-  const sets = ks.map((k) => new Set(zeroVillages(k)))
+  return overlapOf(ks.map((k) => zeroVillages(k)))
+}
+
+/** 마을 목록 여러 개의 합집합·교집합(오름차순). */
+export function overlapOf(lists: readonly (readonly number[])[]): { union: number[]; all: number[] } {
+  const sets = lists.map((l) => new Set(l))
   const union = [...new Set(sets.flatMap((s) => [...s]))].sort((a, b) => a - b)
   return { union, all: union.filter((i) => sets.every((s) => s.has(i))) }
+}
+
+/**
+ * 기준 T 안에 보건지소가 하나도 없는 마을. 어느 지소에 진료일을 두어도 닿지 않으므로 배분과 상관없이 0일이다.
+ * 행렬과 기준만으로 정해진다(데이터 판본·기준이 바뀌면 함께 바뀐다).
+ */
+export function unreachableVillages(m: Model, t: Threshold): number[] {
+  const out: number[] = []
+  for (let i = 0; i < m.nV; i++) {
+    let any = false
+    for (let j = 0; j < m.nF && !any; j++) any = reaches(m, i, j, t)
+    if (!any) out.push(i)
+  }
+  return out
 }
 
 export function missionValue(k: Kpis, kpi: MissionKpi): number {

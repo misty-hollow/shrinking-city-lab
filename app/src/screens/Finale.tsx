@@ -8,9 +8,9 @@ import { useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
 import type { Geometry, Manifest, Scenario } from '../data/types'
-import { zeroOverlap, zeroVillages } from '../engine/compare'
+import { overlapOf, unreachableVillages, zeroVillages } from '../engine/compare'
 import { allocDays, days1, people, signed, weekDays } from '../engine/format'
-import { type Model, emdShareAtLeast } from '../engine/kpi'
+import { type Model, type Threshold, emdShareAtLeast } from '../engine/kpi'
 import type { Hillshade } from '../stage/hillshade'
 import type { World } from '../stage/world'
 import { type MissionId, type MissionResult, missionNumber } from '../state/results'
@@ -24,17 +24,56 @@ export type FinaleResults = readonly [MissionResult, MissionResult, MissionResul
 /** 평균이 "비슷하다"고 말해도 되는 폭(주 0.5일). 넘으면 값만 말한다. */
 const SIMILAR_MEAN_DAYS = 0.5
 
-/** 표 아래 고정 문장(설계안 5-7)의 값. 문장이 데이터와 어긋나지 않게 조건을 둔다. */
-export function finaleSummary(results: FinaleResults): string[] {
+/** S6의 비교는 모두 도로망 15분 기준이다(copy.finale.notCurrent). */
+export const FINALE_T: Threshold = 15
+
+function sameAlloc(results: FinaleResults): boolean {
+  return results.every((r) => r.alloc.every((v, j) => v === results[0].alloc[j]))
+}
+
+function sameOutcome(results: FinaleResults): boolean {
+  const a = results[0].k15.villageDays
+  return results.every((r) => r.k15.villageDays.every((v, i) => v === a[i]))
+}
+
+/** 머리 문장. 세 배분(또는 그 결과)이 같으면 "달라졌다"고 말하지 않는다. */
+export function finaleLead(results: FinaleResults): string {
+  if (sameAlloc(results)) return copy.finale.leadSameAlloc
+  if (sameOutcome(results)) return copy.finale.leadSameOutcome
+  return copy.finale.lead
+}
+
+/**
+ * 표 아래 문장(설계안 5-7)의 값. 문장이 데이터와 어긋나지 않게 조건을 둔다.
+ * 닿지 않는 마을은 둘로 나눠 말한다: 기준 안에 지소가 하나도 없는 마을(어느 배분으로도 닿지 않음)과
+ * 배분 때문에 닿지 않는 마을. 세 배분의 차이는 뒤쪽에서만 생긴다.
+ */
+export function finaleSummary(results: FinaleResults, model: Model): string[] {
   const ks = results.map((r) => r.k15)
   const means = ks.map((k) => weekDays(k.meanDays))
   const spread = Math.max(...ks.map((k) => k.meanDays)) - Math.min(...ks.map((k) => k.meanDays))
-  const zeros = ks.map((k) => zeroVillages(k).length)
-  const { union, all } = zeroOverlap(ks)
-  const out = [copy.finale.meanLine(means[0], means[1], means[2], spread <= SIMILAR_MEAN_DAYS), copy.finale.zeroLine(zeros[0], zeros[1], zeros[2])]
-  if (union.length === 0) out.push(copy.finale.noZero)
-  else if (all.length === union.length) out.push(copy.finale.sameZero)
-  else out.push(copy.finale.overlapLine(union.length, all.length))
+  const zeroLists = ks.map((k) => zeroVillages(k))
+  const unreachable = new Set(unreachableVillages(model, FINALE_T))
+  const byAlloc = overlapOf(zeroLists.map((l) => l.filter((i) => !unreachable.has(i))))
+  const same = sameAlloc(results)
+  // "비슷하지만"은 뒤 문장이 세 배분의 차이(배분 때문에 닿지 않는 곳이 다름)를 말할 때만 쓴다.
+  const differs = !same && byAlloc.union.length > byAlloc.all.length
+  const out = [
+    copy.finale.meanLine(means[0], means[1], means[2], differs && spread <= SIMILAR_MEAN_DAYS),
+    copy.finale.zeroLine(zeroLists[0].length, zeroLists[1].length, zeroLists[2].length),
+  ]
+  if (zeroLists.every((l) => l.length === 0)) {
+    out.push(copy.finale.noZero)
+    return out
+  }
+  if (unreachable.size > 0) {
+    const pop = [...unreachable].reduce((s, i) => s + model.pop[i], 0)
+    out.push(copy.finale.unreachableLine(unreachable.size, people(pop), FINALE_T))
+  }
+  if (same) out.push(copy.finale.sameAllocLine)
+  else if (byAlloc.union.length === 0) out.push(copy.finale.noAllocZero)
+  else if (!differs) out.push(copy.finale.sameZero)
+  else out.push(copy.finale.overlapLine(byAlloc.union.length, byAlloc.all.length))
   return out
 }
 
@@ -78,7 +117,7 @@ export function FinaleBoard(p: BoardProps) {
         <h1 id="s6-title" tabIndex={-1} ref={h}>
           {copy.finale.title}
         </h1>
-        <p className="finale-lead">{copy.finale.lead}</p>
+        <p className="finale-lead">{finaleLead(p.results)}</p>
         <div className="badges">
           <Badge cls="REAL_DATA">{copy.briefing.realBadge(p.manifest.display_dates.schedule)}</Badge>
           <Badge cls="SIMULATION_ASSUMPTION">{copy.briefing.assumptionBadge}</Badge>
@@ -257,7 +296,9 @@ interface PanelProps {
 export function FinalePanel(p: PanelProps) {
   const col = (m: MissionId) => (p.focus === m || p.hover === m ? 'is-hover' : '')
   const anyReference = p.results.some((r) => r.source === 'reference')
-  const summary = finaleSummary(p.results)
+  const summary = finaleSummary(p.results, p.model)
+  const unreachable = unreachableVillages(p.model, FINALE_T)
+  const unreachableSet = new Set(unreachable)
   const head = (
     <tr>
       <th scope="col" />
@@ -270,11 +311,25 @@ export function FinalePanel(p: PanelProps) {
       ))}
     </tr>
   )
-  const byEmdZero = (r: MissionResult) => {
+  const byEmd = (villages: number[]) => {
     const g = new Map<number, number[]>()
-    for (const i of zeroVillages(r.k15)) g.set(p.model.emd[i], [...(g.get(p.model.emd[i]) ?? []), i])
+    for (const i of villages) g.set(p.model.emd[i], [...(g.get(p.model.emd[i]) ?? []), i])
     return [...g.entries()].sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
   }
+  // 배분 때문에 0일이 된 마을만 열별로. 어느 배분으로도 닿지 않는 마을은 세 열에 같으므로 따로 한 번만 적는다.
+  const byEmdZero = (r: MissionResult) => byEmd(zeroVillages(r.k15).filter((i) => !unreachableSet.has(i)))
+  const emdGroups = (groups: [number, number[]][]) => (
+    <>
+      <summary className="num">{groups.map(([m, list]) => `${p.scenario.emds[m].name} ${list.length}`).join(' · ')}</summary>
+      <div className="small">
+        {groups.map(([m, list]) => (
+          <div key={m}>
+            <strong>{p.scenario.emds[m].name}</strong> {list.map((i) => p.scenario.villages[i].name).join(', ')}
+          </div>
+        ))}
+      </div>
+    </>
+  )
   return (
     <>
       <section className="block" aria-label={copy.finale.basis}>
@@ -391,26 +446,19 @@ export function FinalePanel(p: PanelProps) {
             return (
               <li key={r.mission} className={col(r.mission)}>
                 <strong>{copy.finale.col(missionNumber(r.mission))}</strong>{' '}
-                {groups.length === 0 ? (
-                  copy.finale.zeroNone
-                ) : (
-                  <details>
-                    <summary className="num">
-                      {groups.map(([m, list]) => `${p.scenario.emds[m].name} ${list.length}`).join(' · ')}
-                    </summary>
-                    <div className="small">
-                      {groups.map(([m, list]) => (
-                        <div key={m}>
-                          <strong>{p.scenario.emds[m].name}</strong> {list.map((i) => p.scenario.villages[i].name).join(', ')}
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
+                {groups.length === 0 ? copy.finale.zeroNone : <details>{emdGroups(groups)}</details>}
               </li>
             )
           })}
         </ul>
+        {unreachable.length > 0 && (
+          <div className="finale-unreachable">
+            <div className="block-title" style={{ marginTop: 10 }}>
+              {copy.finale.unreachableTitle(FINALE_T)}
+            </div>
+            <details>{emdGroups(byEmd(unreachable))}</details>
+          </div>
+        )}
       </section>
 
       <section className="block finale-closing">

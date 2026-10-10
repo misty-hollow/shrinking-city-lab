@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
 import type { Scenario } from '../data/types'
+import type { Model } from '../engine/kpi'
 import type { FinaleBase } from '../state/game'
 import { type MissionId, missionNumber } from '../state/results'
 import { Badge } from '../ui/common'
@@ -19,6 +20,9 @@ import { type FinaleResults, chipOf, finaleSummary } from './Finale'
 interface Props {
   results: FinaleResults
   scenario: Scenario
+  model: Model
+  /** 좁은 화면(<1100): 표가 왼쪽 단을 차지하므로 무대가 그 오른쪽에 섬을 놓게 한다(Stage의 inset-left) */
+  narrow?: boolean
   focus: MissionId
   onFocus(m: MissionId): void
   base: FinaleBase
@@ -32,7 +36,7 @@ export function WorldFinale(p: Props) {
   useEffect(() => {
     h.current?.focus()
   }, [])
-  const summary = finaleSummary(p.results)
+  const summary = finaleSummary(p.results, p.model)
   const options: { id: FinaleBase; label: string }[] = [
     { id: 'current', label: copy.finale.baseCurrent },
     ...p.results.filter((r) => r.mission !== p.focus).map((r) => ({ id: r.mission as FinaleBase, label: copy.finale.baseMission(missionNumber(r.mission)) })),
@@ -85,7 +89,7 @@ export function WorldFinale(p: Props) {
           </div>
         </div>
       </header>
-      <section className="wf-table" aria-label={copy.world.finaleTableTitle} data-occlude>
+      <section className="wf-table" aria-label={copy.world.finaleTableTitle} data-occlude={p.narrow ? 'inset-left' : true}>
         <div className="wf-basis">
           <Badge cls="REAL_DATA">실제 10일</Badge>
           <Badge cls="SIMULATION_ASSUMPTION">가정 5일</Badge>
