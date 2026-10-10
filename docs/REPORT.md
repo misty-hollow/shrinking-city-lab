@@ -1,6 +1,6 @@
 작업: UX 개선 PR A(정확성) — 튜토리얼 기준 수치 불일치, 미션 2 이름, 결산 '잃은 것'의 줄어든 마을 누락 정정
-결과: 결정 필요
-다음 할 일: 사용자 — worktree `C:\Users\sdsdo\Documents\shrinking-city-lab-ux`에서 연 세션에 `/codex:review --base main` 입력(로컬 main = origin/main `4de1431`). 리뷰 통과 전 push·PR·병합 금지. PR B(결과 제시·정보 과밀·문체)는 PR A 병합 뒤 시작
+결과: 완료
+다음 할 일: 사용자 — 화면 확인(아래 "사람 확인") 후 병합 여부 결정("PR #N 병합해"). PR B(결과 제시·정보 과밀·문체)는 PR A 병합 뒤 시작
 
 ## 위험도: 고, 미션 2 이름과 설계안 5-3·5-6·7-3의 제품 문장(미션·결산의 의미 서술)을 바꾼다. 계산·데이터·미션 목표치·판정·참고 배분은 바꾸지 않았다(`engine/`·`state/results.ts`·`app/public`·`pipeline` diff 0)
 
@@ -41,15 +41,31 @@
 ## 리뷰
 
 - 리뷰 서브에이전트(읽기 전용) 1회. 필수 1건: `browser-qa.mjs`의 S6 탭 검사에 옛 이름 조각 `'어디에도'`가 남아 항상 실패 → 고침. 선택 중 반영: ▼ 표지 문장이 끊긴 마을도 ▼를 받는 사실과 어긋남 → 끊긴 마을이 있으면 둘 다라고 말함 / 앞 미션 비교를 켜 둔 채 결과로 돌아오면 지도 기준이 달라 ▼ 문장을 뺌 / 미션 1 테스트의 조건부 단언을 고정 단언으로 / 튜토리얼 문장 인자 순서 테스트. 반영하지 않음: 줄어든 마을만 있을 때 "끊긴 마을은 없다"를 따로 말하지 않는 점(사람 확인 항목).
-- 독립 리뷰(Codex): 필요, 대기.
+- 독립 리뷰(Codex): 사용자가 이 worktree에서 `/codex:review --base main` 실행(2026-10-10 12:46Z, 대상 `77cb109`까지 — commit 12:43Z 뒤, Codex 스레드 01a125d9-6719-7721-bc87-fe2401c81059). 원문:
 
-## CI 결과
+```
+# Codex Review
 
-없음(push 전).
+Target: branch diff against main
+
+No actionable regressions were identified. The tutorial threshold tracking, mission rename, and reduced-service summaries are consistent with their callers and existing comparison logic. Tests were not executed during this review.
+```
+
+  조치: 필수 지적 없음, 코드 변경 없음. 테스트는 위 로컬 검증에서 메인이 돌렸다.
+
+## CI 결과 (push 실행 38053393547, 마지막 코드 변경 커밋 `77cb109352a9cc1128a47fec1749a90cd45d2131`)
+
+| job | 결과 |
+|---|---|
+| repository(위생·gitleaks) | success |
+| pipeline(ruff·pytest·verify) | success |
+| app(npm ci·build·test·뿌리 기준 빌드 smoke) | success |
+
+이 뒤 commit은 이 보고서만 고친다(그 CI는 확인만 하고 다시 쓰지 않는다).
 
 ## 수행하지 못한 검증과 영향
 
-- gitleaks·뿌리 기준 빌드 smoke: push 후 CI.
+- gitleaks·뿌리 기준 빌드 smoke는 로컬에서 못 돌리고 CI(위)에서 통과했다.
 - 사람 확인: 긴 새 이름이 S6 탭·열 제목·좁은 화면에서 줄바꿈되는 모양, 결산 '잃은 것' 칸의 길이와 톤, 줄어든 마을만 있을 때 "끊긴 마을 없음"을 따로 말하지 않는 것이 괜찮은지.
 
 ## 미해결 문제
@@ -58,4 +74,4 @@
 
 ## commit 해시
 
-이 보고서가 들어 있는 중간 commit(로컬, push 안 함). 기준: `origin/main` `4de1431b8ef456b5985c9a4ad8ce222120c61f0c`.
+`77cb109`(코드) + 보고서만 고친 commit. 기준: `origin/main` `4de1431b8ef456b5985c9a4ad8ce222120c61f0c`.
