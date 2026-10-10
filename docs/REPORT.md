@@ -28,9 +28,15 @@
 
 저위험 문서 변경이라 독립 리뷰 대상이 아니다. 표의 해시·시각은 `git log origin/gh-pages`, `gh api …/pages/builds/latest`, main CI 실행에서 직접 확인한 값이다.
 
-## CI 결과
+## CI 결과 (push 실행 38060024065, head `cebe92d`)
 
-push 뒤 확인.
+| job | 결과 |
+|---|---|
+| repository(위생·gitleaks) | success |
+| pipeline(ruff·pytest·verify) | success |
+| app(npm ci·build·test·뿌리 기준 빌드 smoke) | success |
+
+이 뒤 commit은 이 보고서만 고친다(그 CI는 확인만 하고 다시 쓰지 않는다).
 
 ## 수행하지 못한 검증과 영향
 
@@ -38,4 +44,4 @@ push 뒤 확인.
 
 ## commit 해시
 
-main merge `88034c5` + 이 문서 갱신 commit. 브랜치 `docs/production-pages`.
+main merge `88034c5` · 문서 갱신 `cebe92d` · 이 보고서 CI 기록 commit. 브랜치 `docs/production-pages`.
