@@ -1,6 +1,6 @@
 작업: 범용 AI 개발 플로우 v1.0을 저장소에 적용(운영 문서·권한 규칙·서브에이전트·CI 트리거 보완)
 결과: 결정 필요
-다음 할 일: 이 브랜치(`chore/dev-flow-ci`)를 연 Claude Code 세션에서 `/codex:review --base main` 입력 — 독립 리뷰 전 병합 금지. 그와 별개로 아래 "사용자가 할 일" 1~3
+다음 할 일: `chore/dev-flow-ci`가 체크아웃된 폴더(현재 worktree `C:\Users\sdsdo\Documents\shrinking-city-lab-devflow`)에서 연 Claude Code 세션에 `/codex:review --base main` 입력 — 독립 리뷰 전 병합 금지. 그와 별개로 아래 "사용자가 할 일" 1~3
 
 ## 위험도: 고, `.claude/settings.json`(권한 규칙)과 CI 트리거·동시성 변경이 공통 기준 "보안·권한", CLAUDE.md 4절 고위험 파일(`.github/workflows/**`, `.claude/**`)에 해당
 
@@ -75,7 +75,7 @@
    EOF
    gh repo edit misty-hollow/shrinking-city-lab --delete-branch-on-merge
    ```
-2. `/codex:review --base main` 입력(이 브랜치 체크아웃에서).
+2. `/codex:review --base main` 입력 — main 체크아웃이 아니라 worktree `shrinking-city-lab-devflow`에서 연 세션에서(리뷰 도구는 로컬 git 상태를 읽는다).
 3. 병합 방식(squash 유지 / merge commit) 답변.
 4. 병합 후 새 세션에서 `/permissions`로 권한 규칙 로드 확인.
 
