@@ -1,6 +1,6 @@
 작업: 2026-10-09 미커밋 개선(학습 설계 정정·S6 반응형·도입부/튜토리얼·오류 2건·문서)을 별도 worktree로 옮겨 검증하고 기준점으로 확정 준비
-결과: 결정 필요
-다음 할 일: 이 중간 commit(로컬, 사용자 승인 2026-10-10)을 `origin/main` 기준으로 Codex 독립 리뷰 → 지적 반영. 리뷰 통과 전 push·PR·병합 금지(push·PR·배포는 미승인)
+결과: 검증 대기
+다음 할 일: 작업 브랜치 push 후 CI 확인 → PR 생성(사용자 승인 2026-10-10, 보고서 commit·push·PR·CI 확인까지). 병합·본 체크아웃 정리·배포는 미승인
 
 ## 위험도: 고, `app/src/engine/compare.ts`·`engine.test.ts`가 CLAUDE.md 4절 고위험 파일(`app/src/engine/**`)이고, S6·설계안의 학습 문장(미션 의미 서술) 변경이 제품 원칙 영역에 걸친다
 
@@ -57,14 +57,28 @@ venv는 이 worktree 전용(`pipeline/.venv`, Python 3.12.10)으로 새로 만�
 
 ## 독립 리뷰
 
-필요(고위험). 중간 commit 뒤 이 worktree에서 `origin/main` 기준으로 리뷰한다(로컬 `main`은 `b323c8a`에 머물러 있어 `--base main`이면 이미 병합된 PR #10이 대상이 된다). 원문과 조치는 여기에 붙인다.
+필요(고위험). 로컬 `main`은 `b323c8a`에 머물러 있어 `--base main`이면 이미 병합된 PR #10이 대상이 되므로 `origin/main` 기준으로 리뷰했다.
+
+### 1차 — Codex review (2026-10-10, 대상: `fbb0aa5`, `origin/main` `18af0f2` 기준 branch diff 21개 파일, Codex 스레드 01a125b2-d788-7ba2-a891-d2e5f6388106)
+
+실행: `codex-companion.mjs review --cwd C:/Users/sdsdo/Documents/shrinking-city-lab-1009 --base origin/main --scope branch`(사용자 지시로 메인이 실행)
+
+```
+# Codex Review
+
+Target: branch diff against origin/main
+
+No actionable bugs were identified in the changes relative to the supplied merge base. The comparison logic, feedback lifecycle, and responsive layout changes appear consistent with their callers and added tests; tests were not executed during this review.
+```
+
+조치: 필수 지적 없음, 코드 변경 없음. 리뷰는 테스트를 돌리지 않았다고 적었다. 테스트는 위 "로컬 검증 결과"에서 메인이 돌렸다(155·22 통과). 리뷰 전후 작업 트리 변경 0을 확인했다.
 
 ## 권장 commit·PR 구성
 
 - **PR 1개, commit 1개**를 권한다. 브랜치 `fix/learning-design-1009` → `main`.
 - 이유: 여섯 묶음이 `copy.ts`·`App.tsx`·설계안·`screens.test.tsx`를 함께 고쳐서, 나누려면 같은 파일 안을 조각내야 한다. 그렇게 만든 중간 상태는 한 번도 테스트·배포되지 않았다. 지금 검증한 상태는 팀원용 테스트 사이트와 같은 하나의 상태다. 병합 방식도 squash(잠정)라 PR 안의 commit 분할은 main에 남지 않는다.
 - 묶음별 설명은 commit 메시지 본문과 PR 본문에 위 표로 남긴다.
-- 새 UX 피드백 작업은 이 PR이 병합된 뒤 새 `main`에서 별도 브랜치로 시작한다.
+- 새 UX 피드백 작업(8건)은 이 PR에 넣지 않는다. 이 PR이 병합된 뒤 새 `main`에서 별도 브랜치로 시작한다.
 
 ## 미해결 문제
 
@@ -75,11 +89,14 @@ venv는 이 worktree 전용(`pipeline/.venv`, Python 3.12.10)으로 새로 만�
 ## 사용자가 할 일
 
 1. ~~작업 브랜치에 중간 commit 1개 승인(push 없음)~~ — 2026-10-10 승인, commit과 리뷰에만 적용.
-2. 리뷰 결과 확인.
-3. 리뷰 반영 뒤 push·CI·PR 생성 승인(작업 브랜치 push·PR은 CLAUDE.md 7절상 상시 허용이지만, 이번 요청에서 승인 전 금지로 정했다).
+2. ~~리뷰~~ — 1차 Codex review "No actionable bugs", 반영할 것 없음.
+3. ~~보고서 commit, push·CI·PR 생성 승인~~ — 2026-10-10 승인(이 범위까지만).
 4. 병합 지시("PR #N 병합해"), 병합 후 본 체크아웃 정리 승인.
 5. 정식 사이트 반영(`gh-pages`)은 별도 승인. 이번 범위 밖.
 
 ## commit 해시
 
-이 보고서가 들어 있는 중간 commit(로컬, push 안 함). 기준: `origin/main` `18af0f284b583a7dacc4e9899203d23bdf0865ae`.
+- `fbb0aa5` — 10월 9일 변경 20개 + 이 보고서 초판(중간 commit)
+- 그 뒤 commit — 이 보고서에 Codex 리뷰 원문·CI 결과 기록(문서만)
+
+ 기준: `origin/main` `18af0f284b583a7dacc4e9899203d23bdf0865ae`.
