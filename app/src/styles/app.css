@@ -1193,8 +1193,23 @@ input {
   margin-top: 12px;
 }
 
+.region-zero-summary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.region-zero-list {
+  margin-top: 4px;
+}
+
+.region-zero-list summary {
+  cursor: pointer;
+  color: var(--text-2);
+}
+
 .region-zero {
-  margin: 0;
+  margin: 4px 0 0;
   padding-left: 16px;
   font-size: 12.5px;
   color: var(--text-2);
@@ -2308,6 +2323,21 @@ input {
 @media (max-width: 1099px) {
   .select {
     max-width: 200px;
+  }
+
+  /* S6 세 배분 나란히 보기: 오른쪽 보고서(400px) 옆에 세 열(열마다 190px 이상)이 한 줄에 들어가지 않는다.
+     열이 보고서 밑으로 숨지 않게 들어가는 만큼만 한 줄에 놓고 나머지는 아래로 내리며, 보드는 세로로 스크롤한다. */
+  .finale-board {
+    overflow-y: auto;
+  }
+
+  .finale-cols {
+    flex: none;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .finale-cols .minimap {
+    flex: none;
   }
 
   .fac-top .fac-value {

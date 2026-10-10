@@ -359,14 +359,6 @@ body {
   color: var(--text-2);
 }
 
-.pv-tag {
-  padding: 0 4px;
-  border: 1px dashed var(--text-3);
-  border-radius: 2px;
-  font-size: 12px;
-  line-height: 18px;
-}
-
 .pv-main {
   display: flex;
   flex-wrap: wrap;
@@ -1616,6 +1608,9 @@ body {
   translate: 0 -50%;
   z-index: 11;
   width: min(492px, 36vw);
+  /* 두 칸이 더해져 길어졌다: 낮은 화면(1280×720 등)에서는 판 안에서 스크롤한다 */
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   animation: result-in 400ms ease-out both;
@@ -1725,34 +1720,57 @@ body {
   font-weight: 700;
 }
 
-.wr-lost {
+/* 결산 두 칸: 나아진 주민 / 불리해진 주민(설계안 5-6). 색만으로 나누지 않는다 — 칸 이름이 먼저 온다 */
+.wr-change {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 28px;
+  gap: 6px;
+  margin-top: 24px;
 }
 
-.wr-lost-label {
+.wr-change-title,
+.wr-side-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-3);
 }
 
-.wr-lost b {
-  font-size: 18px;
+.wr-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.wr-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-2);
+}
+
+.wr-side.is-better {
+  border-left-color: var(--better);
+}
+
+.wr-side.is-worse {
+  border-left-color: var(--worse);
+}
+
+.wr-side b {
+  font-size: 16px;
   font-weight: 700;
-  line-height: 26px;
+  line-height: 24px;
   color: var(--text);
 }
 
-.wr-lost.has-lost b {
-  color: var(--worse);
-}
-
-.wr-lost p {
+.wr-change p {
   margin: 0;
-  font-size: 13px;
-  line-height: 19px;
+  font-size: 12px;
+  line-height: 18px;
   color: var(--text-2);
 }
 
@@ -1954,6 +1972,9 @@ body {
   width: min(456px, 34vw);
   display: flex;
   flex-direction: column;
+  /* 표 아래 두 행(나아진·불리해진 주민)이 더해져 길어졌다: 낮은 화면(1280×720 등)에서는 판 안에서 스크롤한다 */
+  max-height: calc(100vh - 156px - 24px);
+  overflow-y: auto;
 }
 
 .wf-kpis {
@@ -2011,6 +2032,19 @@ body {
 
 .wf-kpis td {
   color: var(--text);
+}
+
+/* 표 아래 묶음: 현재 실제 대비 나아진·불리해진 주민. 머리 줄은 작은 글씨, 지표 행과 한 칸 띄운다 */
+.wf-kpis .wf-change tr:first-child {
+  border-top: none;
+}
+
+.wf-kpis .wf-change tr:first-child th {
+  height: auto;
+  padding-top: 14px;
+  padding-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-3);
 }
 
 .wf-kpis td.is-goal {
@@ -2142,7 +2176,10 @@ body {
   .wf-table {
     left: 24px;
     top: 146px;
+    max-height: calc(100vh - 146px - 24px);
     width: min(420px, 38vw);
+    /* 표가 판보다 넓으면 판을 표 폭까지 넓힌다. 무대는 이 판(data-occlude)을 피해 섬을 놓으므로, 판이 좁으면 말풍선이 표 위에 앉는다 */
+    min-width: min-content;
   }
 
   .wf-kpis {
@@ -2175,6 +2212,16 @@ body {
   .kpi-list .kpi {
     grid-template-columns: minmax(0, 1fr) auto 64px;
     column-gap: 8px;
+    /* HUD 폭 250에서는 긴 지표 이름("주 1일 이상 닿는 주민")이 말줄임으로 잘린다. 잘리지 않게 두 줄로 접는다 */
+    height: auto;
+    min-height: 28px;
+    padding: 4px 0;
+  }
+
+  .kpi-list .kpi-name {
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 16px;
   }
 
   .round-btn,
@@ -2193,6 +2240,21 @@ body {
 
   .wf-end .wf-closing {
     display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  /* S6 머리(제목·미션 탭·증감 기준)를 가운데에 두면 오른쪽 위 도구(기준 스위치·버튼)와 겹친다. 왼쪽 단(표)과 같은 줄에 맞춘다 */
+  .wf-top {
+    left: 24px;
+    translate: none;
+    align-items: flex-start;
+  }
+
+  /* 왼쪽에 맞춘 머리의 증감 기준 줄 바로 아래에 배지가 붙지 않게 표를 조금 내린다 */
+  .wf-table {
+    top: 168px;
+    max-height: calc(100vh - 168px - 24px);
   }
 }
 

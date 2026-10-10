@@ -1,5 +1,6 @@
 /**
- * 화면 문구. 원칙(설계안 5-12): "~해요" 체, 한 문장 한 정보, 느낌표·이모지 없음,
+ * 화면 문구. 원칙(설계안 5-12): 안내·설명 문장은 "~해요" 체, 라벨·캡션·표 머리·알림·미리보기는 명사형으로 끝낸다
+ * (같은 종결이 줄줄이 이어지지 않게, 2026-10-10). 한 문장 한 정보, 느낌표·이모지 없음,
  * 내부 용어는 화면에 쓰지 않는다. 시간은 항상 "도로망 접근시간" 또는 "도로망 {n}분".
  * 날짜·출처는 여기 쓰지 않고 manifest에서 받는다(설계안 8-3).
  * 금지어 검사: src/content/forbidden.test.ts
@@ -32,14 +33,14 @@ export const copy = {
   },
 
   start: {
-    headline: '보건지소 10곳, 지금은 주 10일. 5일이 더 생긴다면 어디에 두시겠어요?',
+    headline: '보건지소 10곳, 진료는 지금 주 10일. 5일이 더 생긴다면 어디에 두시겠어요?',
     /** 화면에서는 사실 한 줄 → 질문(두 줄)으로 나눠 쓴다. 숫자와 단위는 한 덩어리(끊지 않는다) */
-    fact: ['보건지소 10곳, 지금은 ', '주 10일.'] as const,
+    fact: ['보건지소 10곳, 진료는 지금 ', '주 10일.'] as const,
     question: ['5일이 더 생긴다면', '어디에 두시겠어요?'] as const,
     sub: '실제 공주시 자료로 만든 교육용 시뮬레이션 · 약 5분',
     begin: '시작',
     stepsLabel: '진행 순서',
-    steps: ['지금의 10일이 어느 마을에 닿는지 읽어요', '실제 10일 + 가정 5일을 세 가지 목표로 다르게 나눠요', '세 배분을 나란히 놓고 누가 얻고 잃는지 봐요'] as const,
+    steps: ['지금의 10일이 어느 마을에 닿는지 읽기', '실제 10일 + 가정 5일을 세 가지 목표로 나누기', '세 배분을 나란히 놓고 나아진 주민과 불리해진 주민 보기'] as const,
     notPolicy: '이 작품은 실제 공주시 행정을 평가하거나 정책을 추천하지 않아요.',
   },
 
@@ -50,26 +51,32 @@ export const copy = {
     card1Small: (date: string) => `주민등록 ${date} · 실제 자료`,
     card1Scope: '공주 시내(동 지역)는 이번 시나리오 범위 밖이에요.',
     card2: (open: number, list: string) =>
-      `보건지소는 10곳이지만, 의과 진료가 열리는 곳은 ${open}곳이에요. ${list}.`,
+      `보건지소는 읍·면마다 한 곳씩 있는 공공 보건기관이고, 지금 의과 진료가 열리는 곳은 그중 ${open}곳이에요. ${list}.`,
+    /** 격주 환산(manifest의 conversion_rule)과 말풍선 칸 읽기 */
+    card2Note: '격주로 열리면 주 0.5일로 셌어요. 말풍선의 불 켜진 칸 하나가 진료일 하루예요.',
     card2Small: (date: string) => `의과 순회진료 일정 ${date} · 실제 자료`,
-    card3: '지금 공주의 진료자원은 이 10일이에요. 진료일 하루는 "한 지소에서 일반진료가 열리는 하루"라는 게임 단위예요.',
+    card3: '읍·면 보건지소 10곳의 의과 진료일을 모두 더하면 지금 주 10일이에요. 진료일 하루는 "한 지소에서 일반진료가 열리는 하루"예요.',
+    /** 진료일이 의료 공급능력 전체가 아니라는 것(설계안 4-2) */
+    card3Note: '의료진 수·진료 과목·시내 병원은 담지 않은 게임 단위예요.',
     card3SmallReal: (date: string) => `10일 · 실제 자료 · ${date}`,
     card3SmallAssumption: '진료일 단위 · 게임 가정',
   },
 
   tutorial: {
     title: '튜토리얼 · 지금의 공주',
-    step1: '창에 불이 켜진 마을은 진료가 닿는 마을이에요. 창이 모두 켜지면 주 3일 이상이에요. 불이 꺼진 마을에도 사람이 살아요. 진료만 닿지 않아요.',
-    step2: '몇 분까지를 "닿는다"고 볼지 바꿔 보세요.',
-    step2Changed: (from: string, to: string) =>
-      `같은 배분인데 주 1일 이상 닿는 주민이 ${from}에서 ${to}으로 바뀌었어요. 기준도 선택이에요.`,
+    step1: '마을에서 자동차 도로망으로 15분 안에 있는 보건지소들의 진료일을 더하면, 그 마을에 닿는 진료일이 돼요(최대 주 5일). 창에 불이 켜진 마을은 진료가 닿고, 불이 꺼진 마을은 닿지 않아요. 불이 꺼진 마을에도 사람이 살아요.',
+    step2: '오른쪽 위 10분 · 15분 · 20분 중 다른 시간을 눌러 보세요. 몇 분까지를 "닿는다"고 볼지가 바뀌어요.',
+    step2Changed: (fromT: number, from: string, toT: number, to: string) =>
+      `같은 배분인데 주 1일 이상 닿는 주민이 ${fromT}분 기준 ${from}에서 ${toT}분 기준 ${to}으로 바뀌었어요. 기준도 선택이에요.`,
     step2Return: '15분으로 돌려놓으면 다음으로 넘어가요.',
-    step3: '의당 말풍선 끝의 − 를 눌러 진료일 하루를 손으로 가져온 뒤, 다른 지소 말풍선을 눌러 놓아 보세요.',
+    step3: '의당 말풍선 끝의 − 를 눌러 진료일 하루를 가져오세요. 아래 손에 담기면, 다른 지소 말풍선을 눌러 놓아 보세요.',
     step3Pool: (n: number) => `옮길 수 있는 진료일 ${n}일`,
     step3Result: (fac: string, gained: number, thinner: number) =>
       gained > 0
-        ? `${fac}에 하루를 놓자 ${gained}개 마을이 처음으로 닿았고, 의당 쪽 ${thinner}개 마을은 두께가 줄었어요.`
-        : `${fac}에 하루를 놓았어요. 처음으로 닿은 마을은 없고, 의당 쪽 ${thinner}개 마을은 두께가 줄었어요.`,
+        ? `${fac}에 하루를 놓자 ${gained}개 마을이 처음으로 닿았고, 의당 쪽 ${thinner}개 마을은 닿는 진료일이 줄었어요.`
+        : `${fac}에 하루를 놓았어요. 처음으로 닿은 마을은 없고, 의당 쪽 ${thinner}개 마을은 닿는 진료일이 줄었어요.`,
+    /** 튜토리얼 끝 → 미션으로 잇는 한 줄(실제 10일 + 가정 5일, 목표가 바뀌면 배분도) */
+    step3Next: '미션에서는 실제 10일에 가정 5일을 더한 15일을, 목표를 바꿔 가며 나눠요.',
     next: '다음',
     skip: '건너뛰기',
     startMission: '미션 시작',
@@ -87,8 +94,8 @@ export const copy = {
       referenceNote: '"평균 진료일" 지표만 보면 가장 높은 배분 하나예요.',
     },
     m2: {
-      title: '미션 2 · 어디에도 빈 곳이 없게',
-      name: '어디에도 빈 곳이 없게',
+      title: '미션 2 · 가장 불리한 읍·면을 끌어올려라',
+      name: '가장 불리한 읍·면을 끌어올려라',
       goal: (target: string) => `가장 불리한 읍·면의 평균 진료일을 ${target} 이상으로 만들어 주세요.`,
       kpiName: '가장 불리한 읍·면',
       reference: '참고 배분 · 보장형',
@@ -110,8 +117,8 @@ export const copy = {
     assumptionBadge: '게임 가정 · 5일이 더 확보됐다면',
     assumption:
       '이 미션은 가상 정책실험이에요. 지금의 10일에 5일이 더 생겼다고 가정해요. 실제로 5일을 늘려야 한다는 뜻은 아니에요.',
-    judged: '판정 기준: 도로망 15분 · 지표는 배분할 때마다 바로 갱신돼요',
-    kept: '앞 미션의 배분은 그대로 보관돼요. 마지막 「세 개의 공주」에서 세 배분을 나란히 봐요.',
+    judged: '판정 기준 도로망 15분',
+    kept: '확정한 배분은 마지막 「세 개의 공주」에서 나란히 다시 봐요.',
     begin: '배분 시작',
     skip: '건너뛰기',
   },
@@ -205,22 +212,28 @@ export const copy = {
     pop65Badge: (date: string) => `실제 자료 · ${date}`,
     days: (v: string) => `읍·면 평균 ${v}`,
     zeroTitle: '진료가 닿지 않는 마을',
-    zeroNone: '진료가 닿지 않는 마을은 없어요',
+    zeroNone: '진료가 닿지 않는 마을 없음',
+    /** 규모와 비율을 목록보다 먼저 */
+    zeroSummary: (n: number, pop: string, pct: string) => `${n}곳 · ${pop} · 읍·면 주민의 ${pct}%`,
+    /** 그중 배분으로 바꿀 수 없는 마을(기준 안에 지소가 하나도 없음) */
+    unreachableNote: (n: number, t: number) => `그중 ${n}곳은 도로망 ${t}분 안에 지소가 없어 어느 배분으로도 닿지 않음`,
+    zeroList: '마을 목록',
+    /** 기준 안에 지소가 하나도 없는 마을 표시(배분으로 바꿀 수 없음) */
+    unreachable: (t: number) => `${t}분 안에 지소 없음`,
     facility: (name: string, days: string) => `이 읍·면의 지소: ${name} · ${days}`,
   },
 
   debrief: {
     achieved: (n: number) => `달성 · 가능한 배분 중 상위 ${n}%`,
     missed: (n: number) => `미달 · 가능한 배분 중 상위 ${n}%`,
-    mixedEffect:
-      '이 결과는 실제 10일에 가정 5일을 더한 15일 기준이에요. 현재 실제(10일)와의 차이에는 5일이 늘어난 효과도 섞여 있어요.',
+    mixedEffect: '실제 10일에 가정 5일을 더한 15일의 결과라, 현재 실제(10일)와의 차이에는 5일이 늘어난 효과도 섞여 있어요.',
     gained: '얻은 것',
     gainedNone: '기준선보다 좋아진 지표는 없어요',
     lost: '잃은 것',
     lostTitle: (n: number, pop: string) => `진료가 닿지 않게 된 마을 ${n}곳 · ${pop}`,
-    lostNoneButThinner: (n: number, pop: string) =>
-      `진료가 닿지 않게 된 마을은 없어요. 두께가 줄어든 마을은 ${n}곳 · ${pop}이에요.`,
-    lostNone: '기준선보다 나빠진 마을은 없어요',
+    /** 닿기는 하지만 기준선보다 하루 이상 줄어든 마을(설계안 4-7 ±1일 규칙) */
+    thinnerTitle: (n: number, pop: string) => `진료일이 하루 이상 줄어든 마을 ${n}곳 · ${pop}`,
+    lostNone: '기준선보다 불리해진 마을 없음',
     more: (n: number) => `${n}곳 더 보기`,
     less: '접기',
     table: '6개 지표',
@@ -266,7 +279,14 @@ export const copy = {
     title: '세 개의 공주',
     col: (n: number) => `미션 ${n}`,
     goalLegend: '테두리 칸 = 그 미션이 목표로 삼은 지표',
+    /** S6 표 아래 묶음: 현재 실제 대비(늘어난 5일 포함) */
+    changeHead: '현재 실제(10일) 대비 · 늘어난 5일 포함',
+    changeCell: (pop: string, n: number) => `${pop} (${n}곳)`,
     lead: '세 배분 모두 같은 주 15일을 나눴지만, 무엇을 중요하게 봤느냐에 따라 좋아진 곳과 나빠진 곳이 달라졌어요.',
+    /** 세 미션에서 같은 배분을 확정했을 때(세 목표를 모두 넘는 배분도 있다) */
+    leadSameAlloc: '세 미션에서 같은 배분을 확정했어요. 목표는 달랐지만 배분이 같아서 마을마다 닿는 진료일도 같아요.',
+    /** 배분은 다르지만 마을마다 닿는 진료일이 모두 같을 때 */
+    leadSameOutcome: '세 배분은 서로 다르지만, 마을마다 닿는 진료일은 세 배분에서 같아요.',
     basis: '세 배분 모두 실제 10일 + 가정 5일 = 15일 기준 · 가상 정책실험',
     notCurrent: '지금 실제로 운영하는 주 10일과는 다른 가상 배분이에요. 비교는 모두 도로망 15분 기준이에요.',
     reference: '참고 배분',
@@ -303,13 +323,19 @@ export const copy = {
     meanLine: (a: string, b: string, c: string, similar: boolean) =>
       similar ? `평균 진료일은 ${a} · ${b} · ${c}로 비슷하지만,` : `평균 진료일은 ${a} · ${b} · ${c}이에요.`,
     zeroLine: (a: number, b: number, c: number) => `진료가 닿지 않는 마을은 ${a} · ${b} · ${c}곳이에요.`,
+    /** 기준 안에 지소가 하나도 없는 마을(배분과 상관없음). 이 수는 데이터와 기준에서 계산한다 */
+    unreachableLine: (n: number, pop: string, t: number) =>
+      `그중 ${n}곳(${pop})은 도로망 ${t}분 안에 보건지소가 하나도 없어서, 어느 지소에 진료일을 두어도 닿지 않아요.`,
     overlapLine: (union: number, all: number) =>
-      `세 배분 중 한 번이라도 닿지 않는 마을 ${union}곳 가운데 세 배분 모두에서 닿지 않는 마을은 ${all}곳이에요. 나머지는 배분에 따라 달라져요.`,
-    sameZero: '세 배분에서 닿지 않는 마을은 같은 곳이에요.',
+      `배분 때문에 닿지 않는 마을은 세 배분 중 한 번이라도 ${union}곳이고, 그중 세 배분 모두에서 닿지 않는 곳은 ${all}곳이에요. 나머지는 배분에 따라 달라져요.`,
+    sameZero: '배분 때문에 닿지 않는 마을은 세 배분에서 같은 곳이에요.',
+    noAllocZero: '배분 때문에 닿지 않는 마을은 세 배분 모두 없어요.',
+    sameAllocLine: '세 미션에서 같은 배분을 확정해서 세 배분의 결과가 같아요.',
     noZero: '세 배분 모두 닿지 않는 마을이 없어요.',
-    zeroTitle: '0일이 된 마을',
+    zeroTitle: '배분 때문에 0일이 된 마을',
     zeroNone: '없어요',
-    closing: '같은 자원이라도 목표에 따라 좋은 배분이 달라요. 평균 뒤에는 늘 어느 지역의 희생이 있어요.',
+    unreachableTitle: (t: number) => `어느 배분으로도 닿지 않는 마을 · 도로망 ${t}분 안에 보건지소 없음`,
+    closing: '같은 15일이라도 어느 지표를 끝까지 높이느냐에 따라 배분이 달라져요. 평균 하나만 보면 어느 마을에 진료가 닿지 않는지 가려질 수 있어요.',
     home: '처음으로',
   },
 
@@ -317,9 +343,9 @@ export const copy = {
     title: '읽는 법',
     collapse: '읽는 법 닫기',
     expand: '읽는 법',
-    villageFull: '창이 모두 켜진 마을 = 주 3~5일 닿아요',
+    villageFull: '창이 모두 켜진 마을 = 주 3~5일',
     villageHalf: '벽마다 창 하나에 불 = 주 1~2일',
-    villageEmpty: '창이 어두운 마을 = 진료가 닿지 않아요. 사람은 살아요',
+    villageEmpty: '창이 어두운 마을 = 진료가 닿지 않음 · 주민은 있음',
     villageNeutral: '집 한 채 ≈ 주민 50명',
     house: '집 한 채 ≈ 주민 50명 · 실제 집의 수나 자리가 아니에요',
     tower: '말풍선의 불 켜진 칸 하나 = 진료일 하루(탑의 등칸도 같아요) · 격주는 반 칸',
@@ -347,25 +373,27 @@ export const copy = {
     handAssumed: (n: number) => `가정 ${n}`,
     preview: {
       blockedEmpty: '손에 남은 진료일이 없어요. 다른 지소 말풍선의 − 로 하루를 가져오세요.',
-      blockedMax: '한 지소는 주 5일까지예요',
-      blockedNone: '뺄 진료일이 없어요',
+      blockedMax: '한 지소는 주 5일까지',
+      blockedNone: '뺄 진료일 없음',
       blockedTutorial: '튜토리얼에서는 의당에서 하루를 가져와 다른 지소에 놓아요',
-      newly: (n: number) => `마을 ${n}곳에 새로 닿아요`,
-      thicker: (n: number) => `마을 ${n}곳이 주 3일 이상이 돼요`,
-      more: (n: number) => `마을 ${n}곳의 진료일이 늘어요`,
-      lost: (n: number) => `마을 ${n}곳에 닿지 않게 돼요`,
-      thinner: (n: number) => `마을 ${n}곳이 주 3일 아래로 내려가요`,
-      less: (n: number) => `마을 ${n}곳의 진료일이 줄어요`,
-      same: '달라지는 마을은 없어요',
+      newly: (n: number) => `새로 닿는 마을 ${n}곳`,
+      thicker: (n: number) => `주 3일 이상이 되는 마을 ${n}곳`,
+      more: (n: number) => `진료일이 늘어나는 마을 ${n}곳`,
+      lost: (n: number) => `닿지 않게 되는 마을 ${n}곳`,
+      thinner: (n: number) => `주 3일 아래로 내려가는 마을 ${n}곳`,
+      less: (n: number) => `진료일이 줄어드는 마을 ${n}곳`,
+      same: '달라지는 마을 없음',
       days: (fac: string, a: string, b: string) => `${fac} 주 ${a} → ${b}`,
       /** 점선 판 머리(놓기 전이라는 표시) */
       headInc: (fac: string) => `${fac}에 1일 놓으면`,
       headDec: (fac: string) => `${fac}에서 1일 빼면`,
-      tag: '미리보기',
       hintInc: '클릭해서 놓기 · Esc 취소',
       hintDec: '클릭해서 빼기 · Esc 취소',
       hintUndo: '누르면 되돌려요 · Ctrl Z',
-      hud: (v: string) => `미리보기 → ${v}`,
+      /** HUD 목표 지표 옆(말풍선 판과 함께 뜬다) */
+      hud: (v: string) => `→ ${v}`,
+      /** 화면에는 화살표만, 화면 낭독기에는 이 말이 앞에 붙는다 */
+      hudLabel: '미리보기',
     },
     undo: '되돌리기',
     undoHint: '마지막 조작을 거꾸로',
@@ -380,13 +408,30 @@ export const copy = {
     lostMore: (n: number) => `외 ${n}곳`,
     debriefDetails: '결과 자세히 · 배분 지형도',
     debriefDetailsClose: '결과 자세히 닫기',
-    debriefKpiTitle: '목표는 가능한 배분 중 상위 10% 경계 · 6개 지표를 현재 실제(10일)와 내 배분(15일)으로 비교',
+    /** 목표치는 상위 10% 경계를 내림한 값이라 목표를 넘어도 '상위 n%'가 10보다 클 수 있다(설계안 7-7) */
+    debriefKpiTitle: '목표는 가능한 배분 중 상위 10% 경계를 내림한 값 · 6개 지표를 현재 실제(10일)와 내 배분(15일)으로 비교',
     debriefCols: ['지표', '현재 실제', '내 배분', '차이'] as const,
-    lostLabel: '잃은 것',
-    lostLine: (n: number, pop: string) => `진료가 닿지 않게 된 마을 ${n}곳 · ${pop}`,
-    lostOnMap: '지도에 빨간 표지로 표시했어요',
+    /** 두 칸의 머리. 기준선은 현재 실제(10일)라 늘어난 5일의 효과가 섞인다(아래 mixedEffect) */
+    changeTitle: '현재 실제(10일)와 비교',
+    betterLabel: '나아진 주민',
+    worseLabel: '불리해진 주민',
+    sideTotal: (pop: string, n: number) => `${pop} · 마을 ${n}곳`,
+    sideNone: '없음',
+    /** 0곳인 갈래는 적지 않는다 */
+    betterParts: (newly: number, more: number) =>
+      [newly > 0 ? `새로 닿음 ${newly}곳` : '', more > 0 ? `하루 이상 늘어남 ${more}곳` : ''].filter(Boolean).join(' · '),
+    worseParts: (lost: number, thinner: number) =>
+      [lost > 0 ? `닿지 않게 됨 ${lost}곳` : '', thinner > 0 ? `하루 이상 줄어듦 ${thinner}곳` : ''].filter(Boolean).join(' · '),
+    /** 주민이 많이 바뀐 읍·면 순으로 몇 곳 */
+    sideWhere: (list: string) => `주로 ${list}`,
+    lostLabel: '닿지 않게 된 마을',
     lostDetail: (list: string, more: number) => (more > 0 ? `${list} 외 ${more}곳` : list),
-    lostNone: '진료가 닿지 않게 된 마을은 없어요',
+    lostOnMap: '지도의 빨간 표지',
+    /** 증감 기준이 현재 실제일 때만(앞 미션 비교를 켜 두면 지도의 ▲▼ 기준이 다르다) */
+    mapGlyphs: '지도의 ▲ ▼ 표지 = 하루 이상 늘거나 줄어든 마을',
+    /** 미션 2·3: 같은 15일끼리 비교 = 배분만의 차이 */
+    prevLine: (n: number, better: number, worse: number) =>
+      `같은 15일인 미션 ${n} 배분과 견주면 하루 이상 나아진 마을 ${better}곳, 불리해진 마을 ${worse}곳이에요. 이 차이에는 늘어난 5일이 섞이지 않아요.`,
     finaleTabs: '미션 배분 고르기',
     finaleLead: '세 개의 공주 · 같은 15일, 세 가지 목표',
     finaleBoard: '세 배분 나란히 보기',
@@ -403,13 +448,13 @@ export const copy = {
 
   toast: {
     gain: (fac: string, n: number, pop: string) => `${fac} +1일 · 새로 닿은 마을 ${n}곳 · 주민 ${pop}`,
-    thicker: (fac: string, n: number) => `${fac} +1일 · 마을 ${n}곳의 진료일이 늘었어요`,
+    thicker: (fac: string, n: number) => `${fac} +1일 · 진료일이 늘어난 마을 ${n}곳`,
     loss: (fac: string, n: number, pop: string) => `${fac} −1일 · 닿지 않게 된 마을 ${n}곳 · 주민 ${pop}`,
-    thinner: (fac: string, n: number) => `${fac} −1일 · 마을 ${n}곳의 진료일이 줄었어요`,
-    none: (fac: string, delta: string) => `${fac} ${delta} · 달라진 마을은 없어요`,
+    thinner: (fac: string, n: number) => `${fac} −1일 · 진료일이 줄어든 마을 ${n}곳`,
+    none: (fac: string, delta: string) => `${fac} ${delta} · 달라진 마을 없음`,
     tGain: (from: number, to: number, n: number, pop: string) => `기준 ${from}분 → ${to}분 · 새로 닿은 마을 ${n}곳 · 주민 ${pop}`,
     tLoss: (from: number, to: number, n: number, pop: string) => `기준 ${from}분 → ${to}분 · 닿지 않게 된 마을 ${n}곳 · 주민 ${pop}`,
-    tSame: (from: number, to: number) => `기준 ${from}분 → ${to}분 · 닿는 마을은 그대로예요`,
+    tSame: (from: number, to: number) => `기준 ${from}분 → ${to}분 · 닿는 마을 그대로`,
   },
 
   sound: {
@@ -469,7 +514,7 @@ export const copy = {
       '마을에서 기준 시간(10·15·20분) 안에 있는 지소들의 주당 진료일을 더해요. 한 주민이 쓸 수 있는 진료일은 주 5일에서 멈춰요.',
       '평균 진료일은 마을 값을 주민 수로 평균한 값이에요. 읍·면 값도 같은 방법으로 읍·면 안에서 평균해요.',
       '90% 접근시간은 진료일이 하루 이상 놓인 지소 중 가장 가까운 곳까지의 시간을 주민 수로 줄 세웠을 때 90%째 값이에요.',
-      '미션 목표치는 가능한 모든 배분(15일, 15분) 중 상위 10% 경계값이에요. 손으로 정하지 않았어요.',
+      '미션 목표치는 가능한 모든 배분(15일, 15분) 중 상위 10% 경계값을 진료일은 0.1일, 주민은 100명 단위로 내린 값이에요. 그래서 목표를 넘는 배분은 10%보다 많을 수 있어요. 손으로 정하지 않았어요.',
     ],
     assumptionsTitle: '게임 가정',
     limitsTitle: '한계',
