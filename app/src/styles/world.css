@@ -1972,6 +1972,9 @@ body {
   width: min(456px, 34vw);
   display: flex;
   flex-direction: column;
+  /* 표 아래 두 행(나아진·불리해진 주민)이 더해져 길어졌다: 낮은 화면(1280×720 등)에서는 판 안에서 스크롤한다 */
+  max-height: calc(100vh - 156px - 24px);
+  overflow-y: auto;
 }
 
 .wf-kpis {
@@ -2173,6 +2176,7 @@ body {
   .wf-table {
     left: 24px;
     top: 146px;
+    max-height: calc(100vh - 146px - 24px);
     width: min(420px, 38vw);
     /* 표가 판보다 넓으면 판을 표 폭까지 넓힌다. 무대는 이 판(data-occlude)을 피해 섬을 놓으므로, 판이 좁으면 말풍선이 표 위에 앉는다 */
     min-width: min-content;
@@ -2250,6 +2254,7 @@ body {
   /* 왼쪽에 맞춘 머리의 증감 기준 줄 바로 아래에 배지가 붙지 않게 표를 조금 내린다 */
   .wf-table {
     top: 168px;
+    max-height: calc(100vh - 168px - 24px);
   }
 }
 

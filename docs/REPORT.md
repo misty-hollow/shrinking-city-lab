@@ -46,7 +46,22 @@
 ## 리뷰
 
 - 리뷰 서브에이전트(읽기 전용) 1회. 3,000개 무작위 배분 × 161개 마을로 분류·▲▼·빨간 표지 일치 0건 불일치를 확인했다. 필수 2건 반영: 결산 문장의 잃은 마을 이름(번호순)과 지도 빨간 표지(주민순)가 달랐다 → 공용 `lostPinOrder`로 맞춤(main에도 있던 불일치) / 설계안 5-6 블록 3이 옛 문구로 남아 있었다 → 다시 씀(7-2·10-x 언급 포함). 선택 반영: HUD 화면 낭독용 "미리보기", 결산 판 `max-height`, S6 소제목 `scope="rowgroup"`, 분류 완전성·0.5일 경계 테스트. 반영하지 않음: 시트·S6 본문·소개의 "얻은 것/잃은 것·좋아진/나빠진" 용어 통일(범위 밖, 사람 확인 항목).
-- 독립 리뷰(Codex): 필요, 대기.
+- 독립 리뷰(Codex) 1차: 사용자 지시로 메인이 실행(`codex-companion.mjs review --cwd …/shrinking-city-lab-ux --base origin/main --scope branch`, 2026-10-10, 대상 `813471a`). 원문:
+
+```
+# Codex Review
+
+Target: branch diff against origin/main
+
+The new finale rows introduce an unreachable-content regression on short desktop screens because the fixed panel has no scrolling or viewport height constraint.
+
+Review comment:
+
+- [P2] Constrain the taller finale panel to the viewport — C:\Users\sdsdo\Documents\shrinking-city-lab-ux\app\src\screens\WorldFinale.tsx:131-136
+  On a short desktop viewport such as 1280×720, the three added rows push the reference allocations' multi-line finale summary below the screen. `.wf-table` remains fixed at `top: 156px` without a height limit or internal scrolling, while `html`, `body`, and `#root` hide overflow, so the clipped explanation cannot be reached. Add viewport-bounded scrolling or a compact layout to the finale panel, as this patch already does for the debrief panel.
+```
+
+  조치(필수): `.wf-table`에 `max-height: calc(100vh - {top} - 24px)` + `overflow-y: auto`(기본 156px, ≤1279 146px, ≤1023 168px). 로컬 미리보기에서 확인: 1280×720 판 156~696px(내용 605px, 상자 525px → 스크롤, 마지막 요약 줄 스크롤 뒤 보임), 1024×768 판 146~727px(스크롤 불필요), 가로 넘침 없음. 필수 검증 전체 다시 통과(171 tests). 수정분까지 덮도록 2차 리뷰를 돌린다.
 
 ## CI 결과
 
