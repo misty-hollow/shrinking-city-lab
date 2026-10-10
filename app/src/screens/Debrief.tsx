@@ -105,7 +105,7 @@ export function DebriefPanel(p: Props) {
       </section>
       <section className="block">
         <div className="block-title">{copy.debrief.lost}</div>
-        {lost.lost.length > 0 ? (
+        {lost.lost.length > 0 && (
           <>
             <div style={{ fontWeight: 700 }} className="num">
               {copy.debrief.lostTitle(lost.lost.length, people(lost.lostPop))}
@@ -130,11 +130,14 @@ export function DebriefPanel(p: Props) {
               </button>
             )}
           </>
-        ) : lost.thinner.length > 0 ? (
-          <div className="num">{copy.debrief.lostNoneButThinner(lost.thinner.length, people(lost.thinnerPop))}</div>
-        ) : (
-          <div>{copy.debrief.lostNone}</div>
         )}
+        {/* 끊긴 마을이 있어도 줄어든 마을은 따로 말한다(설계안 5-6) */}
+        {lost.thinner.length > 0 && (
+          <div style={{ fontWeight: 700 }} className="num">
+            {copy.debrief.thinnerTitle(lost.thinner.length, people(lost.thinnerPop))}
+          </div>
+        )}
+        {lost.lost.length === 0 && lost.thinner.length === 0 && <div>{copy.debrief.lostNone}</div>}
       </section>
       </div>
 

@@ -65,8 +65,8 @@ export const copy = {
     title: '튜토리얼 · 지금의 공주',
     step1: '마을에서 자동차 도로망으로 15분 안에 있는 보건지소들의 진료일을 더하면, 그 마을에 닿는 진료일이 돼요(최대 주 5일). 창에 불이 켜진 마을은 진료가 닿고, 불이 꺼진 마을은 닿지 않아요. 불이 꺼진 마을에도 사람이 살아요.',
     step2: '오른쪽 위 10분 · 15분 · 20분 중 다른 시간을 눌러 보세요. 몇 분까지를 "닿는다"고 볼지가 바뀌어요.',
-    step2Changed: (from: string, to: string) =>
-      `같은 배분인데 주 1일 이상 닿는 주민이 ${from}에서 ${to}으로 바뀌었어요. 기준도 선택이에요.`,
+    step2Changed: (fromT: number, from: string, toT: number, to: string) =>
+      `같은 배분인데 주 1일 이상 닿는 주민이 ${fromT}분 기준 ${from}에서 ${toT}분 기준 ${to}으로 바뀌었어요. 기준도 선택이에요.`,
     step2Return: '15분으로 돌려놓으면 다음으로 넘어가요.',
     step3: '의당 말풍선 끝의 − 를 눌러 진료일 하루를 가져오세요. 아래 손에 담기면, 다른 지소 말풍선을 눌러 놓아 보세요.',
     step3Pool: (n: number) => `옮길 수 있는 진료일 ${n}일`,
@@ -93,8 +93,8 @@ export const copy = {
       referenceNote: '"평균 진료일" 지표만 보면 가장 높은 배분 하나예요.',
     },
     m2: {
-      title: '미션 2 · 어디에도 빈 곳이 없게',
-      name: '어디에도 빈 곳이 없게',
+      title: '미션 2 · 가장 불리한 읍·면을 끌어올려라',
+      name: '가장 불리한 읍·면을 끌어올려라',
       goal: (target: string) => `가장 불리한 읍·면의 평균 진료일을 ${target} 이상으로 만들어 주세요.`,
       kpiName: '가장 불리한 읍·면',
       reference: '참고 배분 · 보장형',
@@ -226,8 +226,8 @@ export const copy = {
     gainedNone: '기준선보다 좋아진 지표는 없어요',
     lost: '잃은 것',
     lostTitle: (n: number, pop: string) => `진료가 닿지 않게 된 마을 ${n}곳 · ${pop}`,
-    lostNoneButThinner: (n: number, pop: string) =>
-      `진료가 닿지 않게 된 마을은 없어요. 두께가 줄어든 마을은 ${n}곳 · ${pop}이에요.`,
+    /** 닿기는 하지만 기준선보다 하루 이상 줄어든 마을(설계안 4-7 ±1일 규칙) */
+    thinnerTitle: (n: number, pop: string) => `진료일이 하루 이상 줄어든 마을 ${n}곳 · ${pop}`,
     lostNone: '기준선보다 나빠진 마을은 없어요',
     more: (n: number) => `${n}곳 더 보기`,
     less: '접기',
@@ -405,7 +405,12 @@ export const copy = {
     lostLine: (n: number, pop: string) => `진료가 닿지 않게 된 마을 ${n}곳 · ${pop}`,
     lostOnMap: '지도에 빨간 표지로 표시했어요',
     lostDetail: (list: string, more: number) => (more > 0 ? `${list} 외 ${more}곳` : list),
-    lostNone: '진료가 닿지 않게 된 마을은 없어요',
+    /** 닿기는 하지만 기준선보다 하루 이상 줄어든 마을. 지도의 ▼ 표지(증감 모드)와 같은 마을이다 */
+    thinnerLine: (n: number, pop: string) => `진료일이 하루 이상 줄어든 마을 ${n}곳 · ${pop}`,
+    /** 증감 기준이 현재 실제일 때만 쓴다(▼ = 하루 이상 줄어든 마을, 닿지 않게 된 마을 포함) */
+    thinnerOnMap: '지도의 ▼ 표지가 줄어든 마을이에요',
+    thinnerOnMapWithLost: '지도의 ▼ 표지는 줄어든 마을과 닿지 않게 된 마을에 함께 붙어요',
+    lostNone: '진료가 닿지 않게 되거나 하루 이상 줄어든 마을은 없어요',
     finaleTabs: '미션 배분 고르기',
     finaleLead: '세 개의 공주 · 같은 15일, 세 가지 목표',
     finaleBoard: '세 배분 나란히 보기',

@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 
 import { APPROVED_NEGATIONS, copy } from '../content/copy'
 import type { Geometry, Landscape, Manifest, Scenario } from '../data/types'
-import { unreachableVillages, zeroOverlap, zeroVillages } from '../engine/compare'
+import { lostVillages, unreachableVillages, zeroOverlap, zeroVillages } from '../engine/compare'
 import { people } from '../engine/format'
 import { buildModel, computeKpis } from '../engine/kpi'
 import { type MissionResult, type Results, comboFor, finaleResults, makeEvaluate } from '../state/results'
@@ -20,6 +20,7 @@ import { RegionCard } from '../ui/PlayPanel'
 import { IntroCard, TutorialCard } from './Cards'
 import { DataLimits } from './DataLimits'
 import { DebriefPanel } from './Debrief'
+import { WorldDebrief } from './WorldDebrief'
 import { FinaleBoard, FinalePanel, type FinaleResults, finaleSummary } from './Finale'
 import { WorldFinale } from './WorldFinale'
 
@@ -265,7 +266,7 @@ describe('S6 세 개의 공주', () => {
         returnFocus={null}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: '어디에도 빈 곳이 없게 배분을 무대에서 크게 보기' }))
+    fireEvent.click(screen.getByRole('button', { name: '가장 불리한 읍·면을 끌어올려라 배분을 무대에서 크게 보기' }))
     expect(opened).toEqual(['m2'])
   })
 })
@@ -454,5 +455,81 @@ describe('도입부·튜토리얼 설명은 데이터의 규칙과 맞는다(S1�
   it('S2-3 result sentence uses 닿는 진료일 instead of the unexplained word 두께', () => {
     expect(copy.tutorial.step3Result('신풍', 0, 29)).toBe('신풍에 하루를 놓았어요. 처음으로 닿은 마을은 없고, 의당 쪽 29개 마을은 닿는 진료일이 줄었어요.')
     expect(copy.tutorial.step3Result('신풍', 3, 29)).not.toContain('두께')
+  })
+})
+
+describe('결산 잃은 것: 끊긴 마을이 없어도 하루 이상 줄어든 마을을 말한다(설계안 5-6)', () => {
+  function worldDebrief(x: readonly number[], mapVsCurrent = true) {
+    const r = evaluate('m2', x, 'played', 1)
+    const lost = lostVillages(r.k15, current15, model.pop)
+    render(
+      <WorldDebrief
+        scenario={scenario}
+        missionId="m2"
+        status={r.status}
+        mine={r.k15}
+        base={current15}
+        lost={lost}
+        nextLabel="다음 미션"
+        onNext={() => {}}
+        onAgain={() => {}}
+        detailsOpen={false}
+        onDetails={() => {}}
+        mapVsCurrent={mapVsCurrent}
+      />,
+    )
+    return lost
+  }
+
+  it('mission 2 reference: no village loses access, but villages that lost a day or more are stated with the map marker', () => {
+    const lost = worldDebrief(A2)
+    expect(lost.lost).toEqual([])
+    expect(lost.thinner.length).toBeGreaterThan(0)
+    const text = document.body.textContent ?? ''
+    expect(text).toContain(copy.world.thinnerLine(lost.thinner.length, people(lost.thinnerPop)))
+    expect(text).toContain(copy.world.thinnerOnMap)
+    expect(text).not.toContain(copy.world.lostNone)
+  })
+
+  it('mission 1 reference: lost villages are stated; the thinner line appears only when there are such villages', () => {
+    const lost = worldDebrief(A1)
+    const text = document.body.textContent ?? ''
+    expect(text).toContain(copy.world.lostLine(lost.lost.length, people(lost.lostPop)))
+    // 미션 1 참고 배분(집중형)은 끊긴 마을만 있고 닿으면서 하루 이상 줄어든 마을은 없다(r2)
+    expect(lost.thinner).toEqual([])
+    expect(text).not.toContain('하루 이상 줄어든')
+    expect(text).not.toContain(copy.world.lostNone)
+  })
+
+  it('when the map compares against the previous mission, the ▼ sentence about the current-baseline summary is left out', () => {
+    worldDebrief(A2, false)
+    const text = document.body.textContent ?? ''
+    expect(text).toContain('하루 이상 줄어든 마을')
+    expect(text).not.toContain(copy.world.thinnerOnMap)
+  })
+
+  it('mission 3 reference has both lost and reduced villages; the map sentence says ▼ covers both', () => {
+    const r = evaluate('m3', A3, 'played', 1)
+    const lost = lostVillages(r.k15, current15, model.pop)
+    expect(lost.lost.length).toBeGreaterThan(0)
+    expect(lost.thinner.length).toBeGreaterThan(0)
+    render(
+      <WorldDebrief scenario={scenario} missionId="m3" status={r.status} mine={r.k15} base={current15} lost={lost} nextLabel="세 개의 공주 보기" onNext={() => {}} onAgain={() => {}} detailsOpen={false} onDetails={() => {}} mapVsCurrent />,
+    )
+    const text = document.body.textContent ?? ''
+    expect(text).toContain(copy.world.lostLine(lost.lost.length, people(lost.lostPop)))
+    expect(text).toContain(copy.world.thinnerLine(lost.thinner.length, people(lost.thinnerPop)))
+    expect(text).toContain(copy.world.thinnerOnMapWithLost)
+  })
+
+  it('the current allocation itself has nothing lost or reduced', () => {
+    worldDebrief(scenario.current_allocation)
+    expect(document.body.textContent).toContain(copy.world.lostNone)
+  })
+
+  it('details sheet also states reduced villages next to lost ones', () => {
+    debrief('m2', played.m1)
+    const lost = lostVillages(played.m2!.k15, current15, model.pop)
+    expect(document.body.textContent).toContain(copy.debrief.thinnerTitle(lost.thinner.length, people(lost.thinnerPop)))
   })
 })

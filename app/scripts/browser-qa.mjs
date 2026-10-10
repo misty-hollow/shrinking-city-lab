@@ -146,12 +146,12 @@ async function finaleChecks(page, tag, full, allocs) {
     await page.locator('.panel').evaluate((el) => el.scrollTo(0, 0))
   }
   // 크게 보기(키보드) → 같은 세계의 그 미션 탭 + 증감 기준
-  await page.getByRole('button', { name: '어디에도 빈 곳이 없게 배분을 무대에서 크게 보기' }).focus()
+  await page.getByRole('button', { name: '가장 불리한 읍·면을 끌어올려라 배분을 무대에서 크게 보기' }).focus()
   await page.keyboard.press('Enter')
   await page.waitForSelector('.wf-top')
   const top = await page.locator('.wf-top').innerText()
   check(
-    (await page.locator('.finale-board').count()) === 0 && top.includes('2 · 어디에도 빈 곳이 없게') && (await page.getByRole('tab', { selected: true }).innerText()).includes('어디에도') && (await page.locator('.legend').count()) === 1,
+    (await page.locator('.finale-board').count()) === 0 && top.includes('2 · 가장 불리한 읍·면을 끌어올려라') && (await page.getByRole('tab', { selected: true }).innerText()).includes('가장 불리한') && (await page.locator('.legend').count()) === 1,
     `${tag} S6: 크게 보기 = 세계의 미션 2 탭(범례 · 증감)`,
   )
   await page.getByRole('radio', { name: '미션 1 (15일)' }).click()
@@ -179,7 +179,7 @@ async function panelTop(page) {
 /** 미션 2·3 한 판: 브리핑 → 목표 바로 아래(미달) → 10·20분 → 목표(달성) → 확정 → 디브리핑 */
 async function missionRound(page, tag, full, m) {
   const n = m === 'm2' ? 2 : 3
-  const title = m === 'm2' ? '미션 2 · 어디에도 빈 곳이 없게' : '미션 3 · 두껍게 닿게'
+  const title = m === 'm2' ? '미션 2 · 가장 불리한 읍·면을 끌어올려라' : '미션 3 · 두껍게 닿게'
   await page.waitForSelector('#s3-title')
   const brief = await page.locator('.center-card').innerText()
   check(brief.includes(title), `${tag} S3 M${n}: 제목`, brief.slice(0, 80))
