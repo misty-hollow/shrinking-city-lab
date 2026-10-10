@@ -39,3 +39,7 @@ Thumbs.db
 *.part
 .env
 .env.*
+
+# --- Claude Code 개인 설정(CLAUDE.md 11절) ---------------------------------------------------
+.claude/settings.local.json
+.claude/settings.local.json.*
