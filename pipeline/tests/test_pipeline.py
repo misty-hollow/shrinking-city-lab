@@ -183,6 +183,26 @@ def test_r2_current_actual_and_front(sc, scenario):
     assert len(model.coarse_front(b, int(ptot))) == 7
 
 
+def test_r2_design_claims_about_missions(sc):
+    """설계안 3-5·3-6·7-2가 적는 r2 사실. 바뀌면 설계안 문장과 S6 문구를 함께 다시 검토한다."""
+    ls = read_json(DATA / "landscape.json")
+    t = {m: ls["missions"][m]["target"] for m in ("m1", "m2", "m3")}
+    x = model.all_allocations(15)
+    b = model.evaluate_all(sc, x, 15, model.p90_by_mask(sc))
+    p1, p2, p3 = b.mean_days >= t["m1"], b.worst_emd_days >= t["m2"], b.cov3_pop >= t["m3"]
+    # 세 미션 목표를 모두 넘는 배분이 있다(설계안 3-5 1번)
+    assert int((p1 & p2 & p3).sum()) == 2_457
+    # 그래도 지표마다 그 지표를 가장 높이는 배분은 서로 다르다(S6 마지막 문장)
+    tops = [set(np.flatnonzero(v == v.max()).tolist()) for v in (b.mean_days, b.worst_emd_days, b.cov3_pop)]
+    assert all(not (tops[i] & tops[j]) for i in range(3) for j in range(i + 1, 3))
+    # 미션 1 목표는 지소당 2일 이하로 나눈 배분으로도 넘는다(집중만이 길이 아니다, 설계안 3-6·7-2)
+    spread = x.max(1) <= 2
+    assert (int(spread.sum()), int((spread & p1).sum())) == (1_452, 892)
+    # 15분 안에 지소가 하나도 없는 마을: 어느 배분으로도 닿지 않는다
+    unreachable = (sc.tenths > 150).all(1)
+    assert (int(unreachable.sum()), int(sc.pop[unreachable].sum())) == (9, 1_006)
+
+
 def test_enumeration_counts():
     assert len(model.all_allocations(10)) == 85_228
     x = model.all_allocations(15)

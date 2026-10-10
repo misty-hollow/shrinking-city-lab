@@ -141,6 +141,34 @@ describe('world HUD keyboard play', () => {
     expect(document.activeElement).toBe(document.querySelectorAll<HTMLElement>('.fac-row')[1])
   })
 
+  it('arrow keys pass over a balloon that cannot take focus (hidden off screen) instead of stopping there', () => {
+    render(<Harness />)
+    const order = [...document.querySelectorAll<HTMLElement>('.fac-row')]
+    // 브라우저는 visibility: hidden 요소에 포커스를 주지 않는다. jsdom에서는 focus를 막아 같은 상황을 만든다.
+    const blocked = (el: HTMLElement) => Object.defineProperty(el, 'focus', { value: () => {}, configurable: true })
+    blocked(order[1])
+    blocked(order[2])
+    order[0].focus()
+    fireEvent.keyDown(order[0], { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(order[3])
+    fireEvent.keyDown(order[3], { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(order[0])
+    // 끝에서 더 갈 곳이 없으면 그 자리에 머문다
+    fireEvent.keyDown(order[0], { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(order[0])
+    blocked(order[order.length - 1])
+    order[3].focus()
+    fireEvent.keyDown(order[3], { key: 'End' })
+    expect(document.activeElement).toBe(order[order.length - 2])
+    fireEvent.keyDown(order[order.length - 2], { key: 'Home' })
+    expect(document.activeElement).toBe(order[0])
+    // 놓기·빼기는 포커스가 있는 말풍선에만 적용된다(입력 규칙은 그대로)
+    const before = order[0].textContent
+    fireEvent.keyDown(order[0], { key: '+' })
+    expect(order[0].textContent).not.toBe(before)
+    expect(order[1].textContent).toContain('미운영')
+  })
+
   it('recomputes within the 16 ms budget (design 6-12)', () => {
     const x = [3, 1, 0, 2, 1, 4, 0, 2, 1, 1]
     const t0 = performance.now()

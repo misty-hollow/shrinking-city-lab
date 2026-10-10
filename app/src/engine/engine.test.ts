@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Golden, Landscape, Scenario } from '../data/types'
 import { canDecrement, canIncrement, decrement, increment, remaining } from './allocation'
-import { kpiDeltas, lostVillages, missionStatus, topGains, topPercent } from './compare'
+import { kpiDeltas, lostVillages, missionStatus, topGains, topPercent, unreachableVillages, zeroVillages } from './compare'
 import { allocDays, people, signed, weekDays } from './format'
 import { type Threshold, buildModel, computeKpis, tierOf } from './kpi'
 import { diffText } from '../ui/kpiText'
@@ -233,5 +233,42 @@ describe('format', () => {
     expect(tierOf(0)).toBe(0)
     expect(tierOf(2.5)).toBe(1)
     expect(tierOf(3)).toBe(2)
+  })
+})
+
+describe('어느 배분으로도 닿지 않는 마을(구조적 미도달)', () => {
+  const T: Threshold[] = [10, 15, 20]
+  // 행렬에서 바로: 기준 안에 지소가 하나도 없는 마을
+  const fromMatrix = (t: Threshold) =>
+    scenario.matrix.tenths.map((row, i) => (row.every((v) => v > t * 10) ? i : -1)).filter((i) => i >= 0)
+
+  it('is exactly the villages with no clinic inside the threshold in the matrix', () => {
+    for (const t of T) expect(unreachableVillages(model, t)).toEqual(fromMatrix(t))
+  })
+
+  it('is what stays dark when every clinic gets days — no allocation can reach it', () => {
+    // 지소마다 1.5일(합 15일): 기준 안에 지소가 하나라도 있으면 1.5일 이상 닿는다
+    const spread = new Array(scenario.facilities.length).fill(1.5)
+    for (const t of T) expect(zeroVillages(computeKpis(model, spread, t))).toEqual(unreachableVillages(model, t))
+  })
+
+  it('is a subset of the dark villages of every allocation (current, references)', () => {
+    const allocs = [scenario.current_allocation, ...(['m1', 'm2', 'm3'] as const).map((m) => landscape.missions[m].reference.x)]
+    for (const t of T) {
+      const u = unreachableVillages(model, t)
+      for (const x of allocs) {
+        const zero = new Set(zeroVillages(computeKpis(model, x, t)))
+        for (const i of u) expect(zero.has(i)).toBe(true)
+      }
+    }
+  })
+
+  it('shrinks as the threshold grows (it depends on the threshold, not a fixed list)', () => {
+    const [a, b, c] = T.map((t) => unreachableVillages(model, t))
+    expect(new Set([...b].filter((i) => !a.includes(i)))).toEqual(new Set())
+    expect(new Set([...c].filter((i) => !b.includes(i)))).toEqual(new Set())
+    // 현재 판본(r2)에서는 기준마다 실제로 다르다
+    expect(a.length).toBeGreaterThan(b.length)
+    expect(b.length).toBeGreaterThan(c.length)
   })
 })

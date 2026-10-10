@@ -40,6 +40,7 @@ import {
   nextMission,
   prevMission,
 } from './state/results'
+import { feedbackKey, feedbackStale } from './ui/feedback'
 import { Hand } from './ui/Hand'
 import { DataChip, type EmberHandle, EmberLayer, ReadingKey, SoundToggle, type Toast, Toasts, useAudioUnlock } from './ui/Hud'
 import { ClinicMarkers, type Pop, type VillagePin, VillagePins } from './ui/Markers'
@@ -53,6 +54,8 @@ const TOAST_MS = 3200
 const POP_MS = 1900
 /** 결산 감상: HUD 없이 불 켜진 섬을 잠시 돈다(누르면 바로 결과) */
 const APPRECIATE_MS = 4200
+/** 좁은 화면 규칙(styles의 max-width: 1099px와 같은 경계) */
+const NARROW_MAX = 1100
 
 function useWindowSize(): { w: number; h: number } {
   const [s, setS] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
@@ -243,6 +246,16 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const interactive = s.screen === 'tutorial' || s.screen === 'play'
   const hudEvent = interactive ? lightEvent : null
 
+  // 알림은 그 조작을 한 단계에서만 보인다(ui/feedback). 알림은 빛이 다 닿은 뒤에 생기므로, 조작 직후 [다음]을 누르면
+  // 다음 단계에서 늦게 뜬다. 조작이 시작된 단계를 사건과 함께 기억해 두고, 단계가 바뀌었으면 알림을 만들지 않는다.
+  const fbKey = feedbackKey(s)
+  const fbKeyNow = useRef(fbKey)
+  fbKeyNow.current = fbKey
+  const fbKeyOf = useRef<{ ev: StageEvent | null; key: string }>({ ev: null, key: fbKey })
+  useEffect(() => {
+    fbKeyOf.current = { ev: hudEvent, key: fbKey }
+  }, [hudEvent])
+
   // 빛이 번지는 동안은 새 미리보기를 띄우지 않는다(방금 놓은 결과를 끝까지 보게).
   useEffect(() => {
     // 조작 화면을 빛이 번지는 도중에 떠나면(빠른 [미션 시작]) 끝 타이머가 치워지므로, 여기서 멈춤을 푼다.
@@ -345,6 +358,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
 
   // 빛이 다 닿으면: 말풍선 위로 숫자 하나가 떠올라 사라진다(기준 변경은 가운데 한 줄)
   useOnSettle(hudEvent, (ev) => {
+    if (fbKeyOf.current.ev === ev && feedbackStale(fbKeyOf.current.key, fbKeyNow.current)) return
     const plan = ev.plan
     const T = (plan.kind === 'threshold' ? plan.front.to : plan.dir > 0 ? plan.front.to : plan.front.from) as Threshold
     const fromT = (plan.kind === 'threshold' ? plan.front.from : T) as Threshold
@@ -513,6 +527,12 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [s.dataOpen, s.screen, s.finaleFocus, details, phase, finaleReturn])
+
+  // 튜토리얼 단계가 바뀌면 앞 단계의 알림을 지운다(화면이 바뀔 때는 아래에서 지운다).
+  useEffect(() => {
+    setToasts([])
+    setPops([])
+  }, [s.tutorialStep])
 
   // 화면이 바뀌면: 전체 시점, 소식·표지 정리. 결산은 감상부터(움직임 줄이기면 바로 결과).
   useEffect(() => {
@@ -729,6 +749,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     stage.current?.preset(next ? 'top' : 'overview')
   }
   const showHand = s.screen === 'play' || (s.screen === 'tutorial' && s.tutorialStep === 3)
+  const readingStep = s.screen === 'tutorial' && s.tutorialStep === 1
   // 말풍선에 보이는 배분: 불씨가 날아가는 동안에는 앞 값(+1) — 앉는 순간 칸이 켜진다
   const markerAlloc = inFlight && hudEvent && hudEvent.plan.dir > 0 ? hudEvent.before : shown.alloc
   const handLeft = inFlight && hudEvent && hudEvent.plan.dir < 0 ? remaining(hudEvent.before, s.budget) : remaining(s.alloc, s.budget)
@@ -876,27 +897,32 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
                 previewValue={previewMission}
               />
             )}
-            <KpiLedger
-              compact
-              k={k}
-              base={s.screen === 'tutorial' && s.tutorialPlaced === null ? null : baseK}
-              T={s.T}
-              scenario={scenario}
-              onEmphasis={setEmphasis}
-              goal={s.screen === 'play' ? GOAL_TILE[s.mission] : undefined}
-              event={hudEvent}
-              baseLabel={baseLabel}
-            />
-            <div className="hud-links">
-              <button type="button" className="toggle" aria-expanded={details} onClick={() => setDetails(!details)}>
-                {details ? copy.hud.emdClose : copy.hud.emdOpen}
-              </button>
-              {s.screen === 'play' && (
-                <button type="button" className="toggle" aria-pressed={s.deltaMode} onClick={() => dispatch({ type: 'toggleDelta' })}>
-                  {s.deltaMode ? copy.controls.deltaOn : copy.controls.deltaOff}
-                </button>
-              )}
-            </div>
+            {/* 튜토리얼 1단계는 지도 읽기만: 6개 지표는 기준을 바꿔 보는 2단계부터 보인다(한 화면의 개념 수를 줄인다) */}
+            {!readingStep && (
+              <>
+                <KpiLedger
+                  compact
+                  k={k}
+                  base={s.screen === 'tutorial' && s.tutorialPlaced === null ? null : baseK}
+                  T={s.T}
+                  scenario={scenario}
+                  onEmphasis={setEmphasis}
+                  goal={s.screen === 'play' ? GOAL_TILE[s.mission] : undefined}
+                  event={hudEvent}
+                  baseLabel={baseLabel}
+                />
+                <div className="hud-links">
+                  <button type="button" className="toggle" aria-expanded={details} onClick={() => setDetails(!details)}>
+                    {details ? copy.hud.emdClose : copy.hud.emdOpen}
+                  </button>
+                  {s.screen === 'play' && (
+                    <button type="button" className="toggle" aria-pressed={s.deltaMode} onClick={() => dispatch({ type: 'toggleDelta' })}>
+                      {s.deltaMode ? copy.controls.deltaOn : copy.controls.deltaOff}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           {showHand && <Hand left={handLeft} budget={s.budget} mission={s.screen === 'play'} />}
           {s.screen === 'play' && (
@@ -958,6 +984,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
                 <RegionCard
                   m={s.regionEmd}
                   k={k}
+                  t={s.T}
                   scenario={scenario}
                   model={model}
                   alloc={s.alloc}
@@ -971,6 +998,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
             <RegionCard
               m={s.regionEmd}
               k={k}
+              t={s.T}
               scenario={scenario}
               model={model}
               alloc={s.alloc}
@@ -1027,6 +1055,8 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
         <WorldFinale
           results={finale}
           scenario={scenario}
+          model={model}
+          narrow={width < NARROW_MAX}
           focus={s.finaleFocus}
           onFocus={(m) => dispatch({ type: 'finaleFocus', m })}
           base={s.finaleBase}

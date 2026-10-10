@@ -111,6 +111,7 @@ export function IntroCard({ step, scenario, manifest, onNext, onSkip }: IntroPro
           <div className="badges">
             <Badge cls="REAL_DATA">{copy.intro.card2Small(d.schedule)}</Badge>
           </div>
+          <div className="small">{copy.intro.card2Note}</div>
         </>
       )}
       {step === 2 && (
@@ -127,6 +128,7 @@ export function IntroCard({ step, scenario, manifest, onNext, onSkip }: IntroPro
             <Badge cls="REAL_DATA">{copy.intro.card3SmallReal(d.schedule)}</Badge>
             <Badge cls="SIMULATION_ASSUMPTION">{copy.intro.card3SmallAssumption}</Badge>
           </div>
+          <div className="small">{copy.intro.card3Note}</div>
         </>
       )}
       <div className="actions">
@@ -188,9 +190,12 @@ export function TutorialCard(p: TutorialProps) {
         </>
       )}
       {p.step === 3 && (
-        <p tabIndex={-1} ref={h} aria-live="polite">
-          {p.result ?? copy.tutorial.step3}
-        </p>
+        <>
+          <p tabIndex={-1} ref={h} aria-live="polite">
+            {p.result ?? copy.tutorial.step3}
+          </p>
+          {p.result && <p className="small">{copy.tutorial.step3Next}</p>}
+        </>
       )}
       <div className="actions">
         {p.step < 3 && (

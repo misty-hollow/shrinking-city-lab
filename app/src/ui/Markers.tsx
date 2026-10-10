@@ -68,10 +68,16 @@ export function ClinicMarkers(p: MarkersProps) {
       else p.onDenied(j, -1)
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
       e.preventDefault()
+      // 화면 밖이라 숨겨진(visibility: hidden) 말풍선은 포커스를 받지 못한다. 그 자리에서 멈추지 않고 같은 방향의
+      // 다음 말풍선으로 넘어간다(순서는 그대로 서 → 동). 갈 곳이 없으면 지금 말풍선에 머문다.
       const at = p.order.indexOf(j)
-      const next = e.key === 'Home' ? 0 : e.key === 'End' ? p.order.length - 1 : at + (e.key === 'ArrowDown' ? 1 : -1)
-      const nj = p.order[Math.max(0, Math.min(p.order.length - 1, next))]
-      document.querySelector<HTMLElement>(`.marker[data-j="${nj}"]`)?.focus()
+      const step = e.key === 'ArrowDown' || e.key === 'Home' ? 1 : -1
+      const from = e.key === 'Home' ? 0 : e.key === 'End' ? p.order.length - 1 : at + step
+      for (let k = from; k >= 0 && k < p.order.length && p.order[k] !== j; k += step) {
+        const el = document.querySelector<HTMLElement>(`.marker[data-j="${p.order[k]}"]`)
+        el?.focus()
+        if (el && document.activeElement === el) break
+      }
     }
   }
   return (
