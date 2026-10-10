@@ -1,6 +1,6 @@
 작업: 2026-10-09 미커밋 개선(학습 설계 정정·S6 반응형·도입부/튜토리얼·오류 2건·문서)을 별도 worktree로 옮겨 검증하고 기준점으로 확정 준비
-결과: 검증 대기
-다음 할 일: 작업 브랜치 push 후 CI 확인 → PR 생성(사용자 승인 2026-10-10, 보고서 commit·push·PR·CI 확인까지). 병합·본 체크아웃 정리·배포는 미승인
+결과: 완료
+다음 할 일: 사용자 — PR 화면 확인 후 병합 여부 결정("PR #N 병합해"). 병합 뒤 본 체크아웃 정리는 별도 승인. 배포(정식·테스트 사이트)는 범위 밖
 
 ## 위험도: 고, `app/src/engine/compare.ts`·`engine.test.ts`가 CLAUDE.md 4절 고위험 파일(`app/src/engine/**`)이고, S6·설계안의 학습 문장(미션 의미 서술) 변경이 제품 원칙 영역에 걸친다
 
@@ -45,13 +45,19 @@ KPI 정의·접근성 식·미션 목표치·판정·참고 배분·데이터는
 
 venv는 이 worktree 전용(`pipeline/.venv`, Python 3.12.10)으로 새로 만들었다.
 
-## CI 결과
+## CI 결과 (push 실행 38050959697, head `1c6279d3ebce2ba88d9bd4481c4326cdd2dd0a0a`)
 
-없음. 아직 commit·push 전이다.
+마지막 코드 변경 커밋은 `fbb0aa5`다. `1c6279d`는 그 위에 `docs/REPORT.md`만 고쳤으므로 이 실행이 코드 전체를 덮는다.
+
+| job | 결과 |
+|---|---|
+| repository(위생·gitleaks) | success |
+| pipeline(ruff·pytest·verify) | success |
+| app(npm ci·build·test·뿌리 기준 빌드 smoke) | success |
 
 ## 수행하지 못한 검증과 영향
 
-- gitleaks(CI docker 전용)와 뿌리 기준 빌드 smoke(Linux 셸): push 후 CI에서 확인한다.
+- gitleaks와 뿌리 기준 빌드 smoke는 로컬에서 못 돌리고 CI(위)에서 통과했다.
 - 사람 확인(CLAUDE.md 5절): 바뀐 화면의 시각 품질, 문구 톤, 플레이 흐름. 2026-10-09 자동 브라우저 확인(헤드리스 Edge, 768×1024·900×768·1024×768·1440×900)은 그날 세션 보고로만 알고, 이번에 다시 돌리지 않았다.
 - 학습 효과: 플레이테스트 전이라 미검증(PLAYTEST.md 9절 표현 기준).
 
@@ -97,6 +103,7 @@ No actionable bugs were identified in the changes relative to the supplied merge
 ## commit 해시
 
 - `fbb0aa5` — 10월 9일 변경 20개 + 이 보고서 초판(중간 commit)
-- 그 뒤 commit — 이 보고서에 Codex 리뷰 원문·CI 결과 기록(문서만)
+- `1c6279d` — 이 보고서에 Codex 리뷰 원문·승인 범위 기록(문서만)
+- 그 뒤 commit — 이 보고서에 CI 결과 기록(문서만, 그 CI는 확인만 하고 여기 다시 쓰지 않는다)
 
- 기준: `origin/main` `18af0f284b583a7dacc4e9899203d23bdf0865ae`.
+기준: `origin/main` `18af0f284b583a7dacc4e9899203d23bdf0865ae`.
