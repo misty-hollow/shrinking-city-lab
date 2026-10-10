@@ -1,6 +1,6 @@
 작업: UX 개선 PR B — 결산(S5)·S6 결과를 나아진 주민 / 불리해진 주민으로, 지역 카드 정보 구조, 미리보기·실제/가정 안내 중복, 문체 정리
-결과: 결정 필요
-다음 할 일: 사용자 — worktree `C:\Users\sdsdo\Documents\shrinking-city-lab-ux`에서 연 세션에 `/codex:review --base origin/main` 입력(로컬 `main`은 아직 `4de1431`이라 `--base main`이면 이미 병합된 PR A까지 대상이 된다). 리뷰 통과 전 push·PR·병합 금지
+결과: 검증 대기
+다음 할 일: push 후 CI 확인 → PR 생성. 병합은 사용자 지시로만. 배포(정식·테스트 사이트)는 별도 승인
 
 ## 위험도: 고, S5·S6 결과 화면(판정 결과를 학생에게 읽히는 방식)과 문구 체계(설계안 5-12)를 바꾸고 설계안 5-6·5-7을 고친다. 계산·데이터·미션 목표치·판정·학습 목표는 바꾸지 않았다(`engine/`·`state/`·`app/public`·`pipeline` diff 0)
 
@@ -61,7 +61,18 @@ Review comment:
   On a short desktop viewport such as 1280×720, the three added rows push the reference allocations' multi-line finale summary below the screen. `.wf-table` remains fixed at `top: 156px` without a height limit or internal scrolling, while `html`, `body`, and `#root` hide overflow, so the clipped explanation cannot be reached. Add viewport-bounded scrolling or a compact layout to the finale panel, as this patch already does for the debrief panel.
 ```
 
-  조치(필수): `.wf-table`에 `max-height: calc(100vh - {top} - 24px)` + `overflow-y: auto`(기본 156px, ≤1279 146px, ≤1023 168px). 로컬 미리보기에서 확인: 1280×720 판 156~696px(내용 605px, 상자 525px → 스크롤, 마지막 요약 줄 스크롤 뒤 보임), 1024×768 판 146~727px(스크롤 불필요), 가로 넘침 없음. 필수 검증 전체 다시 통과(171 tests). 수정분까지 덮도록 2차 리뷰를 돌린다.
+  조치(필수): `.wf-table`에 `max-height: calc(100vh - {top} - 24px)` + `overflow-y: auto`(기본 156px, ≤1279 146px, ≤1023 168px). 로컬 미리보기에서 확인: 1280×720 판 156~696px(내용 605px, 상자 525px → 스크롤, 마지막 요약 줄 스크롤 뒤 보임), 1024×768 판 146~727px(스크롤 불필요), 가로 넘침 없음. 필수 검증 전체 다시 통과(171 tests).
+- 독립 리뷰(Codex) 2차: 같은 명령, 대상 `424eb54`(수정분 포함). 원문:
+
+```
+# Codex Review
+
+Target: branch diff against origin/main
+
+No actionable regressions were identified in the changes against the specified merge base. Test execution was attempted but blocked by the environment's spawn EPERM restriction, so runtime validation remains unconfirmed.
+```
+
+  조치: 필수 지적 없음. Codex 환경에서 테스트가 막혔다는 부분은 위 로컬 검증(메인 실행, 171 passed)과 push 뒤 CI로 확인한다.
 
 ## CI 결과
 
