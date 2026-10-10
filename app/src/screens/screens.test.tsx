@@ -11,11 +11,12 @@ import { describe, expect, it } from 'vitest'
 
 import { APPROVED_NEGATIONS, copy } from '../content/copy'
 import type { Geometry, Landscape, Manifest, Scenario } from '../data/types'
-import { lostVillages, unreachableVillages, zeroOverlap, zeroVillages } from '../engine/compare'
+import { lostVillages, unreachableVillages, villageChangeCounts, zeroOverlap, zeroVillages } from '../engine/compare'
 import { people } from '../engine/format'
-import { buildModel, computeKpis } from '../engine/kpi'
+import { type Kpis, buildModel, computeKpis } from '../engine/kpi'
 import { type MissionResult, type Results, comboFor, finaleResults, makeEvaluate } from '../state/results'
 import { withEdgeInsets } from '../stage/Stage'
+import { changeSummary, lostPinOrder } from '../ui/changeSummary'
 import { RegionCard } from '../ui/PlayPanel'
 import { IntroCard, TutorialCard } from './Cards'
 import { DataLimits } from './DataLimits'
@@ -356,6 +357,7 @@ describe('S6 좁은 화면(768~1099): 표가 차지한 왼쪽 단을 무대가 �
         results={results}
         scenario={scenario}
         model={model}
+        current15={current15}
         narrow={narrow}
         focus="m1"
         onFocus={() => {}}
@@ -458,78 +460,163 @@ describe('도입부·튜토리얼 설명은 데이터의 규칙과 맞는다(S1�
   })
 })
 
-describe('결산 잃은 것: 끊긴 마을이 없어도 하루 이상 줄어든 마을을 말한다(설계안 5-6)', () => {
-  function worldDebrief(x: readonly number[], mapVsCurrent = true) {
-    const r = evaluate('m2', x, 'played', 1)
-    const lost = lostVillages(r.k15, current15, model.pop)
+describe('결산 두 칸: 나아진 주민 / 불리해진 주민(설계안 5-6)', () => {
+  function worldDebrief(m: 'm1' | 'm2' | 'm3', x: readonly number[], opts: { mapVsCurrent?: boolean; prev?: { n: number; k15: Kpis } | null } = {}) {
+    const r = evaluate(m, x, 'played', 1)
     render(
       <WorldDebrief
         scenario={scenario}
-        missionId="m2"
+        model={model}
+        missionId={m}
         status={r.status}
         mine={r.k15}
         base={current15}
-        lost={lost}
+        prev={opts.prev ?? null}
         nextLabel="다음 미션"
         onNext={() => {}}
         onAgain={() => {}}
         detailsOpen={false}
         onDetails={() => {}}
-        mapVsCurrent={mapVsCurrent}
+        mapVsCurrent={opts.mapVsCurrent ?? true}
       />,
     )
-    return lost
+    return { r, ch: changeSummary(r.k15, current15, model) }
   }
+  const side = (label: string) => [...document.querySelectorAll('.wr-side')].find((el) => el.textContent?.startsWith(label))!.textContent ?? ''
 
-  it('mission 2 reference: no village loses access, but villages that lost a day or more are stated with the map marker', () => {
-    const lost = worldDebrief(A2)
-    expect(lost.lost).toEqual([])
-    expect(lost.thinner.length).toBeGreaterThan(0)
-    const text = document.body.textContent ?? ''
-    expect(text).toContain(copy.world.thinnerLine(lost.thinner.length, people(lost.thinnerPop)))
-    expect(text).toContain(copy.world.thinnerOnMap)
-    expect(text).not.toContain(copy.world.lostNone)
+  it('mission 2 reference: no village loses access, yet the worse side states the villages that dropped a day or more', () => {
+    const { ch } = worldDebrief('m2', A2)
+    expect(ch.worse.lost).toEqual([])
+    expect(ch.worse.thinner.length).toBeGreaterThan(0)
+    const worse = side(copy.world.worseLabel)
+    expect(worse).toContain(copy.world.sideTotal(people(ch.worse.pop), ch.worse.villages.length))
+    expect(worse).toContain(copy.world.worseParts(0, ch.worse.thinner.length))
+    // 0곳인 갈래는 적지 않는다
+    expect(worse).not.toContain('닿지 않게 됨')
+    const better = side(copy.world.betterLabel)
+    expect(better).toContain(copy.world.sideTotal(people(ch.better.pop), ch.better.villages.length))
+    expect(better).toContain(copy.world.betterParts(ch.better.newly.length, ch.better.more.length))
+    // 어디서: 주민이 가장 많이 바뀐 읍·면이 먼저
+    expect(worse).toContain(`주로 ${scenario.emds[ch.worse.emds[0].m].name}`)
+    expect(document.body.textContent).toContain(copy.world.mapGlyphs)
+    // 끊긴 마을이 없으면 빨간 표지 문장도 없다
+    expect(document.body.textContent).not.toContain(copy.world.lostOnMap)
   })
 
-  it('mission 1 reference: lost villages are stated; the thinner line appears only when there are such villages', () => {
-    const lost = worldDebrief(A1)
-    const text = document.body.textContent ?? ''
-    expect(text).toContain(copy.world.lostLine(lost.lost.length, people(lost.lostPop)))
-    // 미션 1 참고 배분(집중형)은 끊긴 마을만 있고 닿으면서 하루 이상 줄어든 마을은 없다(r2)
-    expect(lost.thinner).toEqual([])
-    expect(text).not.toContain('하루 이상 줄어든')
-    expect(text).not.toContain(copy.world.lostNone)
+  it('mission 1 reference: lost villages are named with the red map pin; none only dropped while still reached', () => {
+    const { ch } = worldDebrief('m1', A1)
+    expect(ch.worse.lost.length).toBeGreaterThan(0)
+    expect(ch.worse.thinner).toEqual([])
+    expect(side(copy.world.worseLabel)).toContain(copy.world.worseParts(ch.worse.lost.length, 0))
+    expect(side(copy.world.worseLabel)).not.toContain('하루 이상 줄어듦')
+    expect(document.body.textContent).toContain(copy.world.lostOnMap)
+    // 문장의 이름 = 지도의 빨간 표지(App이 같은 lostPinOrder로 상위 3곳에 표지를 단다): 주민이 많은 순
+    const named = lostPinOrder(ch.worse.lost, model.pop).slice(0, 3)
+    expect(model.pop[named[0]]).toBeGreaterThanOrEqual(model.pop[named[1]])
+    const line = [...document.querySelectorAll('.wr-change p')].map((e) => e.textContent ?? '').find((t) => t.includes(copy.world.lostOnMap))!
+    let at = -1
+    for (const i of named) {
+      const pos = line.indexOf(`${scenario.villages[i].name} ${people(scenario.villages[i].pop)}`)
+      expect(pos).toBeGreaterThan(at)
+      at = pos
+    }
   })
 
-  it('when the map compares against the previous mission, the ▼ sentence about the current-baseline summary is left out', () => {
-    worldDebrief(A2, false)
-    const text = document.body.textContent ?? ''
-    expect(text).toContain('하루 이상 줄어든 마을')
-    expect(text).not.toContain(copy.world.thinnerOnMap)
+  it('sides never overlap and follow the ±1 day rule', () => {
+    for (const [m, x] of [['m1', A1], ['m2', A2], ['m3', A3]] as const) {
+      const r = evaluate(m, x, 'played', 1)
+      const ch = changeSummary(r.k15, current15, model)
+      expect(ch.better.villages.filter((i) => ch.worse.villages.includes(i))).toEqual([])
+      // 규칙을 만족하는 마을이 빠짐없이, 만족하지 않는 마을은 하나도 들어가지 않는다
+      const better = new Set(ch.better.villages)
+      for (let i = 0; i < model.nV; i++) {
+        const a = r.k15.villageDays[i]
+        const b = current15.villageDays[i]
+        expect(better.has(i)).toBe((b < 1 && a >= 1) || (b >= 1 && a - b >= 1))
+      }
+      const l = lostVillages(r.k15, current15, model.pop)
+      expect(ch.worse.villages).toEqual([...l.lost, ...l.thinner].sort((p, q) => p - q))
+      expect(ch.better.pop).toBe(ch.better.villages.reduce((n, i) => n + model.pop[i], 0))
+      expect(ch.worse.emds.reduce((n, e) => n + e.pop, 0)).toBe(ch.worse.pop)
+    }
   })
 
-  it('mission 3 reference has both lost and reduced villages; the map sentence says ▼ covers both', () => {
-    const r = evaluate('m3', A3, 'played', 1)
-    const lost = lostVillages(r.k15, current15, model.pop)
-    expect(lost.lost.length).toBeGreaterThan(0)
-    expect(lost.thinner.length).toBeGreaterThan(0)
-    render(
-      <WorldDebrief scenario={scenario} missionId="m3" status={r.status} mine={r.k15} base={current15} lost={lost} nextLabel="세 개의 공주 보기" onNext={() => {}} onAgain={() => {}} detailsOpen={false} onDetails={() => {}} mapVsCurrent />,
-    )
-    const text = document.body.textContent ?? ''
-    expect(text).toContain(copy.world.lostLine(lost.lost.length, people(lost.lostPop)))
-    expect(text).toContain(copy.world.thinnerLine(lost.thinner.length, people(lost.thinnerPop)))
-    expect(text).toContain(copy.world.thinnerOnMapWithLost)
+  it('mission 2 after mission 1: the same-15-days line counts villages with a day or more of change', () => {
+    worldDebrief('m2', A2, { prev: { n: 1, k15: played.m1!.k15 } })
+    const c = villageChangeCounts(played.m2!.k15, played.m1!.k15)
+    expect(document.body.textContent).toContain(copy.world.prevLine(1, c.better, c.worse))
   })
 
-  it('the current allocation itself has nothing lost or reduced', () => {
-    worldDebrief(scenario.current_allocation)
-    expect(document.body.textContent).toContain(copy.world.lostNone)
+  it('when the map compares against the previous mission, the ▲▼ sentence is left out', () => {
+    worldDebrief('m2', A2, { mapVsCurrent: false })
+    expect(document.body.textContent).not.toContain(copy.world.mapGlyphs)
+  })
+
+  it('the current allocation itself: both sides say none', () => {
+    worldDebrief('m2', scenario.current_allocation)
+    expect(side(copy.world.betterLabel)).toContain(copy.world.sideNone)
+    expect(side(copy.world.worseLabel)).toContain(copy.world.sideNone)
+    expect(document.body.textContent).not.toContain(copy.world.mapGlyphs)
   })
 
   it('details sheet also states reduced villages next to lost ones', () => {
     debrief('m2', played.m1)
     const lost = lostVillages(played.m2!.k15, current15, model.pop)
     expect(document.body.textContent).toContain(copy.debrief.thinnerTitle(lost.thinner.length, people(lost.thinnerPop)))
+  })
+})
+
+describe('S6 표: 현재 실제 대비 나아진·불리해진 주민', () => {
+  it('shows each mission’s better and worse residents with village counts', () => {
+    const results = finaleResults(played, landscape, evaluate) as FinaleResults
+    render(
+      <WorldFinale
+        results={results}
+        scenario={scenario}
+        model={model}
+        current15={current15}
+        focus="m1"
+        onFocus={() => {}}
+        base="current"
+        onBase={() => {}}
+        onBoard={() => {}}
+        onHome={() => {}}
+      />,
+    )
+    const rows = [...document.querySelectorAll('.wf-change tr')].map((r) => r.textContent ?? '')
+    expect(rows[0]).toBe(copy.finale.changeHead)
+    for (const [k, label] of [['better', copy.world.betterLabel], ['worse', copy.world.worseLabel]] as const) {
+      const row = rows.find((t) => t.startsWith(label))!
+      for (const r of results) {
+        const ch = changeSummary(r.k15, current15, model)[k]
+        expect(row).toContain(copy.finale.changeCell(people(ch.pop), ch.villages.length))
+      }
+    }
+  })
+})
+
+describe('지역 카드: 규모와 비율 먼저', () => {
+  it('states count, residents and share before the folded list', () => {
+    const k = computeKpis(model, scenario.current_allocation, 15)
+    const u = new Set(unreachableVillages(model, 15))
+    for (let m = 0; m < scenario.emds.length; m++) {
+      const { unmount } = render(
+        <RegionCard m={m} k={k} t={15} scenario={scenario} model={model} alloc={scenario.current_allocation} populationDate="2026-08-31" onClose={() => {}} />,
+      )
+      const dark = scenario.villages.map((v, i) => ({ v, i })).filter(({ i }) => model.emd[i] === m && k.villageDays[i] < 1)
+      if (dark.length === 0) {
+        expect(document.body.textContent).toContain(copy.region.zeroNone)
+      } else {
+        const pop = dark.reduce((n, { v }) => n + v.pop, 0)
+        const pct = ((pop / scenario.emds[m].pop) * 100).toFixed(0)
+        expect(document.querySelector('.region-zero-summary')!.textContent).toBe(copy.region.zeroSummary(dark.length, people(pop), pct))
+        const nu = dark.filter(({ i }) => u.has(i)).length
+        if (nu > 0) expect(document.body.textContent).toContain(copy.region.unreachableNote(nu, 15))
+        else expect(document.body.textContent).not.toContain('어느 배분으로도 닿지 않음')
+        // 목록은 접혀 있다(details)
+        expect(document.querySelector('details.region-zero-list')!.hasAttribute('open')).toBe(false)
+      }
+      unmount()
+    }
   })
 })

@@ -49,7 +49,7 @@ describe('preview before placing', () => {
     expect(p.blocked).toBeNull()
     expect(p.tone).toBe('gain')
     expect(p.big).toBe(`+${people(a.cov1Pop - b.cov1Pop)}`)
-    expect(p.line).toContain('새로 닿아요')
+    expect(p.line).toContain('새로 닿는 마을')
     expect(p.villages).toEqual(tierChangedVillages(b.villageDays, a.villageDays))
     expect(p.detail).toContain('계룡 주 0일 → 1일')
     // 테두리를 켠 마을에는 모두 빛이 닿는다(빛의 계획이 같은 마을을 안다)
@@ -65,7 +65,7 @@ describe('preview before placing', () => {
     const p = pv(alloc, j, -1)
     expect(p.tone).toBe('loss')
     expect(p.big.startsWith('−')).toBe(true)
-    expect(p.line).toContain('닿지 않게 돼요')
+    expect(p.line).toContain('닿지 않게 되는 마을')
     expect(p.detail).toContain('계룡 주 1일 → 0일')
     // 거꾸로 하면 같은 크기
     const back = pv(empty, j, 1)
@@ -79,7 +79,7 @@ describe('preview before placing', () => {
     alloc[j] = 1
     const p = pv(alloc, j, 1)
     expect(p.big.startsWith('+')).toBe(true)
-    expect(p.line === copy.world.preview.thicker(p.villages.length) || /진료일이 늘어요|주 3일 이상이 돼요/.test(p.line)).toBe(true)
+    expect(p.line === copy.world.preview.thicker(p.villages.length) || /진료일이 늘어나는 마을|주 3일 이상이 되는 마을/.test(p.line)).toBe(true)
   })
 
   it('a blocked move shows the reason only and marks no village', () => {

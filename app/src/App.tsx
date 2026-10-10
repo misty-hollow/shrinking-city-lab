@@ -13,6 +13,7 @@ import { BRIEF_EMBER_MS, BRIEF_STEP_MS, BRIEF_WAIT_MS, BriefingCard, IntroCard, 
 import { DataLimits } from './screens/DataLimits'
 import { DebriefPanel } from './screens/Debrief'
 import { FinaleBoard, FinalePanel } from './screens/Finale'
+import { lostPinOrder } from './ui/changeSummary'
 import { WorldDebrief } from './screens/WorldDebrief'
 import { WorldFinale } from './screens/WorldFinale'
 import { type Hillshade, buildHillshade } from './stage/hillshade'
@@ -621,7 +622,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const lost = useMemo(() => (s.screen === 'debrief' && result ? lostVillages(result.k15, current15, model.pop) : null), [s.screen, result, current15, model])
   const pins = useMemo((): VillagePin[] => {
     if (!lost || appreciating || details) return []
-    const top = [...lost.lost].sort((a, b) => model.pop[b] - model.pop[a]).slice(0, 3)
+    const top = lostPinOrder(lost.lost, model.pop).slice(0, 3)
     return top.map((i, q) => ({
       i,
       text: q === top.length - 1 && lost.lost.length > top.length ? `${copy.world.lostPin(scenario.villages[i].name, people(scenario.villages[i].pop))} · ${copy.world.lostMore(lost.lost.length - top.length)}` : copy.world.lostPin(scenario.villages[i].name, people(scenario.villages[i].pop)),
@@ -1041,7 +1042,8 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
           status={result.status}
           mine={result.k15}
           base={current15}
-          lost={lost}
+          model={model}
+          prev={prevId && prevResult ? { n: missionNumber(prevId), k15: prevResult.k15 } : null}
           nextLabel={nextId ? copy.debrief.next : copy.debrief.toFinale}
           onNext={() => dispatch({ type: 'nextMission' })}
           onAgain={() => dispatch({ type: 'replay' })}
@@ -1057,6 +1059,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
           results={finale}
           scenario={scenario}
           model={model}
+          current15={current15}
           narrow={width < NARROW_MAX}
           focus={s.finaleFocus}
           onFocus={(m) => dispatch({ type: 'finaleFocus', m })}
