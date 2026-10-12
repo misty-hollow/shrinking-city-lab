@@ -1,6 +1,6 @@
 작업: 스크린샷 검토(②)에서 찾은 기존 배치 문제 4건 수정(HUD 위 3D 말풍선·S6 표 잘림·모바일 자료와 한계 잘림·1024 결산 말풍선 잘림) + 브라우저 QA에 DOM 기하 검사 추가
 결과: 검증 대기
-다음 할 일: 사용자 — 앱 Help → Troubleshooting → Review Pinned Git Origins에서 저장소 origin 확인(PR #14가 먼저 병합돼 main(`dff9f60`) merge가 필요한데, `.claude/agents/*`가 바뀌어 앱 merge 도구가 확인을 요구). 그 뒤 메인이 main merge(충돌은 이 보고서만) → 병합된 실제 하네스로 ① 재실행 → push·CI. 확인 요청 3건(아래 「사용자에게」)은 그와 별개로 볼 수 있다
+다음 할 일: 메인 — main merge(`4b6accd`) 뒤 PR CI 결과 기록. 사용자 — 확인 요청 3건(아래 「사용자에게」), 병합 여부 결정("PR #15 병합해")
 
 ## 위험도: 저, 새 QA 검사 추가(기존 검사 기준 그대로)와 무대 라벨 배치·CSS 배치 수정. `app/src/engine/**`·데이터·문구(`copy.ts`)·금지어·CI·배포·의존성·외부 호출 변경 없음. S8 「자료와 한계」는 CSS 줄바꿈만 바꾸고 출처·이용조건 글은 그대로
 
@@ -8,7 +8,9 @@
 
 ## 공통 규칙 사본
 
-CLAUDE.md v1.2와 `docs/ai-dev-workflow/`는 PR #14(미병합)에만 있다. 사용자 지시(2026-10-12)대로 그 사본(WORKFLOW v1.2)의 절차·보고 형식을 따랐다. 이 브랜치의 CLAUDE.md는 main의 v1.0 그대로다.
+작업 시작 때 CLAUDE.md v1.2와 `docs/ai-dev-workflow/`는 PR #14(미병합)에만 있었고, 사용자 지시(2026-10-12)대로 그 사본(WORKFLOW v1.2)을 따랐다. 작업 중 PR #14가 병합돼(main `dff9f60`) 이 브랜치에 main을 merge했다(`4b6accd`). 이제 브랜치의 CLAUDE.md도 v1.2다.
+
+main 동기화(2026-10-12): 앱 `sync_with_base_branch`가 처음엔 보호 파일(`.claude/agents/*`, #14가 바꿈) 때문에 출처 확인을 요구했고, 사용자가 고정된 Git 원격 저장소를 확인한 뒤에는 커밋 단계에서 작성자 정보가 없어 멈췄다(호스트 git이 저장소 로컬 설정을 읽지 않음). 사용자 승인으로 전역 git 작성자(`misty-hollow`, `misty-hollow@users.noreply.github.com`)를 설정한 뒤 merge했다. 충돌은 `docs/REPORT.md` 하나 — 이 작업의 보고를 위에 두고 PR #14 보고서 원문을 아래 「이전 작업 기록」으로 보존했다. `browser-qa.mjs`는 자동 병합(이 브랜치 검사 호출 + #14의 기대값 정정·`stage()`·`meta`). merge 뒤 main 대비 차이는 이 작업의 7개 파일뿐이고, `app/src`·`app/public`·`app/package*.json`은 `8b133c9`와 같다.
 
 ## 핵심 변경
 
@@ -27,7 +29,7 @@ CLAUDE.md v1.2와 `docs/ai-dev-workflow/`는 PR #14(미병합)에만 있다. 사
 
 `app/src/stage/StageController.ts`, `app/src/styles/world.css`, `app/src/styles/app.css`, `app/scripts/qa-geometry.mjs`(신규), `app/scripts/browser-qa.mjs`, `docs/UI_DESIGN_SYSTEM.md`, `docs/REPORT.md`
 
-## 검증 (B절 행마다: 필요 · 수행 상태 · 결과 · 증거) — 로컬 Windows 11, worktree `quirky-kirch-06c899`, head `8b133c9`
+## 검증 (B절 행마다: 필요 · 수행 상태 · 결과 · 증거) — 로컬 Windows 11, worktree `quirky-kirch-06c899`, main merge 뒤 head `4b6accd`에서 다시 수행
 
 | 종류 | 필요 | 수행 상태 | 결과 | 증거 |
 |---|---|---|---|---|
@@ -39,23 +41,26 @@ CLAUDE.md v1.2와 `docs/ai-dev-workflow/`는 PR #14(미병합)에만 있다. 사
 | 타입체크·빌드 | 필요 | 수행 | 통과 | `npm ci && npm run build` |
 | 테스트(앱) | 필요 | 수행 | 통과 | vitest 11 files · 171 tests |
 | 배포 형태별 실행 확인 | 필요 | CI | (PR CI) | CI `app` job 「Root-base build and static smoke」 |
-| 실행 검증 ① 플레이 경로 | 필요 | 대체 수행(아래 ①: 이 브랜치 하네스 + PR #14 하네스 3-way 병합본) | 통과 | 627 PASS / 0 FAIL, `report.json` meta.commit `8b133c9` |
+| 실행 검증 ① 플레이 경로 | 필요 | 수행(병합된 실제 하네스 `npm run qa:browser`) | 통과 | 627 PASS / 0 FAIL, 종료 코드 0, `report.json` meta.commit `4b6accd` |
 | 실행 검증 ① 객관 검사 | 필요 | 같은 실행 | 통과 | 위와 같음. 새 DOM 기하 검사 포함 |
 | 직접 검토 ② | 필요 | 수행 | 이상 없음(아래 ②) | `app/qa-shots/*.png` |
 | 시간 축 | 필요(결과 화면 카메라 대기·흐림 전환) | 같은 실행 | 통과 | 빛 도착 전·후 지표, 움직임 줄이기(1280 reduce), 키오스크 90초 복귀 검사 PASS |
-| 성능 | 필요(무대 변경) | 수행 | 통과 | `perf-probe.mjs` 4개 프로필, main 빌드와 번갈아 비교: 프레임 간격 같음(gpu 5.6ms, swiftshader 중앙 94.5ms 양쪽 같음), 첫 조작 가능 gpu 949 vs 943~968ms, CPU 4배 2807 vs 2738~2771ms(편차 안), 콘솔 오류 0 |
+| 성능 | 필요(무대 변경) | 수행(`8b133c9`에서. merge가 앱 코드를 바꾸지 않아 다시 재지 않음) | 통과 | `perf-probe.mjs` 4개 프로필, main 빌드와 번갈아 비교: 프레임 간격 같음(gpu 5.6ms, swiftshader 중앙 94.5ms 양쪽 같음), 첫 조작 가능 gpu 949 vs 943~968ms, CPU 4배 2807 vs 2738~2771ms(편차 안), 콘솔 오류 0 |
 
 ## 실행 검증 ①
 
-- 하네스: main의 `browser-qa.mjs`는 PR #13 문구 변경을 따라가지 못한 기대값 때문에 1440 S5 `.wr-lost`에서 멈춘다(main `5e7b936`에서도 같음 — 이 브랜치 하네스만으로 돌려도 같은 자리에서 멈췄다). 그 기대값 정정은 PR #14에 있다. 그래서 `git merge-file`로 「main 하네스 → 이 브랜치 하네스 + PR #14 하네스」를 3-way 병합한 임시 파일(충돌 0, 커밋하지 않음)로 이 브랜치 앱을 돌렸다. 두 PR이 병합되면 같은 내용이 된다.
+- 최종(main merge 뒤 `4b6accd`, 2026-10-12T14:19Z): 병합된 실제 하네스로 **627 PASS / 0 FAIL**, 종료 코드 0. 사용자가 짚은 네 가지 — HUD와 말풍선 겹침(1440·1024·1280 S4 지역 카드), S6 표 마지막 열(1440·1024·1280 S6 세계 판 안 가로 잘림), 작은 화면 자료와 한계(390), 키보드 포커스 시 말풍선 복귀(세 크기 j=8·0·0) — 모두 PASS. 결과 `app/qa-shots/report.json`·`qa-merged.log`.
+- 그 전(`8b133c9`): main 하네스가 PR #13 이후 낡은 기대값 때문에 1440 S5 `.wr-lost`에서 멈춰서, `git merge-file`로 이 브랜치 하네스와 PR #14 하네스를 3-way 병합한 임시 파일(충돌 0, 커밋 안 함)로 돌렸다: 627 PASS / 0 FAIL. merge 뒤 실제 하네스 결과와 검사 수·결과가 같다.
 - 경로: 하네스 대표 경로 전부(1440 한 판 S0→S6, 1024·1280 reduce 축약, 건너뛰기 판·키오스크 90초·390 모바일·소리 끄기).
 - 수정 전 같은 하네스 결과(새 검사만 실패, 12건): 1440·1280·1024 S4 지역 카드 겹침·화면 끝, 1024 S5 M2·M3 반포 말풍선↔결과 시트, 1280 S4 M2 정안 결과 판↔오른쪽 위 도구, 1440·1280 S6 `.wf-table` 470>456/435, 390 `.data-sheet` 400>342. 수정 후 627 PASS / 0 FAIL.
 - 변경 주변 탐색(임시 스크립트, 커밋하지 않음): 1280 마지막 읍·면 지역 카드에서 흐린 말풍선에 포커스 → 다시 보임·`+`로 풀 15→14(이 탐색에서 포커스만 바뀌면 다시 그리지 않는 문제를 찾아 `c724079`로 고침), 1440 휠 확대·끌기에서 마을 이름 14개와 HUD 겹침 0, 1280×720·1366×768 S4 전체 시점(지표 자세히 닫힘·열림) 겹침·흐림 0, 1366×768·1100×800 S6 세계 기하 검사 통과.
-- 재현 조건: `report.json` meta = commit `8b133c9`, base `http://127.0.0.1:5299/?kiosk=0`(5199는 다른 프로세스가 쓰고 있어 5299), msedge 155.0.4283.45, playwright-core 1.63.0. 같은 순서·무작위 없음.
+- 재현 조건: `report.json` meta = commit `4b6accd`, base `http://127.0.0.1:5299/?kiosk=0`(5199는 다른 프로세스가 쓰고 있어 5299), msedge 155.0.4283.45, playwright-core 1.63.0. 같은 순서·무작위 없음.
 
 ## 직접 검토 ②
 
-본 것(1440 기준 10장 + 1024·1280·390): `1440x900-s0-start`·`-s2-moved`(수정 전과 섬 위치·크기 같음)·`-s4-play`·`-s4-top`·`-s4-m2-play`·`-s5-world`·`-s5-debrief`·`-s6-world`·`-s6-three`·`-s8-data`, `1024x768-s4-play`·`-s5-world`, `1280x800-s4-play`, `390x844-mobile`.
+main merge 뒤 다시 본 것: `1440x900-s4-play`·`-s6-world`, `1024x768-s4-play`·`-s5-world`, `390x844-mobile` — merge 전과 같고 이상 없음.
+
+merge 전에 본 것(1440 기준 10장 + 1024·1280·390): `1440x900-s0-start`·`-s2-moved`(수정 전과 섬 위치·크기 같음)·`-s4-play`·`-s4-top`·`-s4-m2-play`·`-s5-world`·`-s5-debrief`·`-s6-world`·`-s6-three`·`-s8-data`, `1024x768-s4-play`·`-s5-world`, `1280x800-s4-play`, `390x844-mobile`.
 
 - 의심→수정: 1024 S4 소식 한 줄이 시트 밑으로 잘림(핵심 변경 5).
 - 이상 없음: 4건 모두 해소. S4 지역 카드에서 HUD 위 말풍선·결과 판 없음, 1024 S5 서쪽 말풍선 화면 안, S6 미션 3 열 전체, 390 분류 배지 전체·표 시트 안.
@@ -77,9 +82,8 @@ CLAUDE.md v1.2와 `docs/ai-dev-workflow/`는 PR #14(미병합)에만 있다. 사
 
 ## PR CI
 
-PR #15, 코드 변경 마지막 head `8b133c9`(보고서 커밋 `146a016` 포함) — push 실행 38258029038: repository success · pipeline success · app success(뿌리 기준 빌드 smoke 포함). PR 체크 3개 pass.
-
-main이 PR #14 병합(`dff9f60`, 2026-10-12 13:10)으로 앞서가 PR이 CONFLICTING. `git merge-tree`로 본 충돌은 `docs/REPORT.md` 하나, `app/scripts/browser-qa.mjs`는 자동 병합. main merge 뒤 CI·①을 다시 확인한다.
+- main merge 전: head `146a016`(코드 `8b133c9`) push 실행 38258029038 — repository·pipeline·app success.
+- main merge 뒤: (push 후 기록)
 
 ## 독립 리뷰
 
@@ -93,14 +97,13 @@ main이 PR #14 병합(`dff9f60`, 2026-10-12 13:10)으로 앞서가 PR이 CONFLIC
 
 ## 미해결
 
-- PR #14와의 순서: 하네스(`browser-qa.mjs`)는 3-way 병합 충돌 0을 확인했다. `docs/REPORT.md`는 양쪽이 바꿔 나중에 병합하는 쪽에서 충돌한다. #14 병합 뒤 이 브랜치에 main을 merge하고 ①을 그 상태로 다시 돌린다.
-- #14 병합 후 CLAUDE.md B절 「수단 없음: HUD와 3D 말풍선 겹침, 판 안 가로 잘림」을 「qa-geometry.mjs로 수행」으로 고쳐야 한다(B절은 고위험이라 별도 작업).
+- CLAUDE.md B절 「수단 없음: HUD와 3D 말풍선 겹침, 판 안 가로 잘림」을 「qa-geometry.mjs로 수행」으로 고쳐야 한다(B절은 고위험이라 별도 작업).
 - 1440 S4 M2 기준 변경 소식 두 줄이 정안 말풍선 일부를 3.2초 덮는다(기존, 이번 범위 밖).
 - 마우스로 누른 말풍선은 포커스가 남아 가까이 보기에서 HUD 위에 남을 수 있다(리뷰 선택 지적).
 
 ## commit
 
-`4abf92e` 수정·검사 추가 → `c724079` 포커스 다시 그리기 → `8b133c9` 전체 시점 흐림 제외·포커스 검사 → 이 보고서
+`4abf92e` 수정·검사 추가 → `c724079` 포커스 다시 그리기 → `8b133c9` 전체 시점 흐림 제외·포커스 검사 → `146a016`·`a3666fa` 보고서 → `4b6accd` main(`dff9f60`, PR #14) merge → 이 보고서
 
 ---
 
