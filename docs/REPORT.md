@@ -1,6 +1,6 @@
 작업: 스크린샷 검토(②)에서 찾은 기존 배치 문제 4건 수정(HUD 위 3D 말풍선·S6 표 잘림·모바일 자료와 한계 잘림·1024 결산 말풍선 잘림) + 브라우저 QA에 DOM 기하 검사 추가
 결과: 검증 대기
-다음 할 일: 메인 — PR CI 결과 기록. 사용자 — 확인 요청 3건(아래 「사용자에게」), 병합은 PR #14 다음 순서 권장("PR #14 병합해" → 이 브랜치에 main merge·① 재실행 → "PR #N 병합해")
+다음 할 일: 사용자 — 앱 Help → Troubleshooting → Review Pinned Git Origins에서 저장소 origin 확인(PR #14가 먼저 병합돼 main(`dff9f60`) merge가 필요한데, `.claude/agents/*`가 바뀌어 앱 merge 도구가 확인을 요구). 그 뒤 메인이 main merge(충돌은 이 보고서만) → 병합된 실제 하네스로 ① 재실행 → push·CI. 확인 요청 3건(아래 「사용자에게」)은 그와 별개로 볼 수 있다
 
 ## 위험도: 저, 새 QA 검사 추가(기존 검사 기준 그대로)와 무대 라벨 배치·CSS 배치 수정. `app/src/engine/**`·데이터·문구(`copy.ts`)·금지어·CI·배포·의존성·외부 호출 변경 없음. S8 「자료와 한계」는 CSS 줄바꿈만 바꾸고 출처·이용조건 글은 그대로
 
@@ -77,7 +77,9 @@ CLAUDE.md v1.2와 `docs/ai-dev-workflow/`는 PR #14(미병합)에만 있다. 사
 
 ## PR CI
 
-(push 후 기록)
+PR #15, 코드 변경 마지막 head `8b133c9`(보고서 커밋 `146a016` 포함) — push 실행 38258029038: repository success · pipeline success · app success(뿌리 기준 빌드 smoke 포함). PR 체크 3개 pass.
+
+main이 PR #14 병합(`dff9f60`, 2026-10-12 13:10)으로 앞서가 PR이 CONFLICTING. `git merge-tree`로 본 충돌은 `docs/REPORT.md` 하나, `app/scripts/browser-qa.mjs`는 자동 병합. main merge 뒤 CI·①을 다시 확인한다.
 
 ## 독립 리뷰
 
