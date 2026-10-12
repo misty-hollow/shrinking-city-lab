@@ -2231,6 +2231,23 @@ input {
   font-weight: 600;
 }
 
+/* <768(모바일 안내 화면에서 여는 자료와 한계): 시트 여백을 줄이고, 출처 열의 긴 낱말(기관명_자료명, 영문 출처)과
+   재현 정보의 해시, 이용조건 문장의 긴 주소도 줄을 바꿔 시트 폭 안에 들어오게 한다. 기준일·분류 열은 그대로 한 덩어리다 */
+@media (max-width: 767px) {
+  .data-sheet {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    padding: 20px 20px 24px;
+    /* 이용조건 문장 안의 긴 주소 등: 넘칠 때만 끊는다 */
+    overflow-wrap: break-word;
+  }
+
+  .data-sheet td:nth-child(2),
+  .data-sheet td.mono {
+    overflow-wrap: anywhere;
+  }
+}
+
 .data-head {
   display: flex;
   justify-content: space-between;
