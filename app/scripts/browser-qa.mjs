@@ -19,9 +19,12 @@
  *   1. cd app && npx vite --port 5199 --strictPort --host 127.0.0.1
  *   2. npm i --no-save playwright-core@1.63.0     (프로젝트 의존성에 넣지 않는다)
  *   3. npm run qa:browser                          (QA_BASE_URL, QA_BROWSER_CHANNEL 환경변수)
- *   결과: qa-shots/*.png, qa-shots/report.json (.gitignore)
+ *   결과: qa-shots/*.png, qa-shots/report.json { meta: 커밋·주소·브라우저·시각, results } (.gitignore)
+ *   종료 코드: FAIL이 하나라도 있으면 1. 예외로 멈춘 묶음은 FAIL「실행 중단」과 fail-<묶음>.png를 남기고 다음 묶음을 돈다.
+ *   화면 크기마다 새 브라우저·새 컨텍스트라 localStorage는 실제 프로필과 섞이지 않는다.
  */
 
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { chromium } from 'playwright-core'
 import { layoutGeometry } from './qa-geometry.mjs'
@@ -35,6 +38,14 @@ const golden = JSON.parse(readFileSync(new URL('../public/data/golden.json', imp
 const boundary = (name) => golden.cases.find((c) => c.name === name && c.threshold_min === 15).x
 
 const results = []
+/** 재현 조건: 같은 커밋·주소·브라우저로 다시 돌리면 같은 순서로 같은 입력을 넣는다(시드·시계 외 무작위 없음) */
+const meta = { startedAt: new Date().toISOString(), base: BASE, channel: CHANNEL, browser: null, playwright: null, commit: null }
+try {
+  meta.playwright = JSON.parse(readFileSync(new URL('../node_modules/playwright-core/package.json', import.meta.url), 'utf-8')).version
+  meta.commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf-8' }).trim()
+} catch {}
+/** 지금 조작 중인 페이지. 예외로 멈추면 그 화면을 남긴다 */
+let current = null
 const pass = (name, detail = '') => results.push({ status: 'PASS', name, detail })
 const fail = (name, detail = '') => results.push({ status: 'FAIL', name, detail })
 const check = (cond, name, detail = '') => (cond ? pass(name, detail) : fail(name, detail))
@@ -105,7 +116,7 @@ async function finaleChecks(page, tag, full, allocs) {
   const tabs = page.getByRole('tab')
   check((await tabs.count()) === 3 && (await tabs.nth(0).getAttribute('aria-selected')) === 'true', `${tag} S6 세계: 미션 탭 셋, 미션 1부터`)
   const wf = await page.locator('.wf-table').innerText()
-  check((await page.locator('.wf-kpis tbody tr').count()) === 6 && (await page.locator('.wf-kpis td.is-goal').count()) === 3, `${tag} S6 세계: 6개 지표 × 세 배분, 목표 칸 셋`)
+  check((await page.locator('.wf-kpis tbody:not(.wf-change) tr').count()) === 6 && (await page.locator('.wf-kpis td.is-goal').count()) === 3, `${tag} S6 세계: 6개 지표 × 세 배분, 목표 칸 셋`)
   check(wf.includes('실제 10일 + 가정 5일 = 15일 기준') && /진료가 닿지 않는 마을은 \d+ · \d+ · \d+곳이에요/.test(wf), `${tag} S6 세계: 15일 분해 · 고정 문장`)
   const worldText = (await page.locator('.wf-top').innerText()) + wf + (await page.locator('.wf-end').innerText())
   const badW = BANNED.filter((w) => worldText.includes(w))
@@ -134,7 +145,7 @@ async function finaleChecks(page, tag, full, allocs) {
   check(board.includes('세 배분 모두 같은 주 15일을 나눴지만') && board.includes('실제 10일 + 가정 5일 = 15일 기준'), `${tag} S6: 같은 15일 · 분해 문장(무대)`)
   check(panel.includes('주 15일 = 실제 10일 + 가정 5일') && panel.includes('지금 실제로 운영하는 주 10일과는 다른 가상 배분'), `${tag} S6: 15일 분해 · 현재 실제와 구분(패널)`)
   check((await page.locator('.panel .badge-REAL_DATA, .panel .badge-DERIVED, .panel .badge-SIMULATION_ASSUMPTION').count()) >= 3, `${tag} S6: 실제 자료·계산값·게임 가정 배지`)
-  check(/진료가 닿지 않는 마을은 \d+ · \d+ · \d+곳이에요/.test(panel) && panel.includes('같은 자원이라도 목표에 따라 좋은 배분이 달라요'), `${tag} S6: 데이터 문장 · 마지막 문장`)
+  check(/진료가 닿지 않는 마을은 \d+ · \d+ · \d+곳이에요/.test(panel) && panel.includes('같은 15일이라도 어느 지표를 끝까지 높이느냐에 따라 배분이 달라져요'), `${tag} S6: 데이터 문장 · 마지막 문장`)
   const goals = await page.locator('.finale-col .finale-fact.is-goal dt').allInnerTexts()
   check(goals.length === 3 && goals[0].includes('평균 진료일') && goals[1].includes('가장 불리한 읍·면') && goals[2].includes('주 3일 이상'), `${tag} S6: 열마다 자기 목표만 표시`, goals.join(' | '))
   const bad = BANNED.filter((w) => (board + panel).includes(w))
@@ -188,7 +199,7 @@ async function missionRound(page, tag, full, m) {
   check(brief.includes(title), `${tag} S3 M${n}: 제목`, brief.slice(0, 80))
   check(brief.includes('실제 10일 + 가정 5일') && brief.includes('가상 정책실험') && brief.includes('게임 가정') && brief.includes('실제 자료'), `${tag} S3 M${n}: 15일 분해·두 배지·가정 설명`)
   check((await page.locator('.center-card .pool-anim').count()) === 0 && (await page.locator('.center-card .pool-cells i.assumed').count()) === 5, `${tag} S3 M${n}: 풀 연출 없이 실선 10 + 점선 5`)
-  check(brief.includes('앞 미션의 배분은 그대로 보관돼요'), `${tag} S3 M${n}: 결과 보관 안내`)
+  check(brief.includes('확정한 배분은 마지막 「세 개의 공주」에서 나란히 다시 봐요'), `${tag} S3 M${n}: 결과 보관 안내`)
   if (full) await shot(page, `${tag}-s3-m${n}-briefing`)
   await page.getByRole('button', { name: '배분 시작' }).click()
   await page.waitForSelector('.mission-card')
@@ -298,7 +309,9 @@ async function noHorizontalOverflow(page, label) {
 
 async function run(width, height, full, reducedMotion = 'no-preference') {
   const browser = await chromium.launch({ channel: CHANNEL, headless: true, args: ['--use-angle=d3d11', '--enable-webgl'] })
+  meta.browser ??= browser.version()
   const page = await browser.newPage({ viewport: { width, height }, reducedMotion })
+  current = page
   const errors = []
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text())
@@ -377,7 +390,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await page.waitForSelector('.marker[data-j="3"] .mk-preview')
   const pv = await page.locator('.marker[data-j="3"] .mk-preview').innerText()
   const pvBig = await page.locator('.marker[data-j="3"] .mk-preview .pv-main b').innerText()
-  check(/^\+[\d,]+명$/.test(pvBig) && pv.includes('계룡에 1일 놓으면') && pv.includes('새로 닿아요') && pv.includes('계룡 주 0일 → 1일'), `${tag} S4: 놓기 전 미리보기(계룡 +1, 점선 판)`, pv.replace(/\n/g, ' '))
+  check(/^\+[\d,]+명$/.test(pvBig) && pv.includes('계룡에 1일 놓으면') && /새로 닿는 마을 \d+곳/.test(pv) && pv.includes('계룡 주 0일 → 1일'), `${tag} S4: 놓기 전 미리보기(계룡 +1, 점선 판)`, pv.replace(/\n/g, ' '))
   check((await page.locator('.marker[data-j="3"].is-preview').count()) === 1, `${tag} S4: 미리보는 말풍선은 판이 뒤집힌다(선택 상태)`)
   await page.locator('.marker[data-j="3"] .mk-bubble').click()
   await settle(page)
@@ -388,7 +401,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await page.waitForSelector('.marker[data-j="3"] .mk-preview')
   const upv = await page.locator('.marker[data-j="3"] .mk-preview').innerText()
   const upvBig = await page.locator('.marker[data-j="3"] .mk-preview .pv-main b').innerText()
-  check(/^−[\d,]+명$/.test(upvBig) && upv.includes('닿지 않게 돼요') && upv.includes('Ctrl Z'), `${tag} S4: 되돌리기 미리보기(−)`, upv.replace(/\n/g, ' '))
+  check(/^−[\d,]+명$/.test(upvBig) && /닿지 않게 되는 마을 \d+곳/.test(upv) && upv.includes('Ctrl Z'), `${tag} S4: 되돌리기 미리보기(−)`, upv.replace(/\n/g, ' '))
   await page.getByRole('button', { name: '되돌리기' }).click()
   await settle(page)
   check(
@@ -526,9 +539,10 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await toSummary(page)
   const wr = await page.locator('.world-result').innerText()
   check(/달성 · 가능한 배분 중 상위 \d+%/.test(wr) && (await page.locator('.wr-row').count()) === 6 && wr.includes('5일이 늘어난 효과도 섞여'), `${tag} S5 세계: 판정 · 6개 지표 · 15일 기준 문장`, wr.slice(0, 120))
-  const lostLine = await page.locator('.wr-lost').innerText()
+  // 결산 두 칸(PR #13): 닿지 않게 된 마을이 있으면 이름 줄(지도의 빨간 표지)과 표지 1~3개, 없으면 둘 다 없다
+  const lostLine = (await page.locator('.wr-change p').allInnerTexts()).find((t) => t.includes('닿지 않게 된 마을')) ?? ''
   const pins = await page.locator('.vpin').count()
-  check(lostLine.includes('닿지 않게 된 마을') ? pins >= 1 && pins <= 3 : pins === 0, `${tag} S5 세계: 잃은 마을은 세계 속 표지(많아야 셋)`, `${lostLine.replace(/\n/g, ' ')} · 표지 ${pins}`)
+  check(lostLine ? lostLine.includes('지도의 빨간 표지') && pins >= 1 && pins <= 3 : pins === 0, `${tag} S5 세계: 잃은 마을은 세계 속 표지(많아야 셋)`, `${lostLine.replace(/\n/g, ' ')} · 표지 ${pins}`)
   await shot(page, `${tag}-s5-world`)
   await layoutGeometry(page, `${tag} S5 세계`, check, { overview: true })
   await openDetails(page)
@@ -603,6 +617,7 @@ async function extras() {
   const browser = await chromium.launch({ channel: CHANNEL, headless: true })
   // <768: 플레이 대신 안내 한 화면(설계안 5-10)
   const m = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  current = m
   await m.goto(BASE)
   await m.waitForSelector('.mobile')
   const mt = await m.locator('.mobile').innerText()
@@ -613,6 +628,7 @@ async function extras() {
   await layoutGeometry(m, '390x844 자료와 한계', check)
   // 소리 끄기는 이 브라우저에 남는다(자동재생 전에는 소리가 나지 않고, 끈 선택은 새로고침 뒤에도 그대로).
   const sp = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+  current = sp
   await sp.goto(BASE)
   await sp.waitForSelector('.center-card h1')
   const t1 = sp.locator('.sound-toggle')
@@ -635,6 +651,7 @@ async function extras() {
   await sp.locator('.sound-toggle').click()
   // 90초 무입력 → 처음으로(전시 모드 기본 켬). 가짜 시계로 앞당긴다.
   const k = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+  current = k
   await k.clock.install()
   await k.goto(BASE.replace('kiosk=0', 'kiosk=1'))
   await k.waitForSelector('.center-card h1')
@@ -647,6 +664,7 @@ async function extras() {
   check((await k.locator('#s0-title').count()) === 1, '1280x800 90초 무입력: 시작 화면으로 복귀')
   // 전시에서 미션을 모두 건너뛰어도 S6은 세 결과(참고 배분)로 채워진다(설계안 3-1, 7-5).
   const sk = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+  current = sk
   const skErrors = []
   sk.on('pageerror', (e) => skErrors.push(String(e)))
   await sk.goto(BASE)
@@ -670,11 +688,23 @@ async function extras() {
   await browser.close()
 }
 
-await run(1440, 900, true)
-await run(1024, 768, false)
-await run(1280, 800, false, 'reduce')
-await extras()
-writeFileSync(new URL('report.json', OUT), JSON.stringify(results, null, 1))
+/** 한 묶음이 예외로 멈춰도 그때까지의 결과와 멈춘 화면(fail-<묶음>.png)을 남기고 다음 묶음으로 간다. 종료 코드는 1 */
+async function stage(name, fn) {
+  try {
+    await fn()
+  } catch (e) {
+    fail(`${name}: 실행 중단`, String(e?.message ?? e).split('\n')[0])
+    await current?.screenshot({ path: new URL(`fail-${name}.png`, OUT).pathname.replace(/^\/([A-Za-z]:)/, '$1') }).catch(() => {})
+    await current?.context().browser()?.close().catch(() => {})
+  }
+}
+
+await stage('1440x900', () => run(1440, 900, true))
+await stage('1024x768', () => run(1024, 768, false))
+await stage('1280x800-reduce', () => run(1280, 800, false, 'reduce'))
+await stage('extras', () => extras())
+meta.finishedAt = new Date().toISOString()
+writeFileSync(new URL('report.json', OUT), JSON.stringify({ meta, results }, null, 1))
 for (const r of results) console.log(`${r.status} ${r.name}${r.detail ? `  — ${r.detail.slice(0, 160)}` : ''}`)
 const fails = results.filter((r) => r.status === 'FAIL').length
 console.log(`\n${results.length - fails} PASS / ${fails} FAIL`)
