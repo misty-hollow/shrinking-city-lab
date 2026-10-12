@@ -1128,7 +1128,8 @@ export class StageController {
     }
     // React가 그린 말풍선·표지: 세계 자리에 붙인다(겹침 판정의 맨 앞 순위).
     // 앞(화면 아래)에 있는 것부터 놓고, 겹치는 뒤쪽 말풍선은 줄기를 늘려 위로 든다(--lift). 들어 올린 높이는 부드럽게 옮긴다.
-    // 머리가 화면 끝에 걸리거나 HUD 판 뒤로 들어간 것은 흐려 숨긴다(is-occluded: 가까이 본 읍·면 둘레, 카메라가 옮겨 가는 동안).
+    // 전체 시점을 벗어나(읍·면 초점·확대·끌기) 머리가 화면 끝에 걸리거나 HUD 판 뒤로 들어간 것은 흐려 숨긴다(is-occluded).
+    // 전체 시점에서는 숨기지 않는다: 시점 맞춤이 머리까지 HUD를 피해 놓고, 그럴 수 없는 화면에서도 주 조작인 말풍선이 사라지지 않게.
     // 키보드로는 그대로 갈 수 있고(Tab 순서 유지), 포커스가 있는 말풍선은 숨기지 않는다.
     if (this.anchorLayer) {
       const items: { el: HTMLElement; x: number; y: number }[] = []
@@ -1164,7 +1165,7 @@ export class StageController {
           if (lift > 110) break
         }
         const outside = rect.x < 0 || rect.y < 0 || rect.x + rect.w > this.width || rect.y + rect.h > this.height
-        const occluded = (outside || hud.some((r) => overlaps(r, rect))) && !it.el.contains(document.activeElement)
+        const occluded = !this.atOverview && (outside || hud.some((r) => overlaps(r, rect))) && !it.el.contains(document.activeElement)
         it.el.classList.toggle('is-occluded', occluded)
         if (occluded) continue
         const prev = Number(it.el.dataset.lift ?? 0)

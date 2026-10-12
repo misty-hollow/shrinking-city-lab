@@ -504,6 +504,15 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await page.waitForTimeout(700) // 카메라가 읍·면으로 다가가는 600ms
   await layoutGeometry(page, `${tag} S4 지표 자세히·지역 카드`, check)
   await shot(page, `${tag}-s4-play`)
+  // HUD 판 뒤에 흐려 둔 말풍선도 키보드로 닿고, 포커스가 오면 다시 보인다(UI_DESIGN_SYSTEM §8.2)
+  const hid = page.locator('.anchor.is-occluded:not([style*="hidden"]) .marker')
+  if (await hid.count()) {
+    const hj = await hid.first().getAttribute('data-j')
+    await row(page, Number(hj)).focus()
+    await page.waitForTimeout(150)
+    const back = await row(page, Number(hj)).evaluate((e) => e === document.activeElement && !e.closest('.anchor').classList.contains('is-occluded'))
+    check(back, `${tag} S4: HUD 뒤에 흐려 둔 말풍선(j=${hj})에 포커스하면 다시 보인다`)
+  } else pass(`${tag} S4: 가까이 보기에서 HUD 뒤에 흐려 둔 말풍선 없음(포커스 검사 생략)`)
   await page.locator('.region-card').getByRole('button', { name: '닫기', exact: true }).click()
   await page.locator('.hud-links').getByRole('button', { name: '지표 자세히 닫기' }).click()
 
