@@ -1,6 +1,6 @@
 작업: AI 개발 운영 체계 v1.0 → v1.2 갱신(공통 규칙 사본·CLAUDE.md 프로젝트 값·CI 트리거·merge commit) + 기존 브라우저 QA 하네스 재실행과 재현용 최소 수정
-결과: 결정 필요
-다음 할 일: 사용자 — 독립 리뷰 명령 입력(고위험): `/codex:adversarial-review --wait --base main --cwd C:/Users/sdsdo/Documents/shrinking-city-lab-v12 목표: AI 개발 운영 체계 v1.0을 v1.2로 갱신하고 기존 브라우저 QA를 실행 검증에 연결. 게임 기능·UI·계산 의미·데이터 불변. 기준: docs/ai-dev-workflow 세 사본이 원본 6eee919과 바이트 동일, CLAUDE.md는 첫 줄 사본 참조와 프로젝트 값만 담고 사본과 충돌하지 않으며 제품 설계·UI·데이터 이용조건·접근성·gh-pages 배포·데이터 재생성 승인 규칙을 잃지 않음, CI 세 job과 검사·이름 유지하고 트리거만 PR과 main push, 병합 방식 merge commit, browser-qa.mjs 수정이 기존 검사 기준을 약화하지 않음(기대값 6곳은 PR 11·13 승인 문구 추종, 나머지는 실패 기록 보존). 검증 공백: gitleaks와 뿌리 기준 빌드 smoke는 CI에서만, 브라우저 QA는 CI에 없음, HUD 겹침·판 안 잘림 자동 검사 수단 없음. docs/REPORT.md와 docs/DECISIONS.md D-003~D-005·T-001~T-003을 먼저 읽을 것`
+결과: 완료
+다음 할 일: 사용자 — 병합 여부 결정("PR #14 병합해"). 확인 요청 0건(화면 변경 없음). 별도로 GitHub 설정에서 head 브랜치 자동 삭제 켜기(선택: 룰셋 허용 병합 방식을 merge만)
 
 ## 위험도: 고, `CLAUDE.md` B·C·E·F·H절, `.github/workflows/ci.yml`(트리거), `.claude/agents/**`, `docs/ai-dev-workflow/**`가 바뀌고 검증·승인·병합 기준이 바뀐다(PROJECT_TEMPLATE C절 "운영 규칙 변경 중 검증·승인·권한 기준이 바뀌는 것")
 
@@ -76,7 +76,6 @@
 | 브라우저 QA(①)가 CI에서 돌지 않는다 | 수단 없음(프로젝트 수준, 이번 변경의 필요 검증은 로컬로 수행) | PR 필수 체크만으로는 플레이 경로가 확인되지 않는다. 메인이 로컬에서 돌려야 한다 | CLAUDE.md B절 수단 확보 계획(CI 실행 = 의존성·CI 변경, 고위험 별도 작업) |
 | HUD와 3D 말풍선 겹침, 판 안 가로 잘림, 기준 스크린샷 비교 | 수단 없음(①) | 위 ② 1·2·3을 ①이 놓쳤다. 지금은 ②로만 잡힌다 | 하네스에 DOM 기하 검사 추가(새 검사, 저위험) — 별도 작업 제안 |
 | gitleaks, 뿌리 기준 빌드 smoke | 로컬 수단 없음 → CI에서 수행 | PR CI 결과로 판정 | 아래 PR CI |
-| 독립 리뷰 도구가 실제로 focus 문장·`--cwd`를 받는지 | 소스 확인만, 실행 전 | 리뷰가 목표·기준 없이 돌 수 있다 | 리뷰 출력 첫머리에서 대상 브랜치·파일 목록 확인 |
 | Claude Code 권한 규칙이 새 세션에서 로드되는지 | 선택 미수행 | `.claude/settings.json`은 바꾸지 않았다(v1.2 8절 4 요구 — main push·파괴적 명령 deny, 병합 ask, 우회 deny — 는 기존 파일에 있다) | 다음 새 세션에서 확인 |
 
 ## 세 수준 확인 (2026-10-12 조회)
@@ -101,7 +100,11 @@
 
 ## 독립 리뷰
 
-리뷰 전(사용자 명령 대기). 원문은 PR 코멘트에 둔다.
+Codex adversarial review(사용자 입력, 2026-10-12, 대상 `9de662b` main 대비 branch diff): **approve, No material findings**. 원문은 [PR #14 코멘트](https://github.com/misty-hollow/shrinking-city-lab/pull/14#issuecomment-6124902579).
+
+- 필수 지적 없음. Next steps 1건(사본 바이트 대조)을 수행: 원본 저장소를 새로 받아 `6eee919`의 세 blob과 이 브랜치 사본을 `git rev-parse`·`cmp`로 대조 — 모두 동일(원본 main도 `6eee919`).
+- 도구 동작 확인: `--cwd`로 worktree의 branch diff를 대상으로 잡았고(출력 "Target: branch diff against main"), focus 문장대로 REPORT·DECISIONS를 먼저 읽었다(진행 로그). 이 항목은 검증 공백에서 뺐다.
+- 리뷰 뒤 변경은 이 보고서뿐이라(검증·권한·승인 기준 불변) 재검토하지 않는다(WORKFLOW 3절 7).
 
 ## 사용자 확인 기록
 
@@ -116,4 +119,4 @@
 
 ## commit
 
-`5061bd0`(전체 변경, 리뷰 전 commit — 본문에 목표·기준·검증 공백), 이후 보고서 갱신 커밋.
+`5061bd0`(전체 변경, 리뷰 전 commit — 본문에 목표·기준·검증 공백), `9de662b`(PR CI 기록, 리뷰 대상 head), 이후 리뷰 결과 기록 커밋.
