@@ -84,6 +84,15 @@ body {
   will-change: transform;
 }
 
+/* 머리가 HUD 판 뒤나 화면 끝에 걸린 말풍선·표지: 흐려 숨긴다(포커스는 받는다 — 포커스가 오면 무대가 다시 보인다) */
+.anchor.is-occluded {
+  opacity: 0;
+}
+
+.anchor.is-occluded .marker {
+  pointer-events: none;
+}
+
 /* 미리보는·결과를 띄운 말풍선은 이웃 말풍선 위로(판이 다른 말풍선에 가리지 않게) */
 .anchor:has(.marker-pop) {
   z-index: 4;
@@ -408,12 +417,13 @@ body {
   color: var(--text-2);
 }
 
-/* 빛이 다 닿으면 말풍선 위에 뜨는 결과(§8.3): 실선 판, 라벨과 8px 띄워 앵커. 1.9초 뒤 사라진다(쌓이지 않음) */
+/* 빛이 다 닿으면 말풍선 위에 뜨는 결과(§8.3): 실선 판, 라벨과 8px 띄워 앵커. 1.9초 뒤 사라진다(쌓이지 않음).
+   HUD 판·화면 끝에 걸리면 무대가 옆으로 비켜 놓는다(--pop-dx, 줄기는 말풍선을 가리킨 채) */
 .marker-pop {
   position: absolute;
   left: 50%;
   bottom: calc(100% + 8px);
-  translate: -50% 0;
+  translate: calc(-50% + var(--pop-dx, 0px)) 0;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -433,6 +443,7 @@ body {
   position: absolute;
   left: 50%;
   top: 100%;
+  translate: calc(-1 * var(--pop-dx, 0px)) 0;
   width: 1px;
   height: 8px;
   background: var(--text-3);
@@ -1970,6 +1981,8 @@ body {
   top: 156px;
   z-index: 11;
   width: min(456px, 34vw);
+  /* 표가 판보다 넓으면 판을 표 폭까지 넓힌다(모든 폭). 무대는 이 판(data-occlude)을 피해 섬을 놓으므로, 판이 좁으면 표가 판 안에서 가로로 잘리고 말풍선이 표 위에 앉는다 */
+  min-width: min-content;
   display: flex;
   flex-direction: column;
   /* 표 아래 두 행(나아진·불리해진 주민)이 더해져 길어졌다: 낮은 화면(1280×720 등)에서는 판 안에서 스크롤한다 */
@@ -2120,6 +2133,12 @@ body {
   bottom: auto;
 }
 
+/* 지표 자세히(오른쪽 380px)가 열리면 소식 한 줄을 왼쪽 위 HUD와 시트 사이 빈자리의 가운데에 둔다(1024에서 시트 밑으로 잘리지 않게).
+   넓은 화면은 가운데 그대로. HUD 오른쪽 끝: 40 + 336(≥1280), 24 + 300(≤1279), 24 + 250(≤1099) */
+.app.has-details .toasts {
+  left: min(50%, calc((100% - 380px + 376px) / 2));
+}
+
 /* --- 좁은 화면(§12.4) ------------------------------------------------------------------- */
 
 @media (max-width: 1279px) {
@@ -2127,6 +2146,10 @@ body {
     left: 24px;
     top: 24px;
     width: 300px;
+  }
+
+  .app.has-details .toasts {
+    left: min(50%, calc((100% - 380px + 324px) / 2));
   }
 
   .hud-left .mission-values .value {
@@ -2178,8 +2201,6 @@ body {
     top: 146px;
     max-height: calc(100vh - 146px - 24px);
     width: min(420px, 38vw);
-    /* 표가 판보다 넓으면 판을 표 폭까지 넓힌다. 무대는 이 판(data-occlude)을 피해 섬을 놓으므로, 판이 좁으면 말풍선이 표 위에 앉는다 */
-    min-width: min-content;
   }
 
   .wf-kpis {
@@ -2207,6 +2228,10 @@ body {
 @media (max-width: 1099px) {
   .hud-left {
     width: 250px;
+  }
+
+  .app.has-details .toasts {
+    left: min(50%, calc((100% - 380px + 274px) / 2));
   }
 
   .kpi-list .kpi {

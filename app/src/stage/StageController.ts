@@ -638,16 +638,34 @@ export class StageController {
    * 원근 때문에 가까운 쪽이 커 보이는 것까지 맞춘다.
    */
   private fitCamera(): void {
-    const a = this.fitFor(EL_DEFAULT)
+    // 말풍선·표지 머리까지 빈 곳에 들어오게 맞춘다. 그럴 수 없으면(판이 너무 넓을 때) 섬 윤곽만 맞춘다.
+    const heads = this.anchorHeads()
+    const a = this.fitFor(EL_DEFAULT, heads) ?? this.fitFor(EL_DEFAULT, [])
     if (a) {
       this.fitDistance = a.dist
       this.fitTarget.copy(a.target)
     }
-    const b = this.fitFor(EL_TOP)
+    const b = this.fitFor(EL_TOP, heads) ?? this.fitFor(EL_TOP, [])
     if (b) this.fitTop = b
   }
 
-  private fitFor(elev: number): { dist: number; target: THREE.Vector3 } | null {
+  /** 세계에 붙은 말풍선·잃은 마을 표지의 자리와 머리 크기(줄기를 들어 올리기 전). 화면 끝이나 HUD 판에 머리가 걸치지 않게 맞출 때 쓴다. */
+  private anchorHeads(): { p: THREE.Vector3; hw: number; h: number }[] {
+    const out: { p: THREE.Vector3; hw: number; h: number }[] = []
+    if (!this.anchorLayer) return out
+    for (const el of this.anchorLayer.querySelectorAll<HTMLElement>('[data-anchor]')) {
+      const [kind, raw] = (el.dataset.anchor ?? '').split(':')
+      const idx = Number(raw)
+      const p = kind === 'j' ? this.clinics.tops[idx] : kind === 'v' ? this.villageTops[idx] : null
+      const body = el.querySelector<HTMLElement>('.mk-head, .vpin > span')
+      if (!p || !body || body.offsetWidth === 0) continue
+      // 머리 아래 꼬리·받침 자리(updateLabels의 h0 + 10과 같다)
+      out.push({ p, hw: body.offsetWidth / 2, h: body.offsetHeight + 10 })
+    }
+    return out
+  }
+
+  private fitFor(elev: number, heads: { p: THREE.Vector3; hw: number; h: number }[]): { dist: number; target: THREE.Vector3 } | null {
     const { left, right, top, bottom } = this.insets
     const m = 12
     const x0 = left + m
@@ -688,6 +706,16 @@ export class StageController {
     const fits = (target: THREE.Vector3, dist: number) => {
       project(target, dist)
       for (let k = 0; k < n; k++) if (sx[k] < x0 || sx[k] > x1 || sy[k] < y0 || sy[k] > y1) return false
+      for (const a of heads) {
+        v.copy(a.p).project(cam)
+        const ax = (v.x * 0.5 + 0.5) * this.width
+        const ay = (-v.y * 0.5 + 0.5) * this.height
+        const hx0 = ax - a.hw
+        const hx1 = ax + a.hw
+        const hy0 = ay - a.h
+        if (hx0 < x0 || hx1 > x1 || hy0 < y0 || ay > y1) return false
+        for (const r of rects) if (hx0 < r.x1 && hx1 > r.x0 && hy0 < r.y1 && ay > r.y0) return false
+      }
       for (const r of rects) {
         for (let k = 0; k < n; k += 2) if (sx[k] > r.x0 && sx[k] < r.x1 && sy[k] > r.y0 && sy[k] < r.y1) return false
         for (const [px, py] of [
@@ -1006,6 +1034,31 @@ export class StageController {
     return [Number(el.dataset.mw), Number(el.dataset.mh)]
   }
 
+  /** 결과 판을 HUD 판·화면 끝과 겹치지 않는 가장 가까운 가로 자리로 옮긴다(--pop-dx). 줄기가 판 안에 남는 만큼만 옮긴다. */
+  private placePop(pop: HTMLElement, c: DOMRect, hud: Rect[]): void {
+    const r = pop.getBoundingClientRect()
+    const cur = Number(pop.dataset.dx ?? 0)
+    const base = { x: r.left - c.left - cur, y: r.top - c.top, w: r.width, h: r.height }
+    const gap = 4
+    const free = (dx: number) => {
+      const at = { ...base, x: base.x + dx }
+      return at.x >= gap && at.y >= 0 && at.x + at.w <= this.width - gap && !hud.some((h) => overlaps(h, at))
+    }
+    const cands = [0, gap - base.x, this.width - gap - (base.x + base.w)]
+    for (const h of hud) cands.push(h.x + h.w + gap - base.x, h.x - gap - (base.x + base.w))
+    const max = base.w / 2 - 12
+    const dx = cands
+      .filter((d) => Math.abs(d) <= max)
+      .sort((a, b) => Math.abs(a) - Math.abs(b))
+      .find(free)
+    const next = dx ?? 0
+    if (next !== cur) {
+      pop.dataset.dx = String(next)
+      pop.style.setProperty('--pop-dx', `${next.toFixed(1)}px`)
+    }
+    pop.style.visibility = dx === undefined ? 'hidden' : ''
+  }
+
   private updateTimeLabels(view: StageView, hv: number | null, fj: number | null): void {
     const key = `${hv}|${fj}|${view.T}|${view.mode}`
     if (key === this.timeKey) return
@@ -1040,7 +1093,10 @@ export class StageController {
     const sc = this.data.scenario
 
     const zoom = this.zoom()
-    const placed: Rect[] = []
+    // HUD 판(data-occlude)은 배경 없이 씬 위에 쓰는 글이다. 세계 라벨이 그 위에 그려지면 글자를 가리므로, 판 자리는 처음부터 차지된 자리로 본다.
+    const c = this.renderer.domElement.getBoundingClientRect()
+    const hud: Rect[] = this.occluders.map((r) => ({ x: r.x - c.left, y: r.y - c.top, w: r.w, h: r.h }))
+    const placed: Rect[] = [...hud]
     const claim = (el: HTMLElement, p: THREE.Vector3, anchor: 'bottom' | 'center', visible: boolean, cull: boolean): boolean => {
       const s = this.project(p)
       if (!visible || !s.ok) {
@@ -1049,7 +1105,8 @@ export class StageController {
       }
       const [w, h] = this.measure(el)
       const rect = { x: s.x - w / 2, y: anchor === 'bottom' ? s.y - h : s.y - h / 2, w, h }
-      if (cull && placed.some((r) => overlaps(r, rect))) {
+      const outside = rect.x < 0 || rect.y < 0 || rect.x + rect.w > this.width || rect.y + rect.h > this.height
+      if (outside || (cull && placed.some((r) => overlaps(r, rect)))) {
         el.style.visibility = 'hidden'
         return false
       }
@@ -1060,6 +1117,8 @@ export class StageController {
     }
     // React가 그린 말풍선·표지: 세계 자리에 붙인다(겹침 판정의 맨 앞 순위).
     // 앞(화면 아래)에 있는 것부터 놓고, 겹치는 뒤쪽 말풍선은 줄기를 늘려 위로 든다(--lift). 들어 올린 높이는 부드럽게 옮긴다.
+    // 머리가 화면 끝에 걸리거나 HUD 판 뒤로 들어간 것은 흐려 숨긴다(is-occluded: 가까이 본 읍·면 둘레, 카메라가 옮겨 가는 동안).
+    // 키보드로는 그대로 갈 수 있고(Tab 순서 유지), 포커스가 있는 말풍선은 숨기지 않는다.
     if (this.anchorLayer) {
       const items: { el: HTMLElement; x: number; y: number }[] = []
       for (const el of this.anchorLayer.querySelectorAll<HTMLElement>('[data-anchor]')) {
@@ -1092,6 +1151,10 @@ export class StageController {
           rect = { ...rect, y: it.y - h - lift }
           if (lift > 110) break
         }
+        const outside = rect.x < 0 || rect.y < 0 || rect.x + rect.w > this.width || rect.y + rect.h > this.height
+        const occluded = (outside || hud.some((r) => overlaps(r, rect))) && !it.el.contains(document.activeElement)
+        it.el.classList.toggle('is-occluded', occluded)
+        if (occluded) continue
         const prev = Number(it.el.dataset.lift ?? 0)
         const next = Math.abs(lift - prev) < 0.5 || this.view?.reducedMotion ? lift : prev + (lift - prev) * 0.35
         if (next !== lift) this.dirty = true
@@ -1101,10 +1164,12 @@ export class StageController {
         }
         bodies.push(rect)
         placed.push(rect)
+        // 결과 판(말풍선 위)이 HUD 판·화면 끝에 걸리면 옆으로 비켜 놓는다(줄기는 말풍선을 가리킨 채). 비킬 자리가 없으면 그 프레임에 숨긴다.
+        for (const pop of it.el.querySelectorAll<HTMLElement>('.marker-pop')) this.placePop(pop, c, hud)
         // 미리보기 숫자·떠오르는 숫자 자리도 라벨이 피한다
         for (const extra of it.el.querySelectorAll<HTMLElement>('.mk-preview, .marker-pop')) {
+          if (extra.style.visibility === 'hidden') continue
           const r = extra.getBoundingClientRect()
-          const c = this.renderer.domElement.getBoundingClientRect()
           placed.push({ x: r.left - c.left, y: r.top - c.top, w: r.width, h: r.height })
         }
       }

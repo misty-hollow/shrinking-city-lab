@@ -5,6 +5,7 @@
  *   → 미션 2(S3·S4·S5, 목표 경계 미달/달성, 10·20분에서도 15분 판정, 다시 배분) → 미션 3(같은 검사)
  *   → S6 세 개의 공주(세 결과·15일 분해·크게 보기·돌아오기), 건너뛰기만 한 판(참고 배분 칩), 콘솔 오류,
  *   KPI가 조작마다 바뀌는지, 풀 제한(0~5·총량), 확정 버튼 활성 조건, 1024·1440 폭 레이아웃 넘침.
+ *   DOM 기하(qa-geometry.mjs): HUD 판과 세계 라벨 겹침, 화면 가장자리에서 잘린 세계 라벨, 판 안 가로 잘림.
  *   v0.4(설계안 6-16): 지표가 빛을 따라 오르는지(조작 직후엔 이전 값, 빛이 다 닿으면 새 값), 라이브 문장은 즉시,
  *   불씨·소식 한 줄, 도크 서→동 순서, 기준일 칩 상시 표시, 소리 끄기(버튼·저장), 무대 성능 창(개발 서버에서만).
  *   소리(개발 서버에서만): 첫 입력 전 무음, 오프라인 렌더로 최고 레벨 상한·빨리 누르기·앞 조작의 남은 음 거두기, 끈 채 시작하면 무예약.
@@ -23,6 +24,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { chromium } from 'playwright-core'
+import { layoutGeometry } from './qa-geometry.mjs'
 
 const BASE = process.env.QA_BASE_URL ?? 'http://127.0.0.1:5199/?kiosk=0'
 const CHANNEL = process.env.QA_BROWSER_CHANNEL ?? 'msedge'
@@ -81,6 +83,7 @@ async function toSummary(page) {
   const skip = page.locator('.appreciate-skip')
   if (await skip.count()) await skip.click()
   await page.waitForSelector('.world-result')
+  await page.waitForTimeout(700) // 카메라가 결과 시점으로 옮겨 가는 600ms(스크린샷·기하 검사는 멈춘 화면에서)
 }
 
 async function openDetails(page) {
@@ -290,6 +293,7 @@ async function noHorizontalOverflow(page, label) {
     return { out: out.slice(0, 5), pscroll }
   })
   check(o.out.length === 0 && o.pscroll <= 1, `${label}: 가로 넘침 없음`, JSON.stringify(o))
+  await layoutGeometry(page, label, check, { overview: true })
 }
 
 async function run(width, height, full, reducedMotion = 'no-preference') {
@@ -398,6 +402,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   const vis = await page.locator('.marker').evaluateAll((els) => els.filter((e) => e.closest('.anchor')?.style.visibility !== 'hidden').length)
   check((await page.getByRole('button', { name: '비스듬히 보기' }).getAttribute('aria-pressed')) === 'true' && vis === 10, `${tag} S4: 위에서 보기(말풍선 10개가 그대로)`, String(vis))
   if (full) await shot(page, `${tag}-s4-top`)
+  await layoutGeometry(page, `${tag} S4 위에서 보기`, check, { overview: true })
   await page.getByRole('button', { name: '비스듬히 보기' }).click()
   await page.waitForTimeout(700)
   const kBefore = await kpiText(page)
@@ -496,6 +501,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await page.locator('.emd-row').first().click()
   await page.waitForSelector('.region-card')
   check((await page.locator('.region-card').innerText()).includes('65세 이상'), `${tag} S4: 지역 카드`)
+  await page.waitForTimeout(700) // 카메라가 읍·면으로 다가가는 600ms
+  await layoutGeometry(page, `${tag} S4 지표 자세히·지역 카드`, check)
   await shot(page, `${tag}-s4-play`)
   await page.locator('.region-card').getByRole('button', { name: '닫기', exact: true }).click()
   await page.locator('.hud-links').getByRole('button', { name: '지표 자세히 닫기' }).click()
@@ -514,6 +521,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   const pins = await page.locator('.vpin').count()
   check(lostLine.includes('닿지 않게 된 마을') ? pins >= 1 && pins <= 3 : pins === 0, `${tag} S5 세계: 잃은 마을은 세계 속 표지(많아야 셋)`, `${lostLine.replace(/\n/g, ' ')} · 표지 ${pins}`)
   await shot(page, `${tag}-s5-world`)
+  await layoutGeometry(page, `${tag} S5 세계`, check, { overview: true })
   await openDetails(page)
   const deb = await page.locator('.panel').innerText()
   check(deb.includes('5일이 늘어난 효과도 섞여'), `${tag} S5: 15일 기준·5일 효과 혼합 문장`)
@@ -533,6 +541,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   check(s8.includes('2026-08-31') && s8.includes('2026-04-13') && s8.includes('2026-09-10'), `${tag} S8: 세 기준일(manifest)`)
   check((s8.match(/\n/g) ?? []).length > 20 && s8.includes('미션의 진료일 15일 중 5일은'), `${tag} S8: 한계 9문장`)
   if (full) await shot(page, `${tag}-s8-data`)
+  await layoutGeometry(page, `${tag} S8`, check)
   await page.keyboard.press('Escape')
   check((await page.locator('#s8-title').count()) === 0 && (await page.locator('.verdict').count()) === 1, `${tag} S8: 닫아도 상태 유지`)
 
@@ -592,6 +601,7 @@ async function extras() {
   await m.getByRole('button', { name: '자료와 한계' }).click()
   check((await m.locator('#s8-title').count()) === 1, '390x844 모바일에서도 자료와 한계')
   await shot(m, '390x844-mobile')
+  await layoutGeometry(m, '390x844 자료와 한계', check)
   // 소리 끄기는 이 브라우저에 남는다(자동재생 전에는 소리가 나지 않고, 끈 선택은 새로고침 뒤에도 그대로).
   const sp = await browser.newPage({ viewport: { width: 1280, height: 800 } })
   await sp.goto(BASE)
