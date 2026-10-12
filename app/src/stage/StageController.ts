@@ -452,13 +452,22 @@ export class StageController {
   /** React가 그린 말풍선·표지 층. 자식이 바뀌면 다음 프레임에 자리를 다시 맞춘다. */
   setAnchors(el: HTMLElement | null): void {
     this.anchorObserver?.disconnect()
+    this.anchorLayer?.removeEventListener('focusin', this.onAnchorFocus)
+    this.anchorLayer?.removeEventListener('focusout', this.onAnchorFocus)
     this.anchorLayer = el
     if (el) {
       this.anchorObserver = new MutationObserver(() => {
         this.dirty = true
       })
       this.anchorObserver.observe(el, { childList: true, subtree: true })
+      // HUD 판 뒤에 흐려 둔 말풍선에 포커스가 오고 가면 다음 프레임에 다시 보이거나 숨긴다
+      el.addEventListener('focusin', this.onAnchorFocus)
+      el.addEventListener('focusout', this.onAnchorFocus)
     }
+    this.dirty = true
+  }
+
+  private readonly onAnchorFocus = (): void => {
     this.dirty = true
   }
 
@@ -528,6 +537,8 @@ export class StageController {
     el.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.controls.dispose()
     this.anchorObserver?.disconnect()
+    this.anchorLayer?.removeEventListener('focusin', this.onAnchorFocus)
+    this.anchorLayer?.removeEventListener('focusout', this.onAnchorFocus)
     this.scene.traverse((o) => {
       const m = o as THREE.Mesh
       m.geometry?.dispose()
@@ -1129,6 +1140,7 @@ export class StageController {
         const s = this.project(p)
         if (!s.ok) {
           el.style.visibility = 'hidden'
+          el.classList.remove('is-occluded')
           continue
         }
         el.style.visibility = ''
