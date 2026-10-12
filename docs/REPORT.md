@@ -1,6 +1,6 @@
 작업: 스크린샷 검토(②)에서 찾은 기존 배치 문제 4건 수정(HUD 위 3D 말풍선·S6 표 잘림·모바일 자료와 한계 잘림·1024 결산 말풍선 잘림) + 브라우저 QA에 DOM 기하 검사 추가
-결과: 검증 대기
-다음 할 일: 메인 — main merge(`4b6accd`) 뒤 PR CI 결과 기록. 사용자 — 확인 요청 3건(아래 「사용자에게」), 병합 여부 결정("PR #15 병합해")
+결과: 완료
+다음 할 일: 사용자 — 확인 요청 3건(아래 「사용자에게」: 가까이 본 상태의 말풍선 흐림 판단 1건 + 병행 확인 2건), 그 뒤 병합 여부 결정("PR #15 병합해"). 정식 사이트 배포는 별도 승인
 
 ## 위험도: 저, 새 QA 검사 추가(기존 검사 기준 그대로)와 무대 라벨 배치·CSS 배치 수정. `app/src/engine/**`·데이터·문구(`copy.ts`)·금지어·CI·배포·의존성·외부 호출 변경 없음. S8 「자료와 한계」는 CSS 줄바꿈만 바꾸고 출처·이용조건 글은 그대로
 
@@ -83,7 +83,8 @@ merge 전에 본 것(1440 기준 10장 + 1024·1280·390): `1440x900-s0-start`·
 ## PR CI
 
 - main merge 전: head `146a016`(코드 `8b133c9`) push 실행 38258029038 — repository·pipeline·app success.
-- main merge 뒤: (push 후 기록)
+- main merge 뒤: head `2f724cb`(코드 = `4b6accd`) `pull_request` 실행 38262398610 — repository success · pipeline success · app success(뿌리 기준 빌드 smoke 포함). PR 상태 MERGEABLE · CLEAN(2026-10-12 조회).
+- CI 실행 예산: 이 PR 3/6(이 보고서 push 포함). 이 뒤 보고서만 고친 push의 CI는 확인만 하고 다시 쓰지 않는다.
 
 ## 독립 리뷰
 
