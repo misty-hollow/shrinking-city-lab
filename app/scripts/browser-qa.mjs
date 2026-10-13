@@ -623,6 +623,8 @@ async function extras() {
   const mt = await m.locator('.mobile').innerText()
   check(mt.includes('데스크톱 화면에서 플레이') && (await m.locator('canvas').count()) === 0, '390x844 모바일 안내 화면(3D 없음)')
   await m.getByRole('button', { name: '자료와 한계' }).click()
+  // 첫 방문(빈 캐시)에서는 시트가 클릭 다음 프레임보다 늦게 열릴 수 있다(2026-10-13 정식 사이트 1회차). 열릴 때까지 기다린 뒤 같은 기준으로 센다
+  await m.waitForSelector('#s8-title', { timeout: 5000 }).catch(() => {})
   check((await m.locator('#s8-title').count()) === 1, '390x844 모바일에서도 자료와 한계')
   await shot(m, '390x844-mobile')
   await layoutGeometry(m, '390x844 자료와 한계', check)
