@@ -68,7 +68,7 @@ PR #19 병합(main `17a5084`)으로 PR이 CONFLICTING이 되어 앱 동기화 �
 ## PR CI
 
 - merge 전: head `91339c2` 실행 38393338736 success.
-- merge 뒤: (push 후 기록)
+- merge 뒤: head `803b958`(코드 = `ef0cca3`) `pull_request` 실행 38397184340 — repository · pipeline · app success(뿌리 기준 빌드 smoke 포함). MERGEABLE · CLEAN. 이 뒤 보고서만 고친 push의 CI는 확인만 한다.
 
 ## 독립 리뷰
 
