@@ -1,6 +1,6 @@
 # Production 운영 (geoleobom.kr)
 
-기준일: 2026-10-13(최초 2026-09-29). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
+기준일: 2026-10-13(최초 2026-09-29, 같은 날 두 번째 릴리스). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
 공개 전 준비 기록은 `RELEASE_READINESS.md`에 있습니다(그 6절의 VPS 배포는 전환 기간에만 썼습니다).
 
 ## 1. 구조
@@ -62,19 +62,20 @@ git revert --no-edit HEAD && git push origin HEAD:gh-pages
 
 | 항목 | 값 |
 |---|---|
-| 앱 커밋(main) | `9672e23d6fcc9d77ccd6bf464170c9bacbb7ee4f` (main CI success, run 38264362490) — PR #15(HUD 위 3D 말풍선·S6 표·모바일 자료와 한계·1024 소식 잘림 수정, 브라우저 QA DOM 기하 검사) + PR #16(사용자 화면 확인 기록). 저위험(독립 리뷰 대상 아님), 사용자 화면 확인 3건 완료(2026-10-12) |
-| `gh-pages` 커밋 | `fc0cd22` (2026-10-13 19:46 KST, `e388749` 위 fast-forward) |
-| 직전 릴리스(되돌리기 대상) | 앱 `2ee1431` = `gh-pages` `e388749`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
-| 주 자산 | `assets/index-BH6zpSAS.js` |
-| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일). `2ee1431` 대비 `app/src/engine`·`app/public/data`·`pipeline` 변경 없음 |
-| 공개 | 2026-10-13 Pages build `built` 19:48 KST. 도메인·HTTPS 설정 변경 없음(cname `geoleobom.kr`, Enforce HTTPS 켬) |
-| 공개 뒤 확인 | `e388749` 대비 바뀐 파일 4개(`index.html`·`404.html`·주 JS·CSS). 자료·라이선스·`CNAME`(줄바꿈 없음)·`.nojekyll` 바이트 동일. 커밋된 파일 = 빌드(`dist` 195개 SHA256), `404.html` = `index.html`. `build_release.sh`의 테스트 171개 통과. smoke 실패 0(새 주 자산·자료 6개 = 잠금·고지 3개), 깊은 주소 = 앱 HTML(상태 404). 실제 사이트 브라우저 QA(`npm run qa:browser`, `QA_BASE_URL=https://geoleobom.kr/?kiosk=0`): 1회차 613 PASS / 1 FAIL(390 「자료와 한계」 열림을 클릭 직후 기다리지 않고 세는 검사 — 같은 실행 스크린샷과 그 뒤 기하 검사에서는 열려 있었고, 임시 탐침 2회 모두 클릭 직후 열림·약 100ms), 2회차 **614 PASS / 0 FAIL**(개발 서버 전용 소리·GPU 검사는 운영 빌드에 없어 빠짐). S0→S6 한 판, HUD와 말풍선 겹침 0·흐린 말풍선 포커스 복귀, S6 표 판 안 잘림 0, 390 자료와 한계 잘림 0, 콘솔 오류 0 |
+| 앱 커밋(main) | `c9b2cda3d350effbfcc523e4c5d4e9dcfb1d141a` (main CI success, run 38403626189) — PR #18(기준 변경 소식이 말풍선·결과 판을 가리지 않게 비켜 섬, ≤1099 두 줄, 모바일 자료와 한계 QA 대기) + PR #19·#20(CLAUDE.md B절, Codex 독립 리뷰 approve) + PR #21(사용자 확인 기록). PR #18 저위험, 사용자 화면 확인 2건 완료(2026-10-13) |
+| `gh-pages` 커밋 | `b15defb` (2026-10-13 22:26 KST, `fc0cd22` 위 fast-forward) |
+| 직전 릴리스(되돌리기 대상) | 앱 `9672e23` = `gh-pages` `fc0cd22`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
+| 주 자산 | `assets/index-BcdBPrh8.js` |
+| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일). `9672e23` 대비 `app/src/engine`·`app/public/data`·`pipeline` 변경 없음 |
+| 공개 | 2026-10-13 Pages build `built` 22:27 KST. 도메인·HTTPS 설정 변경 없음(cname `geoleobom.kr`, Enforce HTTPS 켬) |
+| 공개 뒤 확인 | `fc0cd22` 대비 바뀐 파일 4개(`index.html`·`404.html`·주 JS·CSS). 자료·라이선스·`CNAME`(줄바꿈 없음)·`.nojekyll` 바이트 동일. 커밋된 파일 = 빌드(`dist` 195개 SHA256), `404.html` = `index.html`. `build_release.sh`의 테스트 177개 통과. smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404). 실제 사이트 브라우저 QA(`QA_BASE_URL=https://geoleobom.kr/?kiosk=0`) **654 PASS / 0 FAIL**(1회, 개발 서버 전용 소리·GPU 검사는 빠짐): 소식↔말풍선 겹침 0(37곳), 기준 변경 직후 소식 표시, 흐린 말풍선 포커스 복귀, 390 자료와 한계, S6 표, 콘솔 오류 0. 1440 S4 M2·1024 지표 자세히 스크린샷이 검증 화면과 같음 |
 
 이전 릴리스 기록:
 
 | 날짜 | 앱 커밋 | `gh-pages` | 메모 |
 |---|---|---|---|
-| 2026-10-13 | `9672e23` | `fc0cd22` | 위 표 |
+| 2026-10-13 | `c9b2cda` | `b15defb` | 위 표 |
+| 2026-10-13 | `9672e23` | `fc0cd22` | PR #15·#16(HUD 위 3D 말풍선·S6 표·모바일 자료와 한계 잘림 수정). 주 자산 `index-BH6zpSAS.js`, smoke 실패 0, 실제 사이트 QA 1회차 613/1(390 자료와 한계 검사가 기다리지 않음 — PR #18에서 고침), 2회차 614/0 |
 | 2026-10-10 | `2ee1431` | `e388749` | PR #12·#13. 주 자산 `index-n64CaXCs.js`, 바뀐 파일 4개, smoke 실패 0, 실제 사이트에서 튜토리얼 2단계 문장·미션 2 제목·S6 두 행 확인 |
 | 2026-09-29 | `b323c8a` | `caf9acd` | RC `01b0da7` + 진료일정 이용조건 표기 수정(PR #9, `data/manifest.json` 한 줄). 빌드 차이 manifest 하나, smoke 실패 0, S8(1440·390 폭)에 새 표기만 보임. 주 자산 `index-0xOS-18U.js` |
 | 2026-09-29 | `01b0da7` | `5873af0` | 첫 공개(DNS 전환 21:55 KST, 인증서 발급 22:13 KST, 만료 2026-12-28 자동 갱신). 파일 195개 SHA256 = 빌드, smoke 실패 0, 브라우저 QA 433 PASS / 0 FAIL, 요청 호스트 `geoleobom.kr` 하나. `67939c5`→`5873af0`은 GitHub가 도메인 재등록 때 CNAME을 지웠다 다시 만든 커밋이고 앱 파일은 같다 |
