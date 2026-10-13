@@ -11,7 +11,10 @@ export interface Box {
   h: number
 }
 
-const hits = (a: Box, b: Box, gap: number) => a.x < b.x + b.w + gap && b.x < a.x + a.w + gap && a.y < b.y + b.h + gap && b.y < a.y + a.h + gap
+/** 후보는 막는 것의 가장자리 + gap에 정확히 맞닿게 만든다. 소수 좌표(translate −50%)의 실수 오차로 그 후보가 막히지 않게 EPS만큼 봐준다 */
+const EPS = 0.01
+const hits = (a: Box, b: Box, gap: number) =>
+  a.x < b.x + b.w + gap - EPS && b.x < a.x + a.w + gap - EPS && a.y < b.y + b.h + gap - EPS && b.y < a.y + a.h + gap - EPS
 
 /**
  * 소식 판(box)을 막는 것(blockers: 말풍선 머리·결과 판·HUD 판)과 화면 끝(여백 margin)을 피하는 가장 작은 이동.
@@ -20,7 +23,8 @@ const hits = (a: Box, b: Box, gap: number) => a.x < b.x + b.w + gap && b.x < a.x
  * 후보는 막는 것의 가장자리에 맞닿는 자리뿐이라 계산이 가볍다. 비킬 자리가 없으면 그대로(0, 0) 둔다.
  */
 export function clearOffset(box: Box, blockers: Box[], vw: number, vh: number, margin = 16, gap = 12): { dx: number; dy: number } {
-  const inside = (dx: number, dy: number) => box.x + dx >= margin && box.x + dx + box.w <= vw - margin && box.y + dy >= margin && box.y + dy + box.h <= vh - margin
+  const inside = (dx: number, dy: number) =>
+    box.x + dx >= margin - EPS && box.x + dx + box.w <= vw - margin + EPS && box.y + dy >= margin - EPS && box.y + dy + box.h <= vh - margin + EPS
   const free = (dx: number, dy: number) => inside(dx, dy) && !blockers.some((b) => hits({ ...box, x: box.x + dx, y: box.y + dy }, b, gap))
   if (free(0, 0)) return { dx: 0, dy: 0 }
   const xs = new Set<number>([0, margin - box.x, vw - margin - (box.x + box.w)])

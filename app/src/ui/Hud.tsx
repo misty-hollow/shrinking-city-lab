@@ -71,14 +71,14 @@ function placeToasts(el: HTMLElement): void {
     const b = e.getBoundingClientRect()
     return { x: b.left, y: b.top, w: b.width, h: b.height }
   }
-  // HUD 판은 들어오는 애니메이션(시트 sheet-in: 24px 미끄러짐) 중일 수 있어 변환을 뺀 배치 상자로 잰다(고정 위치 판)
-  const panel = (e: HTMLElement): Box =>
-    e.offsetParent === null && getComputedStyle(e).position === 'fixed' ? { x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight } : box(e)
+  // 보이지 않는 판(visibility hidden)은 비킬 이유가 아니다. 막 뜨는 결과 판은 불투명도 0에서 시작하므로 불투명도는 보지 않는다
+  const shown = (e: Element) => e.checkVisibility?.({ checkVisibilityCSS: true }) ?? true
   const blockers: Box[] = []
-  for (const e of document.querySelectorAll<HTMLElement>('[data-occlude]')) blockers.push(panel(e))
+  // HUD 판이 들어오는 애니메이션(시트 sheet-in 240ms) 중이면 몇 px 어긋나게 재지만, 배치가 바뀐 뒤 0.7초에 다시 잰다(Toasts)
+  for (const e of document.querySelectorAll('[data-occlude]')) if (shown(e)) blockers.push(box(e))
   for (const a of document.querySelectorAll<HTMLElement>('.stage-anchors .anchor')) {
     if (a.style.visibility === 'hidden' || a.classList.contains('is-occluded')) continue
-    for (const e of a.querySelectorAll('.mk-head, .vpin > span, .marker-pop')) blockers.push(box(e))
+    for (const e of a.querySelectorAll('.mk-head, .mk-preview, .vpin > span, .marker-pop')) if (shown(e)) blockers.push(box(e))
   }
   const o = clearOffset({ x: r.left, y: r.top, w: r.width, h: r.height }, blockers.filter((b) => b.w > 0 && b.h > 0), window.innerWidth, window.innerHeight)
   if (o.dx === 0 && o.dy === 0) return
@@ -106,13 +106,17 @@ export function Toasts({ items, layout, pops }: { items: Toast[]; layout: string
       el.style.setProperty('--toast-dx', '0px')
       el.style.setProperty('--toast-dy', '0px')
     }
-    if (!key) return
-    placeToasts(el)
-    if (!relaid) return
-    // 배치가 바뀌면 무대도 섬을 다시 맞춘다(카메라 600ms). 말풍선이 옮겨 간 뒤 한 번 더 본다
+    if (key) placeToasts(el)
+  }, [key, layout, pops])
+  // 배치가 바뀌면 무대도 섬을 다시 맞추고(카메라 600ms) 시트가 미끄러져 들어온다(240ms). 다 옮겨 간 뒤 한 번 더 본다.
+  // 소식·결과 판이 그 사이에 바뀌어도 이 타이머는 지워지지 않는다(배치가 다시 바뀔 때만 새로 건다. 의존성은 일부러 layout 하나)
+  const hasToast = key !== ''
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !hasToast) return
     const id = window.setTimeout(() => placeToasts(el), 700)
     return () => window.clearTimeout(id)
-  }, [key, layout, pops])
+  }, [layout])
   return (
     <div className="toasts" aria-hidden="true" ref={ref}>
       {shown.map((t) => (
