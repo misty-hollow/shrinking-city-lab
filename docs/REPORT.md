@@ -1,6 +1,10 @@
 작업: 후속 1·3 — 모바일 「자료와 한계」 QA 검사가 시트를 기다리게, 기준 변경 소식이 지소 말풍선(정안·유구)·결과 판을 가리지 않게
 결과: 완료
-다음 할 일: 사용자 — 확인 요청 2건(아래 「사용자에게」), 그 뒤 병합 여부("PR #N 병합해"). 후속 2(CLAUDE.md B절)는 고위험이라 별도 PR에서 독립 리뷰 대기. 정식 배포는 별도 승인
+다음 할 일: 사용자 — 확인 요청 2건(아래 「사용자에게」, 스크린샷 `app/qa-shots/pr18-review/`), 그 뒤 병합 여부("PR #18 병합해"). 병합 뒤 CLAUDE.md B절에 소식↔말풍선 검사 반영은 별도 작업(고위험, 독립 리뷰). 정식 배포는 별도 승인
+
+## main 동기화 (2026-10-13)
+
+PR #19 병합(main `17a5084`)으로 PR이 CONFLICTING이 되어 앱 동기화 도구로 main을 merge했다(`ef0cca3`, rebase 아님). 충돌은 `docs/REPORT.md` 하나 — 이 PR 보고(위)를 그대로 두고 PR #19 보고서 원문을 아래 「이전 작업 기록 — PR #19」로 옮겼으며, 두 쪽에 같던 정식 배포 기록은 한 번만 둔다(두 쪽 내용이 바이트 같음을 확인). 앱 코드는 merge 전 검증한 `40eec83`과 같고(`git diff 40eec83 HEAD -- app` 0), main에서 들어온 것은 CLAUDE.md B절(PR #19)·이 보고서뿐이다. 게임 기능·검증 기준 변경 없음.
 
 ## 위험도: 저, 새 QA 검사 추가와 기존 검사의 기다림 추가(기준 그대로)·HUD 소식 배치(UI). `app/src/engine`·데이터·문구·미션 조건·CI·배포·의존성 변경 없음
 
@@ -21,7 +25,7 @@
 
 `app/scripts/browser-qa.mjs`, `app/scripts/qa-geometry.mjs`, `app/src/ui/toastPlace.ts`(신규), `app/src/ui/toastPlace.test.ts`(신규), `app/src/ui/Hud.tsx`, `app/src/App.tsx`, `app/src/styles/app.css`, `app/src/styles/world.css`, `docs/UI_DESIGN_SYSTEM.md`, `docs/REPORT.md`
 
-## 검증 (B절) — 로컬 Windows 11, head `40eec83`
+## 검증 (B절) — 로컬 Windows 11, head `40eec83`. main merge 뒤 `ef0cca3`에서 전부 다시 수행(아래 실행 검증 ① 첫 항목)
 
 | 종류 | 필요 | 수행 상태 | 결과 | 증거 |
 |---|---|---|---|---|
@@ -38,6 +42,7 @@
 
 ## 실행 검증 ①
 
+- **merge 뒤(`ef0cca3`, 2026-10-13T12:20Z)**: 필수 검증 전부(위생·구문·ruff·pytest 22·verify PASS 3·`npm ci`+build·vitest 12 files 177) 통과. `npm run qa:browser` **667 PASS / 0 FAIL**(meta.commit `ef0cca3`) — 소식↔말풍선 37곳, 「소식 한 줄이 뜬다」 3크기, 흐린 말풍선 포커스 복귀 3크기, 390 자료와 한계 PASS. 탐침 5크기 × 미션 1~3 소식↔말풍선 겹침 0.
 - 음성 확인(수정 전 앱 + 새 하네스, 임시 사본 5298): 659 PASS / 9 FAIL — 새 검사 「소식 한 줄이 말풍선·결과 판·표지를 가리지 않음」이 1440·1024·1280 × S4·M2·M3 모두에서 정안 머리·결과 판 겹침을 잡았다. 「소식 한 줄이 뜬다」는 PASS(검사가 비지 않음).
 - 수정 뒤 첫 실행에서 새 검사가 지표 자세히·지역 카드 상태 3건을 잡았다(소식을 나타날 때만 재서, 시트가 열린 뒤 도구·시트와 겹침) → 배치 변경 때 다시 재기로 고침 → 667 PASS / 0 FAIL.
 - 변경 주변 탐색(임시 탐침, 작업 폴더 밖): 1440·1024·1280(움직임 줄이기) × (a) 소식이 떠 있는 동안 정안에 1일 → 결과 판과 함께, (b) 소식이 떠 있는 동안 지표 자세히 열기 → 0.9초 뒤, 소식이 포인터를 받지 않음 — 48 PASS / 0 FAIL. 크기·미션 15조합 소식↔말풍선 겹침 0.
@@ -56,13 +61,14 @@
 
 ## 사용자에게 — 확인 요청 2건 (전환 기간 2/5)
 
-스크린샷(하네스): `C:/Users/sdsdo/Documents/shrinking-city-lab/.claude/worktrees/quirky-kirch-06c899/app/qa-shots/`. 탐침 전후 비교는 세션 스크래치에 있어 필요하면 다시 만든다.
+스크린샷: `C:/Users/sdsdo/Documents/shrinking-city-lab/.claude/worktrees/quirky-kirch-06c899/app/qa-shots/pr18-review/` — `<크기>-m2-before.png`(수정 전 main, 같은 조작) / `<크기>-m2-after.png`(merge 뒤 `ef0cca3`), 1440·1280·1024·1366·1920. 조작: 미션 2에서 15일 배분 → 기준 10분 → 20분 → 15분, 빛이 다 닿은 뒤. 하네스 화면 `1440x900-s4-m2-play.png`·`1024x768-s4-play.png`·`1280x800-s4-play.png`도 같은 폴더.
 1. **③ 판단 — 소식이 비켜 서는 모습**: `1440x900-s4-m2-play.png`(정안 왼쪽), `1024x768-s4-play.png`(시트 옆 두 줄). 기준을 10·15·20분으로 바꿔 보면서 소식이 말풍선 옆으로 비켜 서는 것이 자연스러운지, 두 줄로 접힌 1024 소식이 읽기 편한지.
 2. **병행 확인(①② 통과)**: 같은 화면에서 정안·유구 말풍선이 소식에 가리지 않는지, 왼쪽 위 HUD 글자가 그대로 읽히는지.
 
 ## PR CI
 
-PR #18, head `91339c2` `pull_request` 실행 38393338736 — repository · pipeline · app success(뿌리 기준 빌드 smoke 포함). MERGEABLE · CLEAN. 이 뒤 보고서만 고친 push의 CI는 확인만 한다.
+- merge 전: head `91339c2` 실행 38393338736 success.
+- merge 뒤: (push 후 기록)
 
 ## 독립 리뷰
 
