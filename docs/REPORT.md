@@ -49,7 +49,7 @@
 
 ## PR CI
 
-(push 후 기록)
+PR #17, head `ae2ec50` `pull_request` 실행 38386673284 — repository · pipeline · app success(뿌리 기준 빌드 smoke 포함). MERGEABLE · CLEAN. 이 뒤 보고서만 고친 push의 CI는 확인만 한다.
 
 ## 사용자 확인 기록
 
