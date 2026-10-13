@@ -4,7 +4,8 @@
  * 1. HUD 판과 세계 라벨 겹침: 무대가 피하는 판(`[data-occlude]`, UI_DESIGN_SYSTEM §8.1 슬롯)과 세계에 붙은 HTML 라벨
  *    (지소 말풍선 머리·미리보기 판·결과 판, 잃은 마을 표지, 마을 이름·도로망 시간 태그)이 화면에서 겹치지 않는다.
  *    HUD는 배경 없이 씬 위에 바로 쓰므로, 라벨이 그 위에 그려지면 글자를 가린다. 지형에 새긴 읍·면 이름(캔버스)은 재지 못한다.
- *    가운데 위 소식 한 줄(`.toast`)도 HUD 판과 겹치거나 시트 밑에 잘리지 않는다(소식은 3.2초만 떠 있어 그때 보이는 것만 잰다).
+ *    가운데 위 소식 한 줄(`.toast`)도 HUD 판과 겹치거나 시트 밑에 잘리지 않고, 지소 말풍선 머리·미리보기·결과 판·잃은 마을 표지를
+ *    가리지 않는다(소식은 3.2초만 떠 있어 그때 보이는 것만 잰다 — 하네스가 기준을 바꾼 직후에 부른다).
  * 2. 세계 라벨이 화면 가장자리에서 잘리지 않는다: 보이는 라벨은 화면 안에 다 들어온다(화면 밖으로 나간 말풍선만 숨긴다, §8.2).
  *    무대는 전체 시점을 벗어나면 HUD 판 뒤나 화면 끝에 걸린 말풍선을 흐려 숨긴다(`.anchor.is-occluded`). 전체 시점(`overview`)에서는
  *    흐린 말풍선이 없어야 하고, 겹침 검사가 시점 맞춤(섬과 말풍선 머리가 HUD를 피해 놓이는지)을 잰다.
@@ -59,9 +60,20 @@ export async function layoutGeometry(page, label, check, opts = {}) {
     }
 
     const toasts = []
+    const toastOver = []
+    const bubbles = []
+    for (const el of document.querySelectorAll('.stage-anchors .mk-head, .stage-anchors .mk-preview, .stage-anchors .marker-pop, .stage-anchors .vpin > span')) {
+      const r = seen(el)
+      if (r) bubbles.push({ el, r })
+    }
     for (const el of document.querySelectorAll('.toasts .toast')) {
       const r = seen(el)
       if (!r) continue
+      for (const b of bubbles) {
+        const w = Math.min(r.right, b.r.right) - Math.max(r.left, b.r.left)
+        const ht = Math.min(r.bottom, b.r.bottom) - Math.max(r.top, b.r.top)
+        if (w > tol && ht > tol) toastOver.push(`${name(el)} ${box(r)} ↔ ${name(b.el)} ${box(b.r)}`)
+      }
       for (const h of hud) {
         const w = Math.min(r.right, h.r.right) - Math.max(r.left, h.r.left)
         const ht = Math.min(r.bottom, h.r.bottom) - Math.max(r.top, h.r.top)
@@ -88,10 +100,11 @@ export async function layoutGeometry(page, label, check, opts = {}) {
       }
     }
     const occluded = [...document.querySelectorAll('.stage-anchors .anchor.is-occluded')].map((el) => name(el.firstElementChild ?? el))
-    return { overlaps, toasts, edges, clips, occluded }
+    return { overlaps, toasts, toastOver, edges, clips, occluded }
   }, TOL)
   check(g.overlaps.length === 0, `${label}: HUD 판과 세계 라벨(말풍선·결과 판·표지·마을 이름) 겹침 없음`, g.overlaps.slice(0, 4).join(' | '))
   check(g.toasts.length === 0, `${label}: 소식 한 줄이 HUD 판과 겹치지 않음`, g.toasts.slice(0, 4).join(' | '))
+  check(g.toastOver.length === 0, `${label}: 소식 한 줄이 말풍선·결과 판·표지를 가리지 않음`, g.toastOver.slice(0, 4).join(' | '))
   check(g.edges.length === 0, `${label}: 보이는 세계 라벨이 화면 가장자리에서 잘리지 않음`, g.edges.slice(0, 4).join(' | '))
   check(g.clips.length === 0, `${label}: 판 안 가로 잘림 없음`, g.clips.slice(0, 4).join(' | '))
   if (opts.overview) check(g.occluded.length === 0, `${label}: 전체 시점에서 HUD 판·화면 끝에 걸려 숨긴 말풍선·표지 없음`, g.occluded.slice(0, 4).join(' | '))

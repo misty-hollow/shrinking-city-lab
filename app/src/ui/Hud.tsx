@@ -3,12 +3,13 @@
  * 모두 무대 위에 얹히되 가운데를 비워 둔다. 장식은 모서리 깎기 하나뿐이다.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 import { sound } from '../audio/sound'
 import { copy } from '../content/copy'
 import type { Manifest } from '../data/types'
 import { ClinicGlyph, HouseGlyph } from './common'
+import { type Box, clearOffset } from './toastPlace'
 
 // --- 불씨 -------------------------------------------------------------------------------
 
@@ -59,10 +60,66 @@ export interface Toast {
 }
 
 /** 조작의 빛이 다 닿은 뒤 도크 위 가운데에 한 줄. 3.2초 뒤 사라지고, 많아야 두 줄. */
-export function Toasts({ items }: { items: Toast[] }) {
+/**
+ * 소식 판이 지소 말풍선 머리·결과 판이나 HUD 판을 가리면 가장 가까운 빈자리로 옮긴다(ui/toastPlace).
+ * 지금 자리가 비어 있으면 그대로 둔다(두 번째 소식이 붙을 때 먼저 뜬 소식이 튀지 않게).
+ */
+function placeToasts(el: HTMLElement): void {
+  const r = el.getBoundingClientRect()
+  if (r.width === 0) return
+  const box = (e: Element): Box => {
+    const b = e.getBoundingClientRect()
+    return { x: b.left, y: b.top, w: b.width, h: b.height }
+  }
+  // 보이지 않는 판(visibility hidden)은 비킬 이유가 아니다. 막 뜨는 결과 판은 불투명도 0에서 시작하므로 불투명도는 보지 않는다
+  const shown = (e: Element) => e.checkVisibility?.({ checkVisibilityCSS: true }) ?? true
+  const blockers: Box[] = []
+  // HUD 판이 들어오는 애니메이션(시트 sheet-in 240ms) 중이면 몇 px 어긋나게 재지만, 배치가 바뀐 뒤 0.7초에 다시 잰다(Toasts)
+  for (const e of document.querySelectorAll('[data-occlude]')) if (shown(e)) blockers.push(box(e))
+  for (const a of document.querySelectorAll<HTMLElement>('.stage-anchors .anchor')) {
+    if (a.style.visibility === 'hidden' || a.classList.contains('is-occluded')) continue
+    for (const e of a.querySelectorAll('.mk-head, .mk-preview, .vpin > span, .marker-pop')) if (shown(e)) blockers.push(box(e))
+  }
+  const o = clearOffset({ x: r.left, y: r.top, w: r.width, h: r.height }, blockers.filter((b) => b.w > 0 && b.h > 0), window.innerWidth, window.innerHeight)
+  if (o.dx === 0 && o.dy === 0) return
+  const cur = (name: string) => Number.parseFloat(el.style.getPropertyValue(name)) || 0
+  el.style.setProperty('--toast-dx', `${cur('--toast-dx') + o.dx}px`)
+  el.style.setProperty('--toast-dy', `${cur('--toast-dy') + o.dy}px`)
+}
+
+/**
+ * layout: HUD 배치(지표 자세히 열림·화면). 소식이 떠 있는 동안 바뀌면 슬롯 기본 자리에서 다시 잰다.
+ * pops: 말풍선 위 결과 판(id 목록). 소식이 떠 있는 동안 새 결과 판이 뜨면 지금 자리가 비어 있는지 다시 본다.
+ */
+export function Toasts({ items, layout, pops }: { items: Toast[]; layout: string; pops: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const lastLayout = useRef(layout)
+  const shown = items.slice(-2)
+  const key = shown.map((t) => t.id).join(',')
+  // 소식이 나타나거나 바뀔 때, HUD 배치·결과 판이 바뀔 때 잰다(프레임마다 재지 않는다). 소식이 다 사라지면 슬롯 기본 자리로.
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const relaid = lastLayout.current !== layout
+    lastLayout.current = layout
+    if (!key || relaid) {
+      el.style.setProperty('--toast-dx', '0px')
+      el.style.setProperty('--toast-dy', '0px')
+    }
+    if (key) placeToasts(el)
+  }, [key, layout, pops])
+  // 배치가 바뀌면 무대도 섬을 다시 맞추고(카메라 600ms) 시트가 미끄러져 들어온다(240ms). 다 옮겨 간 뒤 한 번 더 본다.
+  // 소식·결과 판이 그 사이에 바뀌어도 이 타이머는 지워지지 않는다(배치가 다시 바뀔 때만 새로 건다. 의존성은 일부러 layout 하나)
+  const hasToast = key !== ''
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !hasToast) return
+    const id = window.setTimeout(() => placeToasts(el), 700)
+    return () => window.clearTimeout(id)
+  }, [layout])
   return (
-    <div className="toasts" aria-hidden="true">
-      {items.slice(-2).map((t) => (
+    <div className="toasts" aria-hidden="true" ref={ref}>
+      {shown.map((t) => (
         <div key={t.id} className={`toast toast-${t.tone}`}>
           <i aria-hidden="true" />
           {t.text}
