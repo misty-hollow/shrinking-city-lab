@@ -1361,7 +1361,8 @@ input {
   position: fixed;
   left: 50%;
   bottom: calc(var(--dock-h) + 26px);
-  translate: -50% 0;
+  /* --toast-dx·dy: 말풍선 머리·HUD 판을 가리면 나타날 때 한 번 비켜 선다(ui/toastPlace) */
+  translate: calc(-50% + var(--toast-dx, 0px)) var(--toast-dy, 0px);
   display: flex;
   flex-direction: column;
   align-items: center;

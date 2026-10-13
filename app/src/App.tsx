@@ -1024,7 +1024,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
               onSelect={() => {}}
             />
           )}
-          <Toasts items={toasts} />
+          <Toasts items={toasts} layout={`${s.screen}|${details && interactive}`} pops={pops.map((p) => p.id).join(',')} />
         </>
       )}
 

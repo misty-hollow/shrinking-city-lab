@@ -508,6 +508,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   check((await page.locator('.mission-card').innerText()).includes('미션 판정은 15분 기준이에요'), `${tag} S4: 기준 변경 시 판정 칩`)
   await page.getByRole('radio', { name: '15분' }).click()
   await settle(page)
+  // 기준을 바꾸면 빛이 다 닿을 때 가운데 위에 소식 한 줄이 뜬다. 바로 아래 기하 검사가 그 소식과 말풍선·HUD 겹침을 잰다
+  check((await page.locator('.toasts .toast').count()) > 0, `${tag} S4: 기준을 바꾸면 소식 한 줄이 뜬다(겹침 검사 대상)`)
   await noHorizontalOverflow(page, `${tag} S4`)
   // 읍·면 목록(지표 자세히) → 행 클릭 → 지역 카드
   await page.locator('.hud-links').getByRole('button', { name: '지표 자세히', exact: true }).click()

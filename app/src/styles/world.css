@@ -2234,6 +2234,14 @@ body {
     left: min(50%, calc((100% - 380px + 274px) / 2));
   }
 
+  /* 좁은 화면: 위쪽 띠가 도구로 차 있어 한 줄(약 350px) 소식이 말풍선 사이에 들어갈 자리가 없다. 두 줄로 접어(판 폭 260px)
+     오른쪽 위 도구 아래 같은 높이에서 말풍선을 비킬 수 있게 한다(ui/toastPlace). 글은 그대로 */
+  .toast {
+    max-width: 260px;
+    box-sizing: border-box;
+    white-space: normal;
+  }
+
   .kpi-list .kpi {
     grid-template-columns: minmax(0, 1fr) auto 64px;
     column-gap: 8px;
