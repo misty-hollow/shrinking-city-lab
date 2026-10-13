@@ -45,7 +45,7 @@
 
 ## PR CI
 
-(push 후 기록)
+PR #22, head `4c5f7fe` `pull_request` 실행 38405715445 — repository · pipeline · app success. 이 뒤 보고서만 고친 push의 CI는 확인만 한다.
 
 ## 사용자 확인 기록
 
