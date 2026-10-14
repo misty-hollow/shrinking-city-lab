@@ -1,6 +1,6 @@
 # Production 운영 (geoleobom.kr)
 
-기준일: 2026-10-13(최초 2026-09-29, 같은 날 두 번째 릴리스). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
+기준일: 2026-10-14(최초 2026-09-29). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
 공개 전 준비 기록은 `RELEASE_READINESS.md`에 있습니다(그 6절의 VPS 배포는 전환 기간에만 썼습니다).
 
 ## 1. 구조
@@ -62,19 +62,20 @@ git revert --no-edit HEAD && git push origin HEAD:gh-pages
 
 | 항목 | 값 |
 |---|---|
-| 앱 커밋(main) | `c9b2cda3d350effbfcc523e4c5d4e9dcfb1d141a` (main CI success, run 38403626189) — PR #18(기준 변경 소식이 말풍선·결과 판을 가리지 않게 비켜 섬, ≤1099 두 줄, 모바일 자료와 한계 QA 대기) + PR #19·#20(CLAUDE.md B절, Codex 독립 리뷰 approve) + PR #21(사용자 확인 기록). PR #18 저위험, 사용자 화면 확인 2건 완료(2026-10-13) |
-| `gh-pages` 커밋 | `b15defb` (2026-10-13 22:26 KST, `fc0cd22` 위 fast-forward) |
-| 직전 릴리스(되돌리기 대상) | 앱 `9672e23` = `gh-pages` `fc0cd22`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
-| 주 자산 | `assets/index-BcdBPrh8.js` |
-| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일). `9672e23` 대비 `app/src/engine`·`app/public/data`·`pipeline` 변경 없음 |
-| 공개 | 2026-10-13 Pages build `built` 22:27 KST. 도메인·HTTPS 설정 변경 없음(cname `geoleobom.kr`, Enforce HTTPS 켬) |
-| 공개 뒤 확인 | `fc0cd22` 대비 바뀐 파일 4개(`index.html`·`404.html`·주 JS·CSS). 자료·라이선스·`CNAME`(줄바꿈 없음)·`.nojekyll` 바이트 동일. 커밋된 파일 = 빌드(`dist` 195개 SHA256), `404.html` = `index.html`. `build_release.sh`의 테스트 177개 통과. smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404). 실제 사이트 브라우저 QA(`QA_BASE_URL=https://geoleobom.kr/?kiosk=0`) **654 PASS / 0 FAIL**(1회, 개발 서버 전용 소리·GPU 검사는 빠짐): 소식↔말풍선 겹침 0(37곳), 기준 변경 직후 소식 표시, 흐린 말풍선 포커스 복귀, 390 자료와 한계, S6 표, 콘솔 오류 0. 1440 S4 M2·1024 지표 자세히 스크린샷이 검증 화면과 같음 |
+| 앱 커밋(main) | `41184f900b483056c490351980dbbd6c361e7673` (main CI success) — PR #25: 땅 그림 텍스처의 밉맵을 GPU `generateMipmap` 대신 2D 캔버스로 만들어 올린다(Intel 내장 그래픽 노트북에서 땅이 검게 보이던 팀원 보고), S1·S2 본문 글자 17/26(1279 이하 16/24). 테스트 사이트(`scl-playtest` `ae4b82b`)에서 문제를 알린 팀원이 같은 노트북(i5-10210U)으로 정상 표시를 확인(2026-10-14) |
+| `gh-pages` 커밋 | `00e4b5f` (2026-10-14, `b15defb` 위 fast-forward) |
+| 직전 릴리스(되돌리기 대상) | 앱 `c9b2cda` = `gh-pages` `b15defb`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
+| 주 자산 | `assets/index-BfRjPd1l.js` |
+| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일). `c9b2cda` 대비 `app/src/engine`·`app/public/data`·`pipeline` 변경 없음 |
+| 공개 | 2026-10-14 Pages build `built`. 도메인·HTTPS 설정 변경 없음(cname `geoleobom.kr`, Enforce HTTPS 켬) |
+| 공개 뒤 확인 | `b15defb` 대비 바뀐 파일 4개(`index.html`·`404.html`·주 JS·CSS). 자료·라이선스·`CNAME`·`.nojekyll` 바이트 동일. 커밋된 파일 = 빌드(`dist` 195개 SHA256), `404.html` = `index.html`. `build_release.sh`의 테스트 177개 통과. smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404). 실제 사이트 브라우저 QA(`QA_BASE_URL=https://geoleobom.kr/?kiosk=0`) **654 PASS / 0 FAIL**(개발 서버 전용 소리·GPU 검사는 빠짐). 땅 그림 큰 텍스처에 `generateMipmap` 호출 0(밉맵 12단계를 직접 올림), S1 전체 시점 검은 화소 0. 1366×768 S1·S2 본문 17px, 판 넘침·잘림·겹침 0 |
 
 이전 릴리스 기록:
 
 | 날짜 | 앱 커밋 | `gh-pages` | 메모 |
 |---|---|---|---|
-| 2026-10-13 | `c9b2cda` | `b15defb` | 위 표 |
+| 2026-10-14 | `41184f9` | `00e4b5f` | 위 표 |
+| 2026-10-13 | `c9b2cda` | `b15defb` | PR #18~#21(기준 변경 소식이 말풍선·결과 판을 비켜 섬). 주 자산 `index-BcdBPrh8.js`, smoke 실패 0, 실제 사이트 QA 654/0 |
 | 2026-10-13 | `9672e23` | `fc0cd22` | PR #15·#16(HUD 위 3D 말풍선·S6 표·모바일 자료와 한계 잘림 수정). 주 자산 `index-BH6zpSAS.js`, smoke 실패 0, 실제 사이트 QA 1회차 613/1(390 자료와 한계 검사가 기다리지 않음 — PR #18에서 고침), 2회차 614/0 |
 | 2026-10-10 | `2ee1431` | `e388749` | PR #12·#13. 주 자산 `index-n64CaXCs.js`, 바뀐 파일 4개, smoke 실패 0, 실제 사이트에서 튜토리얼 2단계 문장·미션 2 제목·S6 두 행 확인 |
 | 2026-09-29 | `b323c8a` | `caf9acd` | RC `01b0da7` + 진료일정 이용조건 표기 수정(PR #9, `data/manifest.json` 한 줄). 빌드 차이 manifest 하나, smoke 실패 0, S8(1440·390 폭)에 새 표기만 보임. 주 자산 `index-0xOS-18U.js` |
