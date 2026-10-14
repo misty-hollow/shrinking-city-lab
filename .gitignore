@@ -40,6 +40,6 @@ Thumbs.db
 .env
 .env.*
 
-# --- Claude Code 개인 설정(CLAUDE.md 11절) ---------------------------------------------------
+# --- Claude Code 개인 설정(커밋하지 않는다, CLAUDE.md 「커밋하지 않는 것」) ---------------------------
 .claude/settings.local.json
 .claude/settings.local.json.*

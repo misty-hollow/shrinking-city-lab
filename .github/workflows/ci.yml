@@ -1,8 +1,8 @@
 name: CI
 
-# PR과 main push에서만 돈다(공통 WORKFLOW v1.2 8절 6, DECISIONS D-005). 완료·병합 조건은 PR 최신 변경의 필수 체크
-# (repository·pipeline·app = 룰셋 "Protect main")이고, main push 실행은 병합 후 검증이다. 경로 필터를 두지 않는다.
-# gh-pages(운영 배포 산출물)와 PR 없는 작업 브랜치 push는 CI 대상이 아니다.
+# PR(base main)과 main push, 수동 실행에서만 돈다(DECISIONS D-005). 병합 조건은 PR 최신 head의 필수 체크
+# (repository·pipeline·app = 룰셋 "Protect main")이고, main push 실행은 병합 후 확인이다. 경로 필터를 두지 않는다.
+# gh-pages(운영 배포 산출물)와 PR 없는 작업 브랜치 push는 CI 대상이 아니다. CI는 AI를 부르지 않고 외부로 아무것도 올리지 않는다.
 on:
   pull_request:
     branches: [main]
@@ -97,7 +97,7 @@ jobs:
           cache-dependency-path: app/package-lock.json
 
       # 엔진 = 파이썬 골든 값(10·15·20분), 금지어 검사, 흐름 리듀서, 패널 키보드 플레이(jsdom).
-      # 브라우저 QA(scripts/browser-qa.mjs)는 Edge·WebGL이 필요해 CI 밖에서 메인이 로컬로 돌린다(CLAUDE.md B절 실행 검증 ①).
+      # 브라우저 QA(scripts/browser-qa.mjs)는 Edge·WebGL이 필요해 CI 밖에서 로컬로 돌린다(CLAUDE.md 4절 「브라우저 QA」).
       - name: App type check, build and tests
         working-directory: app
         run: |
