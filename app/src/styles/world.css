@@ -721,15 +721,18 @@ body {
   font-size: 12px;
 }
 
-/* 튜토리얼·소개: 단계 카피 + 진행 막대(3칸) + Primary + Secondary(§10) */
+/* 튜토리얼·소개: 단계 카피 + 진행 막대(3칸) + Primary + Secondary(§10).
+   처음 읽는 설명이라 본문(17/26)이 화면에서 가장 큰 글이고, 단계 이름·덧붙임은 한 단계 아래(14/20)다. 자료 태그는 12 그대로(§4.2) */
 .hud-left .corner-card p {
-  font-size: 15px;
-  line-height: 22px;
+  margin-bottom: 10px;
+  font-size: 17px;
+  line-height: 26px;
   color: var(--text);
 }
 
 .hud-left .corner-card .small {
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--text-2);
 }
 
@@ -2146,6 +2149,11 @@ body {
     left: 24px;
     top: 24px;
     width: 300px;
+  }
+
+  .hud-left .corner-card p {
+    font-size: 16px;
+    line-height: 24px;
   }
 
   .app.has-details .toasts {
