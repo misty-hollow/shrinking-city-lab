@@ -11,7 +11,7 @@
 - 라이선스: 코드는 `LICENSE`(MIT), 데이터는 원 기관의 이용조건을 따른다 — `DATA_LICENSE.md`(앱 S8 「자료와 한계」와 같은 표기).
 - production 운영(구조·새 릴리스·되돌리기): `docs/release/PRODUCTION.md`
 - 공개 전 준비 상태·사람이 할 일·성능 점검: `docs/release/RELEASE_READINESS.md` · 플레이테스트 `docs/release/PLAYTEST.md` · 소리 청취 `docs/release/SOUND_QA.md`
-- 개발 운영 규칙(AI 개발 플로우): `CLAUDE.md` · 결정 기록 `docs/DECISIONS.md` · 작업 상태 `docs/REPORT.md`
+- 개발 방식(Claude Code): `CLAUDE.md` · 결정 기록 `docs/DECISIONS.md` · 지금 상태·다음 작업 `docs/WORKLOG.md`
 
 ## 구현 범위
 
@@ -100,19 +100,19 @@ py -3.12 -m venv .venv
 cd app
 npm run build && npm test
 
-# 브라우저 QA(사람 보조, CI 밖). vite(dev 5199 또는 preview)를 띄운 뒤
+# 브라우저 QA(로컬, CI 밖). vite(dev 5199 또는 preview)를 띄운 뒤
 npm i --no-save playwright-core@1.63.0
 npm run qa:browser          # QA_BASE_URL, QA_BROWSER_CHANNEL(기본 msedge). 결과 qa-shots/
 
 # 소리 청취(사람이 듣고 판단, CI 밖). dev 서버(5199)를 띄운 뒤
 node scripts/sound-audition.mjs   # qa-shots/sound/index.html — 장면 17개 WAV(음량 정규화 없음)
 
-# 전시 성능 점검(사람 보조, CI 밖). npm run build 후 vite preview(5198)를 띄운 뒤
+# 전시 성능 점검(로컬, CI 밖). npm run build 후 vite preview(5198)를 띄운 뒤
 node scripts/perf-probe.mjs      # PERF_PROFILES=gpu PERF_HEADED=1 이면 실제 창으로 이 기기 GPU만
 ```
 
-CI는 `.github/workflows/ci.yml`의 세 job이 돈다(네트워크·docker 없음): repository(바뀐 줄 공백 · Git 이력 전체 gitleaks),
-pipeline(ruff · pytest · verify), app(npm ci · build · vitest).
+CI는 `.github/workflows/ci.yml`의 세 job이 PR·main push에서 돈다(데이터 재생성 단계·OSRM은 돌지 않는다): repository(바뀐 줄 공백 · Git 이력 전체 gitleaks · 배포 스크립트 구문),
+pipeline(ruff · pytest · verify), app(npm ci · build · vitest · 뿌리 기준 빌드 정적 smoke).
 
 ## 데이터 재생성 (판본 `scl01-gongju-r2`)
 
