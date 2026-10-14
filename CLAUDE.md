@@ -21,9 +21,11 @@
   승인된 화면·문구 변경을 따라 기대값만 바꿀 때는 근거(설계안·커밋)와 전후 문구를 PR 본문에 적는다.
   기존 검사로 충분하면 테스트를 억지로 추가하거나 고치지 않고, 부족할 때만 보강한다.
 - 서브에이전트(`.claude/agents/implementer.md` 구현, `reviewer.md` 읽기 전용 리뷰)와 다른 모델의 검토는 필요할 때 쓰는 선택 수단이다.
-  다른 모델 검토로는 Claude가 직접 부를 수 있는 `codex:codex-rescue` 에이전트가 있다. 이 에이전트는 기본적으로 쓰기가 가능하다.
-  그래서 검토만 맡길 때는 요청에 "읽기 전용 진단, 코드 수정 금지"라고 적는다. 호출 전후에 `git status --porcelain`·`git diff`를 비교하고, 바뀐 것이 있으면 보고하며 검토 없이 채택하지 않는다.
-  사용자가 입력하는 `/codex:review`·`/codex:adversarial-review`는 사용자가 원할 때만 쓴다. 사람이 명령을 옮겨 주는 단계를 필수 절차로 만들지 않는다.
+  다른 모델 검토로 Claude가 직접 부를 수 있는 것은 `codex:codex-rescue` 에이전트(Codex 플러그인 1.0.6)뿐이다. 이 에이전트는 Codex `task`를 호출한다.
+  - `--write`를 붙이면 Codex 샌드박스가 `workspace-write`, 빼면 `read-only`다(`scripts/codex-companion.mjs`). 에이전트는 기본으로 `--write`를 붙이고, 요청이 읽기 전용·진단·리뷰일 때만 뺀다.
+  - 그래서 검토만 맡길 때는 요청 맨 앞에 "읽기 전용 진단, 코드 수정 금지(do not pass --write)"를 쓴다. 호출 뒤에는 작업 기록 `~/.claude/plugins/data/codex-openai-codex/state/<저장소>-*/jobs/task-*.json`에서 `"write":false`인지 확인한다.
+  - 이 문구와 기록 확인은 쓰기를 막는 장치가 아니다. 실제 제한은 Codex의 `read-only` 샌드박스에 달려 있다. 그래서 호출 전후에 `git status --porcelain`·`git diff`·미추적 파일 해시를 비교하고, 바뀐 것이 있으면 보고하며 검토 없이 채택하지 않는다.
+  - `/codex:review`·`/codex:adversarial-review`는 플러그인이 모델 호출을 막아 둔(`disable-model-invocation`) 사용자 명령이다. 사용자가 원할 때만 쓰고, 사람이 명령을 옮겨 주는 단계를 필수 절차로 만들지 않는다.
 - 추가 API 과금 없이 기존 구독 범위에서 운영한다. CI는 AI를 부르지 않는다.
 
 ## 2. 프로젝트 제약
@@ -64,13 +66,13 @@
 | 소리 | 위 + `node scripts/sound-audition.mjs`(청취 파일 `qa-shots/sound/`, 판단은 사용자) |
 | 문서만(주석만 바꾼 설정·에이전트 정의 포함) | `git diff --check`, 문서 속 경로·명령·참조가 실제와 맞는지 확인, 주석만 바뀌었는지 확인. 나머지는 PR CI가 맡는다 |
 
-CLI 검사(로컬은 Windows + Git Bash):
+CLI 검사(로컬은 Windows + Git Bash, 저장소 루트에서 실행. 줄마다 따로 돌려도 되고, 괄호 안에서 폴더를 옮기므로 끝나면 루트로 돌아온다):
 
 ```
 git diff --check origin/main...HEAD
 for f in deploy/*.sh; do bash -n "$f"; done; python -m py_compile deploy/smoke_web.py
-cd pipeline && python -m ruff check . && python -m ruff format --check . && python -m pytest -q && python -m scl_pipeline verify
-cd app && npm ci && npm run build && npm test        # build = tsc -b && vite build, test = vitest run(watch 금지)
+(cd pipeline && python -m ruff check . && python -m ruff format --check . && python -m pytest -q && python -m scl_pipeline verify)
+(cd app && npm ci && npm run build && npm test)      # build = tsc -b && vite build, test = vitest run(watch 금지)
 ```
 
 - 파이썬 편집 설치(`pip install -e ".[dev]"`)는 그 작업 트리 전용 `pipeline/.venv`에 한다. 다른 체크아웃의 venv는 쓰지 않는다.
