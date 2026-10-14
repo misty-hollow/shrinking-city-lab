@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
 import type { Manifest, Scenario } from '../data/types'
@@ -66,6 +66,19 @@ export function StartCard({ onStart, onData }: { onStart(): void; onData(): void
 
 // --- S1 소개 3장 ----------------------------------------------------------------------
 
+/** S1·S2 설명에서 "주 5일"·"주 0.5일"은 줄에서 끊지 않는다(UI_DESIGN_SYSTEM §4.2). 글은 그대로다. */
+function keepDays(text: string): ReactNode {
+  return text.split(/(주 \d+(?:\.\d+)?일)/).map((part, k) =>
+    k % 2 ? (
+      <span key={k} className="nowrap">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  )
+}
+
 interface IntroProps {
   step: 0 | 1 | 2
   scenario: Scenario
@@ -106,18 +119,18 @@ export function IntroCard({ step, scenario, manifest, onNext, onSkip }: IntroPro
       {step === 1 && (
         <>
           <p tabIndex={-1} ref={h}>
-            {copy.intro.card2(open.length, list)}
+            {keepDays(copy.intro.card2(open.length, list))}
           </p>
           <div className="badges">
             <Badge cls="REAL_DATA">{copy.intro.card2Small(d.schedule)}</Badge>
           </div>
-          <div className="small">{copy.intro.card2Note}</div>
+          <div className="small">{keepDays(copy.intro.card2Note)}</div>
         </>
       )}
       {step === 2 && (
         <>
           <p tabIndex={-1} ref={h}>
-            {copy.intro.card3}
+            {keepDays(copy.intro.card3)}
           </p>
           <div className="pool-cells pool-anim" aria-hidden="true" style={{ margin: '8px 0' }}>
             {Array.from({ length: 10 }, (_, k) => (
@@ -173,7 +186,7 @@ export function TutorialCard(p: TutorialProps) {
       </div>
       {p.step === 1 && (
         <p tabIndex={-1} ref={h}>
-          {copy.tutorial.step1}
+          {keepDays(copy.tutorial.step1)}
         </p>
       )}
       {p.step === 2 && (
@@ -183,7 +196,7 @@ export function TutorialCard(p: TutorialProps) {
           </p>
           {p.triedText && (
             <p aria-live="polite" className="num">
-              {p.triedText}
+              {keepDays(p.triedText)}
             </p>
           )}
           {p.needReturn && <p className="small">{copy.tutorial.step2Return}</p>}
@@ -194,7 +207,7 @@ export function TutorialCard(p: TutorialProps) {
           <p tabIndex={-1} ref={h} aria-live="polite">
             {p.result ?? copy.tutorial.step3}
           </p>
-          {p.result && <p className="small">{copy.tutorial.step3Next}</p>}
+          {p.result && <p className="small">{keepDays(copy.tutorial.step3Next)}</p>}
         </>
       )}
       <div className="actions">

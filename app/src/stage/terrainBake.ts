@@ -361,6 +361,29 @@ function mix3(a: [number, number, number], b: [number, number, number], t: numbe
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
 }
 
+/**
+ * 밉맵 전 단계(0단계 = 땅 그림 캔버스, 1×1까지). 앞 단계를 반으로 줄여 그린다(2:1 쌍선형 = 2×2 평균).
+ * 2D 캔버스가 GPU로 줄이므로 픽셀을 읽어 오지 않아 시작이 늦어지지 않는다. 평균을 sRGB 값에서 내서 GPU 밉맵보다
+ * 아주 조금 어둡다(2026-10-14 측정: 전체 시점 화면 평균 밝기 50.60 → 50.52, 0.2% 안).
+ */
+function buildMipmaps(canvas: HTMLCanvasElement): HTMLCanvasElement[] {
+  const levels = [canvas]
+  let src = canvas
+  while (src.width > 1 || src.height > 1) {
+    const c = document.createElement('canvas')
+    c.width = Math.max(1, src.width >> 1)
+    c.height = Math.max(1, src.height >> 1)
+    const x = c.getContext('2d')
+    if (!x) throw new Error('2d canvas unavailable')
+    x.imageSmoothingEnabled = true
+    x.imageSmoothingQuality = 'low'
+    x.drawImage(src, 0, 0, c.width * 2, c.height * 2, 0, 0, c.width, c.height)
+    levels.push(c)
+    src = c
+  }
+  return levels
+}
+
 function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotropy: number): THREE.CanvasTexture {
   const W = TEX_W
   const H = Math.round((W * hm.height) / hm.width)
@@ -575,7 +598,10 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
   const tex = new THREE.CanvasTexture(canvas)
   tex.colorSpace = THREE.SRGBColorSpace
   tex.anisotropy = Math.min(8, maxAnisotropy)
-  tex.generateMipmaps = true
+  // 밉맵은 여기서 만들어 올린다(GPU generateMipmap을 부르지 않는다). 2026-10 팀원 노트북(Intel UHD 추정)에서 땅이 검게
+  // 그려졌는데, 이 텍스처의 밉맵 1단계 이상을 검게 두면 같은 화면이 된다. 작은 텍스처(새긴 지명)의 밉맵은 그 기기에서도 정상이었다.
+  tex.mipmaps = buildMipmaps(canvas)
+  tex.generateMipmaps = false
   tex.minFilter = THREE.LinearMipmapLinearFilter
   tex.magFilter = THREE.LinearFilter
   return tex
