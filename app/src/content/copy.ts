@@ -433,11 +433,26 @@ export const copy = {
     /** 미션 2·3: 같은 15일끼리 비교 = 배분만의 차이 */
     prevLine: (n: number, better: number, worse: number) =>
       `같은 15일인 미션 ${n} 배분과 견주면 하루 이상 나아진 마을 ${better}곳, 불리해진 마을 ${worse}곳이에요. 이 차이에는 늘어난 5일이 섞이지 않아요.`,
-    finaleTabs: '미션 배분 고르기',
+    finaleTabs: '보기 고르기 · 겹쳐 보기와 미션 배분',
     finaleLead: '세 개의 공주 · 같은 15일, 세 가지 목표',
     finaleBoard: '세 배분 나란히 보기',
     finaleBoardClose: '세계로 돌아가기',
     finaleTableTitle: '6개 지표 · 도로망 15분',
+    /** S6 겹쳐 보기(설계안 6-19): 세 배분을 한 땅에. 새 판정이 아니라 「주 1일 이상 = 닿음」과 「기준 안 지소 없음」의 조합 */
+    overlapTab: '겹쳐 보기',
+    overlapTabSub: '세 배분 한 땅에',
+    overlapBasis: '도로망 15분 · 주 1일 이상 = 닿음. 모델 결과이며 실제 진료 이용 여부가 아니에요.',
+    overlapCats: [
+      { title: '세 배분 모두 닿음', sub: '받침 밝기 = 셋 중 가장 낮은 단계' },
+      { title: '배분에 따라 갈림', sub: '세 칸 = 미션 1·2·3, 켜진 칸 = 그 배분에서 닿음' },
+      { title: '세 배분 모두 닿지 않음', sub: '기준 안에 지소가 있어 진료일을 두면 닿을 수 있음' },
+      { title: '15분 안에 지소 없음', sub: '회색 울타리 · 배분과 상관없음' },
+    ] as const,
+    overlapCount: (n: number) => `${n}곳`,
+    overlapTotal: (n: number, pop: string) => `합계 ${n}곳 · ${pop}`,
+    overlapAria: '세 배분 겹쳐 보기 · 마을 갈래와 보건지소별 진료일',
+    overlapFacilities: '보건지소별 진료일',
+    overlapKpis: '6개 지표 표',
   },
 
   hud: {
@@ -483,6 +498,8 @@ export const copy = {
   village: {
     tooltipPop: (emd: string, pop: string) => `${emd} · 인구 ${pop}`,
     tooltipDays: (v: string) => `닿는 진료일 ${v}`,
+    /** S6 겹쳐 보기: 세 배분의 닿는 진료일 */
+    tooltipOverlap: (a: string, b: string, c: string) => `미션 1 ${a} · 미션 2 ${b} · 미션 3 ${c}`,
     tooltipNone: (t: number) => `도로망 ${t}분 안에 지소가 없어요`,
     worstTag: '가장 불리',
     emdThickShare: (pct: number) => `3일 이상 ${pct}%`,

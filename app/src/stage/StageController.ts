@@ -26,6 +26,7 @@ import { type Model, type Threshold, facilitiesReaching, tierOf, villagesReached
 import { ClinicLayer, CHAMBERS } from './clinics'
 import { EngravedLabels } from './engraved'
 import { FlagLayer } from './flags'
+import { OverlapMarks } from './overlapMarks'
 import { HouseLayer, type VillageLevel } from './houses'
 import type { LightPlan } from './lightPlan'
 import { LightPaths } from './lightPaths'
@@ -80,6 +81,17 @@ export interface StageView {
   preview?: { villages: readonly number[]; sign: 1 | -1 } | null
   /** 결산의 감상 시간: 카메라가 천천히 한 바퀴 일부를 돈다 */
   appreciate?: boolean
+  /**
+   * S6 겹쳐 보기(설계안 6-19): 마을 갈래(engine overlapCategories)와 배분마다 닿음 비트, 세 배분의 A_i.
+   * 있으면 villageDays는 셋 중 가장 낮은 값이고, 탑은 낮추고(한 배분의 진료일이 아니므로), 갈림 마을에 세 칸 기호를 띄운다.
+   */
+  overlap?: StageOverlap | null
+}
+
+export interface StageOverlap {
+  cat: Uint8Array
+  hits: Uint8Array
+  days: readonly Float64Array[]
 }
 
 export interface StageCallbacks {
@@ -156,6 +168,7 @@ export class StageController {
   private readonly clinics: ClinicLayer
   private readonly paths: LightPaths
   private readonly flags: FlagLayer
+  private readonly marks: OverlapMarks
   private readonly engraved: EngravedLabels
   private readonly emdPolys: PolygonRings[][]
   private readonly center: THREE.Vector3
@@ -242,7 +255,8 @@ export class StageController {
     this.paths.warm()
     this.villageTops = sc.villages.map((_, i) => this.houses.topOf(i))
     this.flags = new FlagLayer(this.villageTops, this.gu.uPxScale)
-    this.scene.add(trees.group, this.houses.group, this.clinics.group, this.paths.group, this.flags.mesh)
+    this.marks = new OverlapMarks(this.villageTops, this.gu.uPxScale)
+    this.scene.add(trees.group, this.houses.group, this.clinics.group, this.paths.group, this.flags.mesh, this.marks.mesh)
 
     // 읍·면 이름 자리: 그 읍·면 지소와 4 km 안이면 반대쪽으로 민다(명판과 겹치지 않게).
     sc.emds.forEach((e, m) => {
@@ -304,6 +318,10 @@ export class StageController {
     this.controls.minPolarAngle = 0
     this.controls.maxPolarAngle = (60 * Math.PI) / 180
     this.controls.screenSpacePanning = false
+    // 마우스(설계안 6-2, 2026-10-15 변경): 일반 웹 지도처럼 왼쪽 끌기 = 평행 이동(땅을 따라), 오른쪽 끌기 = 돌리기·기울이기,
+    // 휠 = 확대·축소. 왼쪽 클릭(5 px 이하로 움직임)은 그대로 지소 선택·배치다(onPointerUp). 오른쪽 끌기의 브라우저 메뉴는
+    // OrbitControls가 캔버스에서 막는다. 이동 범위(clampTarget)·거리 제한·앙각 제한은 그대로다.
+    this.controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }
     this.controls.autoRotateSpeed = 0.5
     this.controls.addEventListener('change', () => this.clampTarget(this.controls))
     this.controls.addEventListener('start', () => {
@@ -342,6 +360,28 @@ export class StageController {
           quality: { ...this.quality, pixelRatio: this.renderer.getPixelRatio(), pixelRatios: this.pixelRatios, trees: this.trees.shown() },
         }),
         qualityLog: () => [...this.qualityLog],
+        /** 카메라(검사용, 읽기만): 초점·방위각·앙각·거리 */
+        camera: () => ({
+          target: this.controls.target.toArray().map((v) => Math.round(v * 1000) / 1000),
+          azimuth: Math.round(this.controls.getAzimuthalAngle() * 1000) / 1000,
+          polar: Math.round(this.controls.getPolarAngle() * 1000) / 1000,
+          distance: Math.round(this.persp.position.distanceTo(this.controls.target) * 1000) / 1000,
+        }),
+        /** S6 겹쳐 보기: 받침 그리는 방식·세 칸 기호가 마을 갈래와 맞는지. 갈래별 마을 수와 어긋난 마을 수 */
+        overlapCheck: () => {
+          const ov = this.view?.overlap
+          if (!ov) return null
+          const counts = [0, 0, 0, 0]
+          let mismatch = 0
+          for (let i = 0; i < this.model.nV; i++) {
+            const c = ov.cat[i]
+            counts[c]++
+            const g = this.houses.groundOf(i)
+            const want = c === 1 ? 1 : c === 3 ? 2 : 0
+            if (!g || g.style !== want) mismatch++
+          }
+          return { counts, mismatch, marks: this.marks.count() }
+        },
         /** 마을 받침 = 창 단계 = tierOf(A_i)인지(빛이 다 닿은 뒤에 부른다). 단계별 마을 수와 어긋난 마을 수 */
         groundCheck: () => {
           const v = this.view
@@ -394,7 +434,8 @@ export class StageController {
     const now = performance.now()
     const reduced = view.reducedMotion
     const intro = view.mode !== 'normal'
-    this.clinics.setRise(view.mode === 'intro-villages' ? 0 : 1, now, reduced || !prev)
+    const ov = view.overlap ?? null
+    this.clinics.setRise(view.mode === 'intro-villages' || ov ? 0 : 1, now, reduced || !prev)
 
     // 1) 새 빛의 순서: 그 계획대로 시각을 잡는다.
     const ev = view.event
@@ -425,6 +466,12 @@ export class StageController {
       const level: VillageLevel = intro ? 3 : levelOf(view.villageDays[i])
       if (!prev) this.houses.setNow(i, level)
       else this.houses.setTarget(i, level, now)
+    }
+    // S6 겹쳐 보기: 받침 그리는 방식(갈림 = 받침 없이 세 칸 기호, 지소 없음 = 울타리)
+    for (let i = 0; i < this.model.nV; i++) {
+      const c = ov ? ov.cat[i] : 0
+      this.houses.setGroundStyle(i, c === 1 ? 1 : c === 3 ? 2 : 0)
+      this.marks.set(i, ov && c === 1 ? ov.hits[i] : null)
     }
     this.houses.setEmphasis(view.emphasis === 'zero' || view.emphasis === 'thick' ? view.emphasis : null)
     this.houses.setHighlight(view.highlightVillages ?? null)
@@ -968,9 +1015,11 @@ export class StageController {
       const hv = this.stageHover?.kind === 'village' && view.mode === 'normal' ? this.stageHover.index : null
       this.houses.setHover(hv)
       const fj = hv === null ? this.focusFacility() : null
-      this.paths.setFocus(view.mode === 'normal' ? fj : null)
+      // 겹쳐 보기에서는 길의 빛을 세우지 않는다(어느 배분의 운영 지소인지 하나로 정할 수 없다). 명판이 세 배분의 값을 말한다
+      const lightOk = view.mode === 'normal' && !view.overlap
+      this.paths.setFocus(lightOk ? fj : null)
       this.clinics.setHover(fj)
-      if (hv !== null) {
+      if (hv !== null && lightOk) {
         const reach = facilitiesReaching(this.model, hv, view.T)
         this.paths.setVillage(hv, reach.filter((r) => view.alloc[r.j] > 0).map((r) => r.j), reach.filter((r) => view.alloc[r.j] <= 0).map((r) => r.j), now)
       } else this.paths.setVillage(null, [], [], now)
@@ -981,6 +1030,7 @@ export class StageController {
     if (this.clinics.update(now, reduced)) animating = true
     if (this.paths.update(now, reduced, dt)) animating = true
     if (this.flags.update(now, reduced)) animating = true
+    if (this.marks.flush()) this.dirty = true
 
     // 가장 불리한 읍·면 강조(6개 지표의 그 타일을 가리킬 때)
     if (view?.emphasis === 'worst') {
@@ -1267,7 +1317,11 @@ export class StageController {
       const lines = [
         `<strong>${vil.name}</strong>`,
         copy.village.tooltipPop(emd.name, people(vil.pop)),
-        v.mode === 'normal' ? `<span class="tt-days">${copy.village.tooltipDays(weekDays(v.villageDays[hv]))}</span>` : '',
+        v.mode !== 'normal'
+          ? ''
+          : v.overlap
+            ? `<span class="tt-days">${copy.village.tooltipOverlap(weekDays(v.overlap.days[0][hv]), weekDays(v.overlap.days[1][hv]), weekDays(v.overlap.days[2][hv]))}</span>`
+            : `<span class="tt-days">${copy.village.tooltipDays(weekDays(v.villageDays[hv]))}</span>`,
         reach.length === 0
           ? copy.village.tooltipNone(v.T)
           : reach.map((r) => `${sc.facilities[r.j].short} ${roadMinutes(r.tenths)} · ${v.alloc[r.j] > 0 ? allocDays(v.alloc[r.j]) : copy.facility.closed}`).join('<br>'),

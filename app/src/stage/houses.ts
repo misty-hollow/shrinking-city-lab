@@ -18,7 +18,7 @@ import * as THREE from 'three'
 import type { Heightmap } from './terrain'
 import { PALETTE } from './palette'
 import { type GlowUniforms, LIGHT_GLSL, type SceneUniforms, makeGlowMaterial, makeGlowMesh } from './shaders'
-import type { VillageGround } from './villageGround'
+import type { GroundStyle, VillageGround } from './villageGround'
 import type { World } from './world'
 
 /** 마을 표시 단계: 0 닿지 않음 · 1 주 1~2일 · 2 주 3~5일 · 3 중립(소개) */
@@ -487,8 +487,15 @@ export class HouseLayer {
   }
 
   /** 마을 받침에 올라간 단계(검사용) */
-  groundOf(i: number): { level: number; visible: boolean } | null {
+  groundOf(i: number): { level: number; visible: boolean; style: GroundStyle } | null {
     return this.ground ? this.ground.read(i) : null
+  }
+
+  /** 받침을 그리는 방식(S6 겹쳐 보기). 다음 update에서 올라간다 */
+  setGroundStyle(i: number, style: GroundStyle): void {
+    if (!this.ground) return
+    this.ground.setStyle(i, style)
+    this.dirty = true
   }
 
   setEmphasis(e: 'zero' | 'thick' | null): void {

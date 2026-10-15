@@ -120,6 +120,53 @@ export function unreachableVillages(m: Model, t: Threshold): number[] {
   return out
 }
 
+/**
+ * S6 겹쳐 보기(설계안 6-19)의 마을 분류. 새 판정이 아니라 기존 정의 둘을 조합한다:
+ * 「주 1일 미만이면 닿지 않음」(A_i < 1, 격주 0.5일 포함 — KPI 「주 1일 이상 닿는 주민」의 여집합)과
+ * 「기준 T 안에 보건지소가 하나도 없음」(unreachableVillages).
+ *
+ *   0 all       세 배분 모두 A ≥ 1
+ *   1 split     배분에 따라 갈림(어떤 배분에서는 A ≥ 1, 어떤 배분에서는 A < 1)
+ *   2 none      세 배분 모두 A < 1이지만 기준 안에 지소가 있다(그 지소에 진료일을 두면 닿을 수 있다)
+ *   3 noFacility 기준 안에 지소가 없다(배분과 상관없이 0일)
+ *
+ * 모든 마을은 정확히 한 갈래에 든다. hits는 배분마다 닿음 여부(비트 k = 배분 k), minDays는 셋 중 가장 낮은 A_i.
+ */
+export type OverlapCategory = 0 | 1 | 2 | 3
+export const OVERLAP_CATEGORIES = ['all', 'split', 'none', 'noFacility'] as const
+
+export interface Overlap {
+  cat: Uint8Array
+  hits: Uint8Array
+  minDays: Float64Array
+  /** 갈래마다 마을 수와 주민 수(0 all · 1 split · 2 none · 3 noFacility) */
+  counts: { villages: number; pop: number }[]
+}
+
+export function overlapCategories(m: Model, ks: readonly Kpis[], t: Threshold): Overlap {
+  const noFacility = new Set(unreachableVillages(m, t))
+  const cat = new Uint8Array(m.nV)
+  const hits = new Uint8Array(m.nV)
+  const minDays = new Float64Array(m.nV)
+  const counts = [0, 1, 2, 3].map(() => ({ villages: 0, pop: 0 }))
+  for (let i = 0; i < m.nV; i++) {
+    let h = 0
+    let lo = Infinity
+    ks.forEach((k, q) => {
+      const d = k.villageDays[i]
+      if (d >= 1) h |= 1 << q
+      lo = Math.min(lo, d)
+    })
+    const c: OverlapCategory = noFacility.has(i) ? 3 : h === (1 << ks.length) - 1 ? 0 : h === 0 ? 2 : 1
+    cat[i] = c
+    hits[i] = h
+    minDays[i] = lo
+    counts[c].villages++
+    counts[c].pop += m.pop[i]
+  }
+  return { cat, hits, minDays, counts }
+}
+
 export function missionValue(k: Kpis, kpi: MissionKpi): number {
   return kpi === 'mean_days' ? k.meanDays : kpi === 'worst_emd_days' ? k.worstEmdDays : k.cov3Pop
 }

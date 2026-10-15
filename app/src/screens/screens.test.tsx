@@ -11,13 +11,13 @@ import { describe, expect, it } from 'vitest'
 
 import { APPROVED_NEGATIONS, copy } from '../content/copy'
 import type { Geometry, Landscape, Manifest, Scenario } from '../data/types'
-import { lostVillages, unreachableVillages, villageChangeCounts, zeroOverlap, zeroVillages } from '../engine/compare'
+import { lostVillages, overlapCategories, unreachableVillages, villageChangeCounts, zeroOverlap, zeroVillages } from '../engine/compare'
 import { people } from '../engine/format'
 import { type Kpis, buildModel, computeKpis } from '../engine/kpi'
 import { type MissionResult, type Results, comboFor, finaleResults, makeEvaluate } from '../state/results'
 import { withEdgeInsets } from '../stage/Stage'
 import { changeSummary, lostPinOrder } from '../ui/changeSummary'
-import { RegionCard } from '../ui/PlayPanel'
+import { RegionCard, dockOrder } from '../ui/PlayPanel'
 import { IntroCard, TutorialCard } from './Cards'
 import { DataLimits } from './DataLimits'
 import { DebriefPanel } from './Debrief'
@@ -32,6 +32,7 @@ const landscape = read<Landscape>('landscape.json')
 const geometry = read<Geometry>('geometry.json')
 const manifest = read<Manifest>('manifest.json')
 const model = buildModel(scenario)
+const ORDER = dockOrder(scenario)
 const evaluate = makeEvaluate(model, landscape)
 const current15 = computeKpis(model, scenario.current_allocation, 15)
 
@@ -361,6 +362,8 @@ describe('S6 좁은 화면(768~1099): 표가 차지한 왼쪽 단을 무대가 �
         narrow={narrow}
         focus="m1"
         onFocus={() => {}}
+        overlap={overlapCategories(model, results.map((r) => r.k15), 15)}
+        order={ORDER}
         base="current"
         onBase={() => {}}
         onBoard={() => {}}
@@ -577,6 +580,8 @@ describe('S6 표: 현재 실제 대비 나아진·불리해진 주민', () => {
         current15={current15}
         focus="m1"
         onFocus={() => {}}
+        overlap={overlapCategories(model, results.map((r) => r.k15), 15)}
+        order={ORDER}
         base="current"
         onBase={() => {}}
         onBoard={() => {}}
@@ -618,5 +623,81 @@ describe('지역 카드: 규모와 비율 먼저', () => {
       }
       unmount()
     }
+  })
+})
+
+describe('S6 겹쳐 보기(설계안 6-19)', () => {
+  const results = finaleResults(
+    { m1: evaluate('m1', A1, 'played', 1), m2: evaluate('m2', A2, 'played', 1), m3: evaluate('m3', A3, 'played', 1) },
+    landscape,
+    evaluate,
+  ) as FinaleResults
+  const ov = overlapCategories(model, results.map((r) => r.k15), 15)
+  const views: string[] = []
+  const draw = () =>
+    render(
+      <WorldFinale
+        results={results}
+        scenario={scenario}
+        model={model}
+        current15={current15}
+        focus="overlap"
+        onFocus={(v) => views.push(v)}
+        overlap={ov}
+        order={ORDER}
+        base="current"
+        onBase={() => {}}
+        onBoard={() => {}}
+        onHome={() => {}}
+      />,
+    )
+
+  it('shows four tabs with the overlap selected, and no change base (no ▲▼ in this view)', () => {
+    const { unmount } = draw()
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false'])
+    expect(tabs[0].textContent).toContain(copy.world.overlapTab)
+    // 증감 기준 줄은 자리만 남고(보기를 바꿔도 섬이 그대로) 보이지도 읽히지도 않는다
+    const base = document.querySelector<HTMLElement>('.wf-base')!
+    expect(base.style.visibility).toBe('hidden')
+    expect(base.getAttribute('aria-hidden')).toBe('true')
+    fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
+    fireEvent.keyDown(tabs[0], { key: 'End' })
+    expect(views.slice(-2)).toEqual(['m1', 'm3'])
+    unmount()
+  })
+
+  it('lists the four groups with village and resident counts that add up to all 161 villages', () => {
+    const { unmount } = draw()
+    const rows = [...document.querySelectorAll('.wf-ov-cats tr')]
+    expect(rows).toHaveLength(4)
+    rows.forEach((r, k) => {
+      expect(r.textContent).toContain(copy.world.overlapCats[k].title)
+      expect(r.querySelector('.wf-ov-n')?.textContent).toBe(copy.world.overlapCount(ov.counts[k].villages))
+      expect(r.querySelector('.wf-ov-pop')?.textContent).toBe(people(ov.counts[k].pop))
+    })
+    expect(document.querySelector('.wf-ov-total')?.textContent).toBe(copy.world.overlapTotal(161, people(model.totalPop)))
+    unmount()
+  })
+
+  it('shows each mission’s clinic days in one table (west → east), equal to the confirmed allocations', () => {
+    const { unmount } = draw()
+    const head = [...document.querySelectorAll('.wf-ov-alloc thead th')].map((th) => th.textContent)
+    expect(head).toEqual(ORDER.map((j) => scenario.facilities[j].short))
+    const body = [...document.querySelectorAll('.wf-ov-alloc tbody tr')].map((tr) => [...tr.querySelectorAll('td')].map((td) => (td.textContent === '·' ? 0 : Number(td.textContent))))
+    expect(body).toEqual(results.map((r) => ORDER.map((j) => r.alloc[j])))
+    unmount()
+  })
+
+  it('opens the 6×3 table and the fixed sentences on demand', () => {
+    const { unmount } = draw()
+    expect(document.querySelector('.wf-kpis')).toBeNull()
+    const btn = screen.getByRole('button', { name: copy.world.overlapKpis })
+    expect(btn.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(btn)
+    expect(btn.getAttribute('aria-expanded')).toBe('true')
+    expect(document.querySelectorAll('.wf-kpis tbody:not(.wf-change) tr')).toHaveLength(6)
+    for (const line of finaleSummary(results, model)) expect(document.body.textContent).toContain(line)
+    unmount()
   })
 })

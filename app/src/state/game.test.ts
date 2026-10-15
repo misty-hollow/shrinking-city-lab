@@ -302,6 +302,9 @@ describe('missions 1 → 2 → 3 → S6', () => {
     s = step(s, { type: 'nextMission' })
     s = playMission(s, A3)
     s = step(s, { type: 'nextMission' })
+    // 겹쳐 보기부터: 증감 ▲▼ 없이
+    expect(s.finaleFocus).toBe('overlap')
+    expect(s.deltaMode).toBe(false)
     s = step(s, { type: 'finaleFocus', m: 'm2' })
     expect(s.finaleFocus).toBe('m2')
     expect(s.deltaMode).toBe(true)
@@ -311,6 +314,8 @@ describe('missions 1 → 2 → 3 → S6', () => {
     expect(s.finaleBase).toBe('m1')
     s = step(s, { type: 'finaleFocus', m: 'm1' })
     expect(s.finaleBase).toBe('current')
+    s = step(s, { type: 'finaleFocus', m: 'overlap' })
+    expect(s.deltaMode).toBe(false)
     s = step(s, { type: 'finaleFocus', m: null })
     expect(s.finaleFocus).toBeNull()
     // S6에서 둘러봐도 결과는 바뀌지 않는다.
