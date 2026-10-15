@@ -12,6 +12,7 @@
  *   v0.5(설계안 6-17 「세계가 먼저」): 지소 말풍선으로 놓기·빼기(키보드·클릭·− 손잡이), 놓기 전 미리보기 숫자 = 놓은 뒤 결과,
  *   되돌리기(↶, 미리보기 포함), 위에서 보기(같은 원근 세계), 막힌 조작 피드백, 결산 감상(건너뛰기)·세계 위 결과 글·잃은 마을 표지,
  *   S6 세계 탭(미션 고르기 · 6개 지표 한 표) ↔ 세 배분 나란히 보기.
+ *   6-18(마을 받침): 소개 화면엔 받침이 없고, 빛이 다 닿은 뒤 161곳 모두 받침 단계 = 창 단계 = tierOf(A_i)(10·15·20분, 개발 서버에서만).
  *   목표 경계 배분은 파이썬 전처리가 만든 golden.json(boundary_*)에서 읽는다.
  * 무엇을 못 보나: 사람의 이해도·시각 품질 판단(스크린샷을 사람이 본다), 통합 GPU 전시 기기 성능.
  *
@@ -70,6 +71,18 @@ async function settle(page) {
   })
 }
 
+/**
+ * 마을 받침(설계안 6-18 P2): 빛이 다 닿은 뒤 161곳 모두 받침 단계 = 창 단계 = tierOf(A_i)인지(개발 서버의 무대 검사 창).
+ * intro = 소개 화면이면 받침이 하나도 없어야 한다.
+ */
+async function groundCheck(page, label, intro = false) {
+  await page.waitForTimeout(450) // 창·받침이 바뀌는 230 ms + 마을 안 깨어나는 순서 150 ms
+  const g = await page.evaluate(() => (window.__sclStage?.groundCheck ? window.__sclStage.groundCheck() : null))
+  if (!g) return
+  if (intro) check(g.hidden === 161 && g.mismatch === 0, `${label}: 소개 화면에는 마을 받침이 없다`, JSON.stringify(g))
+  else check(g.mismatch === 0 && g.counts[0] + g.counts[1] + g.counts[2] === 161, `${label}: 마을 받침 = 창 단계 = tierOf(A_i), 161곳`, JSON.stringify(g))
+}
+
 /** 시나리오 순서 j의 지소 카드(도크는 서쪽→동쪽이라 화면 순서와 다르다) */
 const row = (page, j) => page.locator(`.fac-row[data-j="${j}"]`)
 
@@ -112,6 +125,7 @@ const BANNED = ['최적', '최선', '추천', '정답', '가장 좋은 배분', 
 async function finaleChecks(page, tag, full, allocs) {
   await page.waitForSelector('#s6-title')
   await page.waitForTimeout(600)
+  await groundCheck(page, `${tag} S6 세계`)
   // 같은 세계 위에서 미션을 고른다(설계안 6-17): 탭 셋 · 6개 지표 한 표 · 고정 문장
   const tabs = page.getByRole('tab')
   check((await tabs.count()) === 3 && (await tabs.nth(0).getAttribute('aria-selected')) === 'true', `${tag} S6 세계: 미션 탭 셋, 미션 1부터`)
@@ -231,6 +245,7 @@ async function missionRound(page, tag, full, m) {
   await settle(page)
   mc = await page.locator('.mission-card').innerText()
   check(!mc.includes('목표 달성') && mc.includes('미션 판정은 15분 기준이에요'), `${tag} S4 M${n}: 20분에서도 15분 판정(미달 유지)`)
+  await groundCheck(page, `${tag} S4 M${n} 20분`)
   await page.getByRole('radio', { name: '15분' }).click()
   await settle(page)
 
@@ -244,6 +259,7 @@ async function missionRound(page, tag, full, m) {
   await settle(page)
   mc = await page.locator('.mission-card').innerText()
   check(mc.includes('목표 달성') && mc.includes('미션 판정은 15분 기준이에요'), `${tag} S4 M${n}: 10분에서도 15분 판정(달성 유지)`)
+  await groundCheck(page, `${tag} S4 M${n} 10분`)
   await page.getByRole('radio', { name: '15분' }).click()
   await settle(page)
   // 지소당 5일·총량 15일
@@ -336,6 +352,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
     if (full) await shot(page, `${tag}-s1-intro-${k + 1}`)
     const text = await page.locator('.corner-card').innerText()
     if (k === 0) check(text.includes('40,204명') && text.includes('2026-08-31'), `${tag} S1-1: 인구·기준일(manifest)`, text)
+    if (k === 0) await groundCheck(page, `${tag} S1-1`, true)
     if (k === 1) check(text.includes('2026-04-13') && text.includes('4곳'), `${tag} S1-2: 일정 기준일`, text)
     await page.locator('.corner-card').getByRole('button', { name: '다음' }).click()
   }
@@ -343,6 +360,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   // S2 튜토리얼
   await page.waitForSelector('.marker.is-live')
   check((await page.locator('.corner-card').innerText()).includes('불이 꺼진'), `${tag} S2-1: 범례 코치(집·창의 불)`)
+  await settle(page)
+  await groundCheck(page, `${tag} S2-1 현재 실제 15분`)
   await page.locator('.corner-card').getByRole('button', { name: '다음' }).click()
   const nextBtn = page.locator('.corner-card').getByRole('button', { name: '다음' })
   check(await nextBtn.isDisabled(), `${tag} S2-2: 기준을 바꾸기 전 [다음] 비활성`)
@@ -351,6 +370,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await settle(page)
   const kpi10 = await kpiText(page)
   check(kpi10 !== kpi15, `${tag} S2-2: 10분으로 바꾸자 지표 변화`)
+  await groundCheck(page, `${tag} S2-2 현재 실제 10분`)
   const tried = await page.locator('.corner-card').innerText()
   check(/명에서 .*명으로 바뀌었어요/.test(tried), `${tag} S2-2: 실제 계산 문장`, tried)
   if (full) await shot(page, `${tag}-s2-threshold-10`)
@@ -531,6 +551,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await page.locator('.region-card').getByRole('button', { name: '닫기', exact: true }).click()
   await page.locator('.hud-links').getByRole('button', { name: '지표 자세히 닫기' }).click()
 
+  await settle(page)
+  await groundCheck(page, `${tag} S4 확정 직전`)
   await confirm.click()
   if (reducedMotion === 'reduce') check((await page.locator('.world-result').count()) === 1, `${tag} S5: 움직임 줄이기 — 감상 없이 바로 결과 글`)
   else {
@@ -546,6 +568,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   const pins = await page.locator('.vpin').count()
   check(lostLine ? lostLine.includes('지도의 빨간 표지') && pins >= 1 && pins <= 3 : pins === 0, `${tag} S5 세계: 잃은 마을은 세계 속 표지(많아야 셋)`, `${lostLine.replace(/\n/g, ' ')} · 표지 ${pins}`)
   await shot(page, `${tag}-s5-world`)
+  await groundCheck(page, `${tag} S5 세계`)
   await layoutGeometry(page, `${tag} S5 세계`, check, { overview: true })
   await openDetails(page)
   const deb = await page.locator('.panel').innerText()

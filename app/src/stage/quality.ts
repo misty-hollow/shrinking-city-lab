@@ -1,0 +1,51 @@
+/**
+ * 적응 화질의 판단(설계안 6-12 5항, 6-16 성능, 6-18). 무대는 이어서 그린 프레임 약 90개(또는 3초)마다 간격의 가운데값을 넘겨주고,
+ * 여기서 단계를 정한다. 단계 0 = 이 화면의 픽셀 비율(최대 2) … 마지막 픽셀 비율 칸, 그다음 한 칸 = 나무 절반.
+ *
+ *   느리다(가운데값 > 26 ms)  한 칸 내린다.
+ *   넉넉하다(≤ 18 ms, 약 55fps 이상). 단계를 바꾼 지 5초가 지났으면 한 칸 올린다(일시적 멈춤 뒤 되돌아오게).
+ *   올리고 6초 안에 다시 느려지면 그 칸은 이 판에서 다시 올리지 않는다(오르내림 반복 방지).
+ *
+ * 데이터 표현(집·창·빛 번짐·길의 빛·진료등·마을 받침)은 어느 단계에서도 줄이지 않는다. 움직임 줄이기와는 관계가 없다
+ * (움직임 줄이기는 화면이 멈춰 있어 프레임을 덜 그릴 뿐, 단계를 바꾸지 않는다).
+ */
+
+export const SLOW_MS = 26
+export const FAST_MS = 18
+/** 단계를 바꾼 뒤 다시 올려 보기까지 기다리는 시간 */
+export const RAISE_AFTER_MS = 5000
+/** 올린 뒤 이 시간 안에 느려지면 그 칸을 잠근다 */
+export const RAISE_TRIAL_MS = 6000
+
+export interface QualityState {
+  level: number
+  /** 올라갈 수 있는 가장 높은 단계(작을수록 높은 화질) */
+  ceiling: number
+  changedAt: number
+  raisedAt: number
+}
+
+export function initialQuality(): QualityState {
+  return { level: 0, ceiling: 0, changedAt: 0, raisedAt: -1e9 }
+}
+
+/** 가운데값 med(ms)를 보고 다음 상태. maxLevel = 가장 낮은 단계(픽셀 비율 칸 수 = 나무 절반 단계). 바뀌지 않으면 같은 객체 */
+export function nextQuality(s: QualityState, med: number, now: number, maxLevel: number): QualityState {
+  if (med > SLOW_MS) {
+    if (s.level >= maxLevel) return s
+    const ceiling = now - s.raisedAt < RAISE_TRIAL_MS ? Math.max(s.ceiling, s.level + 1) : s.ceiling
+    return { level: s.level + 1, ceiling, changedAt: now, raisedAt: s.raisedAt }
+  }
+  if (med <= FAST_MS && s.level > s.ceiling && now - s.changedAt >= RAISE_AFTER_MS) {
+    return { level: s.level - 1, ceiling: s.ceiling, changedAt: now, raisedAt: now }
+  }
+  return s
+}
+
+/** 프레임 간격 묶음의 가운데값. 90개가 모이거나, 아주 느린 GPU에서는 3초 동안 12개 이상이면 판단한다(그 전엔 null) */
+export function windowMedian(gaps: number[]): number | null {
+  const n = gaps.length
+  if (n < 90 && !(n >= 12 && gaps.reduce((a, b) => a + b, 0) >= 3000)) return null
+  const sorted = [...gaps].sort((a, b) => a - b)
+  return sorted[sorted.length >> 1]
+}

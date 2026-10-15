@@ -30,10 +30,12 @@ import { HouseLayer, type VillageLevel } from './houses'
 import type { LightPlan } from './lightPlan'
 import { LightPaths } from './lightPaths'
 import { PALETTE } from './palette'
+import { type QualityState, initialQuality, nextQuality, windowMedian } from './quality'
 import { type GlowUniforms, makeGlowUniforms, makeSceneUniforms, type SceneUniforms } from './shaders'
 import { BASE_Y, bakeTerrain } from './terrainBake'
 import { type Heightmap, drapePath, pointInPolygons } from './terrain'
 import { TreeLayer } from './trees'
+import { VillageGround, attachVillageGround, bakeVillageGround } from './villageGround'
 import type { World } from './world'
 
 export type Pick = { kind: 'facility' | 'village' | 'emd'; index: number } | null
@@ -141,9 +143,9 @@ export class StageController {
   private fitTop = { dist: 60, target: new THREE.Vector3() }
   private readonly houses: HouseLayer
   private readonly trees: TreeLayer
-  /** 적응 화질: 이어서 그린 프레임 간격(ms)과 지금 단계(픽셀 비율 목록의 칸) */
+  /** 적응 화질: 이어서 그린 프레임 간격(ms)과 지금 단계(픽셀 비율 목록의 칸, 그다음 칸 = 나무 절반). 판단은 quality.ts */
   private readonly frameGaps: number[] = []
-  private qualityLevel = 0
+  private quality: QualityState = initialQuality()
   private readonly pixelRatios: number[]
   private renderedLast = false
   private readonly clinics: ClinicLayer
@@ -202,6 +204,7 @@ export class StageController {
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
     this.pixelRatios = [dpr, 1.5, 1, 0.75].filter((r, k, a) => r <= dpr && a.indexOf(r) === k)
     this.renderer.setPixelRatio(this.pixelRatios[0])
+    this.renderer.domElement.dataset.quality = '0'
     this.renderer.setClearColor(0x000000, 0)
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     container.appendChild(this.renderer.domElement)
@@ -224,7 +227,9 @@ export class StageController {
     this.topView = bake.topView
     const trees = new TreeLayer(this.world.trees, this.hm, bake.shadowAt, this.u)
     this.trees = trees
-    this.houses = new HouseLayer(this.world, this.hm, bake.shadowAt, this.u, this.gu)
+    const ground = new VillageGround(bakeVillageGround(this.world, this.hm))
+    attachVillageGround(this.terrainMat, ground)
+    this.houses = new HouseLayer(this.world, this.hm, bake.shadowAt, this.u, this.gu, ground)
     this.clinics = new ClinicLayer(this.world.clinics, this.hm, bake.shadowAt, this.u, this.gu)
     const minutesOf = (i: number, j: number) => model.tenths[i * model.nF + j] / 10
     const outline = data.geometry.outer.polygons.map((p) => [p[0]])
@@ -324,7 +329,34 @@ export class StageController {
     // 개발·검사용 성능 창(운영 빌드에는 없다): 드로우 수·삼각형 수·마지막 그리기 시간
     if (import.meta.env.DEV) {
       ;(window as unknown as { __sclStage?: unknown }).__sclStage = {
-        info: () => ({ ...this.renderer.info.render, geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, lastRenderMs: this.lastRenderMs }),
+        info: () => ({
+          ...this.renderer.info.render,
+          geometries: this.renderer.info.memory.geometries,
+          textures: this.renderer.info.memory.textures,
+          lastRenderMs: this.lastRenderMs,
+          quality: { ...this.quality, pixelRatio: this.renderer.getPixelRatio(), pixelRatios: this.pixelRatios },
+        }),
+        /** 마을 받침 = 창 단계 = tierOf(A_i)인지(빛이 다 닿은 뒤에 부른다). 단계별 마을 수와 어긋난 마을 수 */
+        groundCheck: () => {
+          const v = this.view
+          if (!v) return null
+          const counts = [0, 0, 0]
+          let mismatch = 0
+          let hidden = 0
+          for (let i = 0; i < this.model.nV; i++) {
+            const g = this.houses.groundOf(i)
+            if (!g) return null
+            if (v.mode !== 'normal') {
+              if (g.visible) mismatch++
+              else hidden++
+              continue
+            }
+            const want = tierOf(v.villageDays[i])
+            counts[want]++
+            if (!g.visible || Math.abs(g.level - want) > 0.01 || this.houses.targetOf(i) !== want) mismatch++
+          }
+          return { counts, mismatch, hidden }
+        },
         /** n번 그리고 1픽셀을 읽어 GPU가 끝날 때까지 기다린다: 한 장면의 실제 비용(ms) */
         bench: (n = 30) => {
           const gl = this.renderer.getContext()
@@ -996,7 +1028,7 @@ export class StageController {
       this.renderedLast = false
       return
     }
-    this.adaptQuality(dt)
+    this.adaptQuality(dt, now)
     this.dirty = false
     const r0 = performance.now()
     this.renderer.render(this.scene, this.camera)
@@ -1005,27 +1037,27 @@ export class StageController {
   }
 
   /**
-   * 적응 화질(설계안 6-12 5항: 통합 GPU 1080p 60fps): 이어서 그린 프레임이 느리면(가운데값 26 ms 넘게, 약 90프레임)
-   * 픽셀 비율을 한 칸 낮추고, 가장 낮은 칸에서도 느리면 나무를 절반으로 줄인다. 데이터 표현(집·빛·탑)은 줄이지 않는다.
-   * 아주 느린 GPU(10fps 안팎)에서는 90프레임이 10초를 넘으므로, 3초 동안 12프레임 이상 모이면 그때 판단한다.
+   * 적응 화질(설계안 6-12 5항: 통합 GPU 1080p 60fps, 6-18): 이어서 그린 프레임이 느리면 픽셀 비율을 한 칸 낮추고, 가장 낮은 칸에서도
+   * 느리면 나무를 절반으로 줄인다. 일시적 멈춤으로 내려갔으면 넉넉한 프레임이 이어질 때 한 칸씩 되돌린다(판단 규칙은 quality.ts).
+   * 데이터 표현(집·빛·탑·받침)은 줄이지 않는다. 캔버스의 data-quality에 지금 단계를 남긴다(성능 점검이 읽는다).
    */
-  private adaptQuality(dt: number): void {
+  private adaptQuality(dt: number, now: number): void {
     if (this.renderedLast) this.frameGaps.push(dt * 1000)
     this.renderedLast = true
-    const n = this.frameGaps.length
-    if (n < 90 && !(n >= 12 && this.frameGaps.reduce((a, b) => a + b, 0) >= 3000)) return
-    const sorted = [...this.frameGaps].sort((a, b) => a - b)
-    const med = sorted[sorted.length >> 1]
+    const med = windowMedian(this.frameGaps)
+    if (med === null) return
     this.frameGaps.length = 0
-    if (med <= 26) return
-    if (this.qualityLevel < this.pixelRatios.length - 1) {
-      this.qualityLevel++
-      this.renderer.setPixelRatio(this.pixelRatios[this.qualityLevel])
+    const next = nextQuality(this.quality, med, now, this.pixelRatios.length)
+    if (next === this.quality) return
+    this.quality = next
+    this.trees.thin(next.level >= this.pixelRatios.length ? 0.5 : 1)
+    const pr = this.pixelRatios[Math.min(next.level, this.pixelRatios.length - 1)]
+    if (this.renderer.getPixelRatio() !== pr) {
+      this.renderer.setPixelRatio(pr)
       this.resize(false)
-    } else if (this.qualityLevel === this.pixelRatios.length - 1) {
-      this.qualityLevel++
-      this.trees.thin(0.5)
     }
+    this.renderer.domElement.dataset.quality = String(next.level)
+    this.dirty = true
   }
 
   private project(p: THREE.Vector3): { x: number; y: number; ok: boolean } {

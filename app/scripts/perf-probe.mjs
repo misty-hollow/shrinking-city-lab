@@ -10,7 +10,7 @@
  *   - 첫 화면 조작 가능까지(탐색 시작 → S0 제목·시작 버튼) · 무대 준비 표시(scl-stage-ready)
  *   - S0 회전 무대 6초, S4 조작 뒤 빛이 번지는 3초, 위에서 보기 카메라 이동 동안의 프레임 간격(가운데값·95%·20 ms 넘는 비율)
  *   - 조작 → 결과 숫자가 뜰 때까지(계산은 즉시, 표시는 빛을 따른다)
- *   - 긴 작업(50 ms 넘는 메인 스레드 작업) 수·최대, JS 힙, 내려받은 바이트, 적응 화질이 낮춘 픽셀 비율
+ *   - 긴 작업(50 ms 넘는 메인 스레드 작업) 수·최대, JS 힙, 내려받은 바이트, 적응 화질이 낮춘 픽셀 비율과 단계(data-quality)
  * headless 창의 프레임은 실제 모니터 vsync와 다를 수 있다 — 전시 기기에서는 PERF_HEADED=1로 다시 잰다.
  */
 import { writeFileSync, mkdirSync } from 'node:fs'
@@ -78,6 +78,11 @@ const dpr = (page) => page.evaluate(() => {
   const c = document.querySelector('canvas')
   return c ? +(c.width / c.clientWidth).toFixed(2) : null
 })
+/** 적응 화질 단계(0 = 이 화면의 픽셀 비율 … 마지막 = 나무 절반). 무대가 캔버스 data-quality에 남긴다 */
+const qlevel = (page) => page.evaluate(() => {
+  const q = document.querySelector('canvas')?.dataset.quality
+  return q === undefined ? null : Number(q)
+})
 
 async function toPlay(page) {
   await page.getByRole('button', { name: '시작', exact: true }).click()
@@ -131,6 +136,7 @@ async function probe(name) {
     }
   })
   const dpr0 = await dpr(page)
+  const q0 = await qlevel(page)
   // S0는 계속 그린다(회전 무대). 적응 화질은 느린 프레임 90개를 모아야 한 칸 내려가므로 20초를 재고 앞·뒤 6초를 나눠 본다.
   const s0gaps = await page.evaluate(() => window.__perf.frames(20000))
   const cut = (from, to) => {
@@ -140,6 +146,7 @@ async function probe(name) {
   const s0 = stats(cut(0, 6000))
   const s0late = stats(cut(14000, 20000))
   const dprS0 = await dpr(page)
+  const qS0 = await qlevel(page)
 
   await toPlay(page)
   const longBefore = await page.evaluate(() => window.__perf.long.length)
@@ -160,6 +167,7 @@ async function probe(name) {
     return { longtasks_total: l.length, longtasks_in_play: l.length - n, longtask_max_ms: l.length ? Math.round(Math.max(...l)) : 0, js_heap_mb: heap }
   }, longBefore)
   const dprEnd = await dpr(page)
+  const qEnd = await qlevel(page)
   await page.screenshot({ path: new URL(`${name}-s4.png`, OUT).pathname.replace(/^\/([A-Za-z]:)/, '$1') })
   await browser.close()
   return {
@@ -175,6 +183,7 @@ async function probe(name) {
     s4_to_top_view: top,
     click_to_result_ms: resultShownMs,
     pixel_ratio: { start: dpr0, after_s0: dprS0, end: dprEnd },
+    quality_level: { start: q0, after_s0: qS0, end: qEnd },
     ...tail,
     errors: errors.slice(0, 5),
   }

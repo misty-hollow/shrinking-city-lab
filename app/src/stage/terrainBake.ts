@@ -446,8 +446,8 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
   ctx.drawImage(small, -sc / 2, -sc / 2, cols * sc, rows * sc)
 
   const rnd = mulberry32(20260925)
-  // 2) 논 구획: 골짜기 바닥에 크기가 제각각인 사각 논을 골짜기 방향으로. 익은 황금·덜 익은 연두·벤 논.
-  const tones = ['rgba(222,186,98,0.42)', 'rgba(205,168,82,0.38)', 'rgba(188,176,96,0.34)', 'rgba(214,158,72,0.32)', 'rgba(160,150,86,0.3)']
+  // 2) 논 구획: 골짜기 바닥에 크기가 제각각인 사각 논을 골짜기 방향으로. 올리브·연두·벤 논(마른 짚빛). 황금빛은 쓰지 않는다.
+  const tones = ['rgba(190,190,128,0.42)', 'rgba(172,176,112,0.38)', 'rgba(158,172,112,0.34)', 'rgba(188,178,128,0.32)', 'rgba(140,150,100,0.3)']
   for (let y = hm.y0; y < hm.y0 + hm.height; y += 0.075) {
     for (let x = hm.x0; x < hm.x0 + hm.width; x += 0.075) {
       const px0 = x + (rnd() - 0.5) * 0.07
@@ -468,7 +468,7 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
       ctx.fillStyle = tones[Math.floor(rnd() * tones.length)]
       ctx.fillRect(-w / 2, -h / 2, w, h)
       if (rnd() < 0.5) {
-        ctx.strokeStyle = 'rgba(118,94,52,0.2)'
+        ctx.strokeStyle = 'rgba(96,92,60,0.2)'
         ctx.lineWidth = 0.8
         ctx.strokeRect(-w / 2, -h / 2, w, h)
       }
@@ -498,10 +498,11 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
     }
   }
   // 4) 마을 터: 집 둘레 흙빛
+  const ground = hex(PALETTE.villageGround)
   for (const h of world.houses) {
     const g = ctx.createRadialGradient(X(h.x), Yp(h.y), 0, X(h.x), Yp(h.y), 0.2 * s)
-    g.addColorStop(0, 'rgba(201,179,138,0.62)')
-    g.addColorStop(1, 'rgba(201,179,138,0)')
+    g.addColorStop(0, `rgba(${ground.join(',')},0.62)`)
+    g.addColorStop(1, `rgba(${ground.join(',')},0)`)
     ctx.fillStyle = g
     ctx.beginPath()
     ctx.arc(X(h.x), Yp(h.y), 0.2 * s, 0, Math.PI * 2)
@@ -567,7 +568,7 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
   const roadW = (cls: string) => (cls === 'motorway' ? 0.075 : cls === 'trunk' ? 0.065 : cls === 'primary' ? 0.055 : 0.045)
   for (const pass of [0, 1] as const) {
     for (const r of geo.roads) {
-      ctx.strokeStyle = pass === 0 ? 'rgba(122,100,66,0.42)' : PALETTE.road
+      ctx.strokeStyle = pass === 0 ? 'rgba(104,96,76,0.42)' : PALETTE.road
       ctx.lineWidth = roadW(r.class) * s + (pass === 0 ? 2.2 : 0)
       ctx.beginPath()
       line(r.coords)
