@@ -1,6 +1,10 @@
 /**
  * ▲▼ 깃발(설계안 6-7, 6-16): 증감 모드에서 기준선 대비 마을 진료일 변화. 방향(▲ 좋아짐 / ▼ 나빠짐)이 뜻을 말하고
  * 색은 거든다(파랑 / 갈색-주황, 적록 없음). 크기 3단 = |Δ| 1일 / 2일 / 3일 이상. 마을 빛(상태)과 한 자리에서 함께 읽힌다.
+ *
+ * 디오라마 안의 작은 표지(설계안 6-18 후속, 2026-10-15): 채도를 낮춘 색 + 얇은 크림 테두리, 지붕 바로 위.
+ * 화면 크기를 단계별로 묶는다(반지름 5~9 · 6~11 · 7~13 px): 전체 시점에서도 세 단계가 읽히고, 가까이 봐도 집·창빛·받침을 덮을 만큼
+ * 커지지 않는다. 크기 3단의 순서는 그대로다.
  */
 
 import * as THREE from 'three'
@@ -29,11 +33,11 @@ function atlas(): THREE.CanvasTexture | null {
     }
     ctx.closePath()
     ctx.lineJoin = 'round'
-    ctx.lineWidth = 14
-    ctx.strokeStyle = 'rgba(20,24,28,0.85)'
+    ctx.lineWidth = 11
+    ctx.strokeStyle = 'rgba(20,24,28,0.55)'
     ctx.stroke()
-    ctx.lineWidth = 7
-    ctx.strokeStyle = '#F7F1E6'
+    ctx.lineWidth = 5
+    ctx.strokeStyle = '#F2ECE0'
     ctx.stroke()
     ctx.fillStyle = fill
     ctx.fill()
@@ -45,24 +49,32 @@ function atlas(): THREE.CanvasTexture | null {
   return t
 }
 
+/** 크기 3단(월드 반지름 km)과 화면 하한·상한(반지름 px) */
+export const FLAG_SIZES = [0, 0.17, 0.22, 0.28] as const
+export const FLAG_MIN_PX = [0, 5, 6, 7] as const
+export const FLAG_CAP_PX = [0, 9, 11, 13] as const
+
 export class FlagLayer {
   readonly mesh: THREE.Mesh
   private readonly pos: THREE.InstancedBufferAttribute
   private readonly info: THREE.InstancedBufferAttribute
   private readonly want: Float32Array
+  private readonly cap: Float32Array
+  private readonly floor: Float32Array
   private readonly kind: Float32Array
   private readonly shown: Float32Array
   private readonly riseAt: Float64Array
   private readonly anchors: THREE.Vector3[]
 
-  constructor(anchors: THREE.Vector3[]) {
+  /** pxScale: 거리 1에서 월드 1의 화면 px(무대의 uPxScale을 함께 쓴다) */
+  constructor(anchors: THREE.Vector3[], pxScale: { value: number }) {
     this.anchors = anchors
     const n = anchors.length
     const geo = new THREE.InstancedBufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0]), 3))
     geo.setIndex([0, 1, 2, 0, 2, 3])
     this.pos = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3)
-    this.info = new THREE.InstancedBufferAttribute(new Float32Array(n * 2), 2)
+    this.info = new THREE.InstancedBufferAttribute(new Float32Array(n * 4), 4)
     this.pos.setUsage(THREE.DynamicDrawUsage)
     this.info.setUsage(THREE.DynamicDrawUsage)
     geo.setAttribute('aPos', this.pos)
@@ -72,10 +84,11 @@ export class FlagLayer {
     const mat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
-      uniforms: { uMap: { value: tex } },
+      uniforms: { uMap: { value: tex }, uPxScale: pxScale },
       vertexShader: /* glsl */ `
+        uniform float uPxScale;
         attribute vec3 aPos;
-        attribute vec2 aInfo;
+        attribute vec4 aInfo;
         varying vec2 vUv;
         varying float vKind;
         void main() {
@@ -83,7 +96,10 @@ export class FlagLayer {
           vUv = position.xy * 0.5 + 0.5;
           vec4 mv = viewMatrix * vec4(aPos, 1.0);
           mv.xyz += normalize(-mv.xyz) * 0.25;
-          mv.xy += position.xy * aInfo.x;
+          // 화면 반지름을 [aInfo.w, aInfo.z] px로 묶는다: 멀리서도 읽히고, 가까이 봐도 마을을 덮을 만큼 커지지 않는다
+          float px = aInfo.x * uPxScale / max(-mv.z, 0.001);
+          float k = aInfo.z > 0.0 ? clamp(px, aInfo.w, aInfo.z) / max(px, 0.001) : 1.0;
+          mv.xy += position.xy * aInfo.x * k;
           gl_Position = projectionMatrix * mv;
           if (aInfo.x <= 0.0001) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         }
@@ -105,6 +121,8 @@ export class FlagLayer {
     this.mesh.frustumCulled = false
     this.mesh.renderOrder = 7
     this.want = new Float32Array(n)
+    this.cap = new Float32Array(n)
+    this.floor = new Float32Array(n)
     this.kind = new Float32Array(n)
     this.shown = new Float32Array(n)
     this.riseAt = new Float64Array(n).fill(-1e9)
@@ -112,10 +130,12 @@ export class FlagLayer {
 
   /** size 0 = 없음, 1·2·3 = |Δ| 단계. up = 좋아짐 */
   set(i: number, size: 0 | 1 | 2 | 3, up: boolean, now: number): void {
-    const s = [0, 0.2, 0.26, 0.33][size]
+    const s = FLAG_SIZES[size]
     if (this.want[i] === s && this.kind[i] === (up ? 0 : 1)) return
     if (this.want[i] === 0 && s > 0) this.riseAt[i] = now
     this.want[i] = s
+    this.cap[i] = FLAG_CAP_PX[size]
+    this.floor[i] = FLAG_MIN_PX[size]
     this.kind[i] = up ? 0 : 1
   }
 
@@ -127,8 +147,9 @@ export class FlagLayer {
       const e = 1 - (1 - k) ** 3
       const s = this.want[i] * (this.want[i] > 0 ? e : 0)
       const a = this.anchors[i]
-      this.pos.setXYZ(i, a.x, a.y + 0.2 + 0.18 * e, a.z)
-      this.info.setXY(i, s, this.kind[i])
+      this.pos.setXYZ(i, a.x, a.y + 0.12 + 0.12 * e, a.z)
+      // 솟아오르는 동안(e < 1)에는 하한도 같이 줄여 0에서 자란다
+      this.info.setXYZW(i, s, this.kind[i], this.cap[i], this.floor[i] * (this.want[i] > 0 ? e : 0))
       this.shown[i] = s
     }
     this.pos.needsUpdate = true

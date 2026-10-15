@@ -30,7 +30,7 @@ import { HouseLayer, type VillageLevel } from './houses'
 import type { LightPlan } from './lightPlan'
 import { LightPaths } from './lightPaths'
 import { PALETTE } from './palette'
-import { type QualityState, initialQuality, nextQuality, windowMedian } from './quality'
+import { type ProbeState, type QualityState, afterProbe, initialProbe, initialQuality, nextQuality, probeDue, windowMedian } from './quality'
 import { type GlowUniforms, makeGlowUniforms, makeSceneUniforms, type SceneUniforms } from './shaders'
 import { BASE_Y, bakeTerrain } from './terrainBake'
 import { type Heightmap, drapePath, pointInPolygons } from './terrain'
@@ -146,6 +146,11 @@ export class StageController {
   /** 적응 화질: 이어서 그린 프레임 간격(ms)과 지금 단계(픽셀 비율 목록의 칸, 그다음 칸 = 나무 절반). 판단은 quality.ts */
   private readonly frameGaps: number[] = []
   private quality: QualityState = initialQuality()
+  /** 정지 화면에서 되돌림을 확인하려고 같은 화면을 다시 그리는 중인가(quality.ts) */
+  private probing = false
+  private probe: ProbeState = initialProbe()
+  /** 개발 서버 전용: 판단한 묶음마다 가운데값·프레임 수·단계(성능 창 qualityLog) */
+  private readonly qualityLog: { t: number; med: number; frames: number; level: number; probe: boolean }[] = []
   private readonly pixelRatios: number[]
   private renderedLast = false
   private readonly clinics: ClinicLayer
@@ -236,7 +241,7 @@ export class StageController {
     this.paths = new LightPaths(this.hm, data.geometry.routes.pairs, minutesOf, this.clinics.feet, model.nF, (x, y) => pointInPolygons(x, y, outline))
     this.paths.warm()
     this.villageTops = sc.villages.map((_, i) => this.houses.topOf(i))
-    this.flags = new FlagLayer(this.villageTops)
+    this.flags = new FlagLayer(this.villageTops, this.gu.uPxScale)
     this.scene.add(trees.group, this.houses.group, this.clinics.group, this.paths.group, this.flags.mesh)
 
     // 읍·면 이름 자리: 그 읍·면 지소와 4 km 안이면 반대쪽으로 민다(명판과 겹치지 않게).
@@ -334,8 +339,9 @@ export class StageController {
           geometries: this.renderer.info.memory.geometries,
           textures: this.renderer.info.memory.textures,
           lastRenderMs: this.lastRenderMs,
-          quality: { ...this.quality, pixelRatio: this.renderer.getPixelRatio(), pixelRatios: this.pixelRatios },
+          quality: { ...this.quality, pixelRatio: this.renderer.getPixelRatio(), pixelRatios: this.pixelRatios, trees: this.trees.shown() },
         }),
+        qualityLog: () => [...this.qualityLog],
         /** 마을 받침 = 창 단계 = tierOf(A_i)인지(빛이 다 닿은 뒤에 부른다). 단계별 마을 수와 어긋난 마을 수 */
         groundCheck: () => {
           const v = this.view
@@ -1025,8 +1031,11 @@ export class StageController {
     }
 
     if (!animating && !this.dirty) {
-      this.renderedLast = false
-      return
+      if (!this.probing && probeDue(this.quality, this.probe, now)) this.probing = true
+      if (!this.probing) {
+        this.renderedLast = false
+        return
+      }
     }
     this.adaptQuality(dt, now)
     this.dirty = false
@@ -1046,8 +1055,17 @@ export class StageController {
     this.renderedLast = true
     const med = windowMedian(this.frameGaps)
     if (med === null) return
+    const frames = this.frameGaps.length
     this.frameGaps.length = 0
     const next = nextQuality(this.quality, med, now, this.pixelRatios.length)
+    if (import.meta.env.DEV) {
+      this.qualityLog.push({ t: Math.round(now), med: Math.round(med * 10) / 10, frames, level: next.level, probe: this.probing })
+      if (this.qualityLog.length > 400) this.qualityLog.shift()
+    }
+    if (this.probing) {
+      this.probing = false
+      this.probe = afterProbe(this.probe, next.level < this.quality.level, now)
+    }
     if (next === this.quality) return
     this.quality = next
     this.trees.thin(next.level >= this.pixelRatios.length ? 0.5 : 1)

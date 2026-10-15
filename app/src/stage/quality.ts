@@ -5,6 +5,8 @@
  *   느리다(가운데값 > 26 ms)  한 칸 내린다.
  *   넉넉하다(≤ 18 ms, 약 55fps 이상). 단계를 바꾼 지 5초가 지났으면 한 칸 올린다(일시적 멈춤 뒤 되돌아오게).
  *   올리고 6초 안에 다시 느려지면 그 칸은 이 판에서 다시 올리지 않는다(오르내림 반복 방지).
+ *   정지 화면 확인: 무대는 움직일 때만 그리므로, 내려간 단계에서 화면이 멈춰 있으면 되돌릴 근거(프레임)가 없다.
+ *   그래서 5초가 지나면 판단 한 묶음만큼 같은 화면을 다시 그려 본다. 넉넉하지 않았으면 다음 확인까지 두 배씩(최대 60초) 기다린다.
  *
  * 데이터 표현(집·창·빛 번짐·길의 빛·진료등·마을 받침)은 어느 단계에서도 줄이지 않는다. 움직임 줄이기와는 관계가 없다
  * (움직임 줄이기는 화면이 멈춰 있어 프레임을 덜 그릴 뿐, 단계를 바꾸지 않는다).
@@ -48,4 +50,26 @@ export function windowMedian(gaps: number[]): number | null {
   if (n < 90 && !(n >= 12 && gaps.reduce((a, b) => a + b, 0) >= 3000)) return null
   const sorted = [...gaps].sort((a, b) => a - b)
   return sorted[sorted.length >> 1]
+}
+
+/** 정지 화면 확인 간격 */
+export const PROBE_MAX_GAP_MS = 60000
+
+export interface ProbeState {
+  at: number
+  gap: number
+}
+
+export function initialProbe(): ProbeState {
+  return { at: -1e9, gap: RAISE_AFTER_MS }
+}
+
+/** 화면이 멈춰 있을 때 확인 그리기를 시작할지: 올라갈 칸이 있고, 바꾼 지와 지난 확인에서 충분히 지났을 때 */
+export function probeDue(q: QualityState, p: ProbeState, now: number): boolean {
+  return q.level > q.ceiling && now - q.changedAt >= RAISE_AFTER_MS && now - p.at >= p.gap
+}
+
+/** 확인 한 묶음을 판단한 뒤: 올렸으면 기본 간격, 아니면 간격을 두 배로 */
+export function afterProbe(p: ProbeState, raised: boolean, now: number): ProbeState {
+  return { at: now, gap: raised ? RAISE_AFTER_MS : Math.min(PROBE_MAX_GAP_MS, p.gap * 2) }
 }

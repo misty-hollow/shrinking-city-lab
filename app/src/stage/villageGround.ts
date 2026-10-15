@@ -205,8 +205,13 @@ export function bakeVillageGround(world: World, hm: Heightmap): GroundBake {
       }
     }
   }
-  // 담기: id = 0인 칸은 셰이더가 읽지 않으므로 RG는 비워 둔다
+  // 담기. 받침이 없는 칸(id = 0)도 RG를 "바깥"(부호 거리 +최대, 동서 0)으로 채운다: 셰이더는 RG를 선형 보간하므로
+  // 받침 가장자리 바깥 칸이 0(= 깊은 안쪽)이면 경계에서 값이 0을 지나 받침 바깥 약 0.13 km에 점선 고리가 생긴다(2026-10-15 수정).
   const sdf = new Uint8Array(n * 2)
+  for (let k = 0; k < n; k++) {
+    sdf[k * 2] = 255
+    sdf[k * 2 + 1] = 128
+  }
   const id = new Uint8Array(n)
   for (let rr = 0; rr < rows; rr++) {
     for (let cc = 0; cc < cols; cc++) {
@@ -277,9 +282,19 @@ export class VillageGround {
 /** 받침 색(선형 RGB로 바꿔 넘긴다). 호박은 데이터의 빛 계열, 슬레이트는 꺼진 창 계열이다. */
 export const GROUND_COLORS = {
   fill: '#F0CC86',
-  rimLit: '#D39A3E',
+  rimLit: '#D7A657',
   rimOff: '#45505B',
 } as const
+
+/**
+ * 받침이 집·창빛·길의 빛보다 앞에 나서지 않게: 테두리 폭(km, 화면 최소 px 배율)과 칠하는 세기.
+ * 호박 테두리(빛과 같은 계열)는 옅게, 닿지 않음의 슬레이트 테두리는 상태를 말하는 유일한 표시라 또렷하게 둔다.
+ */
+export const GROUND_RIM_KM = 0.028
+export const GROUND_RIM_PX = 1.4
+export const GROUND_RIM_ALPHA_LIT = 0.7
+export const GROUND_RIM_ALPHA_OFF = 0.9
+export const GROUND_FILL_ALPHA = 0.8
 
 /**
  * 지형 재질(MeshBasicMaterial + 땅 그림 + 굽은 빛)에 받침을 칠하는 조각을 끼운다.
@@ -322,7 +337,7 @@ void main() {`,
       float side = (vg.g * 255.0 - 128.0) / 100.0;
       float aa = max(fwidth(s), 0.002);
       float aaSide = max(fwidth(side), 0.002);
-      float rimW = max(0.032, aa * 1.7);
+      float rimW = max(${GROUND_RIM_KM.toFixed(3)}, aa * ${GROUND_RIM_PX.toFixed(2)});
       float inside = 1.0 - smoothstep(-aa, aa, s);
       float rim = inside * smoothstep(-rimW - aa, -rimW + aa, s);
       float west = 1.0 - smoothstep(-aaSide, aaSide, side);
@@ -331,10 +346,10 @@ void main() {`,
       vec3 lift = mix(vColor.rgb, vec3(1.0), 0.5) * diffuse;
       vec3 c = diffuseColor.rgb;
       // 접지 그늘: 테두리 바로 바깥
-      c *= 1.0 - vis * 0.14 * (1.0 - smoothstep(0.0, 0.035, s)) * (1.0 - inside);
-      c = mix(c, uVgFill * lift, vis * inside * (1.0 - rim) * fill * 0.9);
+      c *= 1.0 - vis * 0.1 * (1.0 - smoothstep(0.0, 0.035, s)) * (1.0 - inside);
+      c = mix(c, uVgFill * lift, vis * inside * (1.0 - rim) * fill * ${GROUND_FILL_ALPHA.toFixed(2)});
       vec3 rimCol = mix(uVgRimOff * mix(vColor.rgb, vec3(1.0), 0.25) * diffuse, uVgRimLit * lift, lit);
-      c = mix(c, rimCol, vis * rim * 0.95);
+      c = mix(c, rimCol, vis * rim * mix(${GROUND_RIM_ALPHA_OFF.toFixed(2)}, ${GROUND_RIM_ALPHA_LIT.toFixed(2)}, lit));
       diffuseColor.rgb = c;
     }
   }`,
