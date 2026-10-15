@@ -1863,14 +1863,14 @@ body {
 /* --- S6: 같은 세계 위의 세 배분. 비교는 표 한 장, 목표 칸만 테두리 ------------------------------------ */
 
 .wf-top {
+  /* 탭이 넷(겹쳐 보기 + 미션 셋)이라 가운데에 두면 오른쪽 위 도구(기준 스위치)와 겹친다: 왼쪽 판과 같은 줄에 맞춘다 */
   position: fixed;
-  left: 50%;
+  left: 40px;
   top: 24px;
-  translate: -50% 0;
   z-index: 11;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .wf-lead {
@@ -1983,14 +1983,23 @@ body {
   left: 40px;
   top: 156px;
   z-index: 11;
-  width: min(456px, 34vw);
+  /* 겹쳐 보기와 미션 보기가 같은 자리(폭·높이)를 차지한다: 보기를 바꿔도 섬이 피하는 판이 같아 카메라를 다시 맞추지 않는다.
+     빈 아래쪽은 지도 조작을 막지 않게 판 자체는 눌림을 받지 않고, 안의 내용만 받는다 */
+  width: 480px;
+  height: calc(100vh - 156px - 84px);
+  pointer-events: none;
   /* 표가 판보다 넓으면 판을 표 폭까지 넓힌다(모든 폭). 무대는 이 판(data-occlude)을 피해 섬을 놓으므로, 판이 좁으면 표가 판 안에서 가로로 잘리고 말풍선이 표 위에 앉는다 */
   min-width: min-content;
   display: flex;
   flex-direction: column;
-  /* 표 아래 두 행(나아진·불리해진 주민)이 더해져 길어졌다: 낮은 화면(1280×720 등)에서는 판 안에서 스크롤한다 */
-  max-height: calc(100vh - 156px - 24px);
+  /* 표 아래 두 행(나아진·불리해진 주민)이 더해져 길어졌다: 낮은 화면(1280×720 등)에서는 판 안에서 스크롤한다.
+     아래 84px는 왼쪽 아래 줄(읽는 법 · 기준일 · 자료와 한계) 자리다 — 겹쳐 보기에서 6개 지표 표를 열어도 그 줄을 덮지 않는다 */
+  max-height: calc(100vh - 156px - 84px);
   overflow-y: auto;
+}
+
+.wf-table > * {
+  pointer-events: auto;
 }
 
 .wf-kpis {
@@ -2101,6 +2110,136 @@ body {
   color: var(--text);
 }
 
+/* S6 겹쳐 보기(설계안 6-19): 갈래 넷(기호 · 이름과 한 줄 · 마을 수 · 주민 수) → 보건지소별 진료일 3×10 → 링크 둘.
+   큰 숫자는 마을 수. 갈래 기호는 무대와 같은 모양(가득 · 세 칸 · 빈 고리 · 두 겹 울타리) */
+.wf-ov-basis {
+  margin: 0 0 6px;
+  color: var(--text-2);
+}
+
+.wf-ov-cats {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.wf-ov-cats tr {
+  border-top: 1px solid var(--rule);
+}
+
+.wf-ov-cats tr:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.wf-ov-cats td,
+.wf-ov-cats th {
+  padding: 9px 0;
+  vertical-align: middle;
+}
+
+.wf-ov-glyph {
+  width: 42px;
+}
+
+.wf-ov-glyph .ov-glyph {
+  display: block;
+}
+
+.wf-ov-cats th {
+  padding-right: 12px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wf-ov-cats th small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.wf-ov-n {
+  padding-right: 16px;
+  text-align: right;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.wf-ov-pop {
+  text-align: right;
+  font-size: 14px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.wf-ov-total {
+  margin: 6px 0 0;
+  text-align: right;
+  color: var(--text-3);
+}
+
+.wf-ov-alloc {
+  width: 100%;
+  margin-top: 18px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.wf-ov-alloc caption {
+  padding-bottom: 6px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.wf-ov-alloc th,
+.wf-ov-alloc td {
+  height: 30px;
+  padding: 0 2px;
+  text-align: center;
+  font-weight: 400;
+}
+
+.wf-ov-alloc thead th {
+  height: auto;
+  padding-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.wf-ov-alloc tbody th {
+  padding-right: 8px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.wf-ov-alloc tbody td {
+  color: var(--text-3);
+}
+
+/* 진료일이 있는 칸: 숫자만 데이터의 빛(호박) — UI 장식이 아니라 진료일 값 */
+.wf-ov-alloc tbody td.is-on {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+.wf-ov-links {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.wf-ov-kpis {
+  margin-top: 4px;
+}
+
 .wf-end {
   position: fixed;
   right: 40px;
@@ -2207,8 +2346,14 @@ body {
   .wf-table {
     left: 24px;
     top: 146px;
-    max-height: calc(100vh - 146px - 24px);
-    width: min(420px, 38vw);
+    max-height: calc(100vh - 146px - 84px);
+    height: calc(100vh - 146px - 84px);
+    /* 미션 보기의 6×3 표 폭(13px 글자)과 같게: 넓히면 1024에서 섬이 오른쪽으로 밀려 끝의 말풍선이 잘린다 */
+    width: 446px;
+  }
+
+  .wf-top {
+    left: 24px;
   }
 
   .wf-kpis {
@@ -2295,7 +2440,8 @@ body {
   /* 왼쪽에 맞춘 머리의 증감 기준 줄 바로 아래에 배지가 붙지 않게 표를 조금 내린다 */
   .wf-table {
     top: 168px;
-    max-height: calc(100vh - 168px - 24px);
+    max-height: calc(100vh - 168px - 84px);
+    height: calc(100vh - 168px - 84px);
   }
 }
 

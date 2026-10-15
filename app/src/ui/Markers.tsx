@@ -51,6 +51,8 @@ interface MarkersProps {
   onDenied(j: number, dir: 1 | -1): void
   /** 튜토리얼 코치: 이 지소를 가리킨다 */
   coach?: number | null
+  /** S6 겹쳐 보기: 이름만(진료일은 판의 표가 말한다 — 한 배분의 칸을 보이지 않는다) */
+  nameOnly?: boolean
 }
 
 export function ClinicMarkers(p: MarkersProps) {
@@ -143,6 +145,7 @@ export function ClinicMarkers(p: MarkersProps) {
                 }}
               >
                 <span className="mk-name">{f.short}</span>
+                {!p.nameOnly && (
                 <span className="mk-slots" aria-hidden="true">
                   {[0, 1, 2, 3, 4].map((k) => {
                     const fk = days - k
@@ -159,6 +162,7 @@ export function ClinicMarkers(p: MarkersProps) {
                     return <i key={k} className={c} data-k={k} />
                   })}
                 </span>
+                )}
               </button>
               {p.interactive && ok.dec && days > 0 && (
                 <button

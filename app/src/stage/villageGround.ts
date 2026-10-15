@@ -265,9 +265,20 @@ export class VillageGround {
     this.changed = true
   }
 
-  /** 지금 올라간 값(검사용): 단계 0..2, 보임 */
-  read(i: number): { level: number; visible: boolean } {
-    return { level: this.state[i * 4] / 127.5, visible: this.state[i * 4 + 1] > 0 }
+  /**
+   * 그리는 방식(S6 겹쳐 보기, 설계안 6-19): 0 보통 · 1 받침 없음(갈림 — 세 칸 기호가 말한다) · 2 울타리(기준 안에 지소 없음,
+   * 회색 테두리 두 겹). 미션 하나를 볼 때와 그 밖의 화면은 늘 0이다.
+   */
+  setStyle(i: number, style: GroundStyle): void {
+    const o = i * 4 + 2
+    if (this.state[o] === style) return
+    this.state[o] = style
+    this.changed = true
+  }
+
+  /** 지금 올라간 값(검사용): 단계 0..2, 보임, 그리는 방식 */
+  read(i: number): { level: number; visible: boolean; style: GroundStyle } {
+    return { level: this.state[i * 4] / 127.5, visible: this.state[i * 4 + 1] > 0, style: this.state[i * 4 + 2] as GroundStyle }
   }
 
   /** 바뀐 것이 있으면 올린다. 그렸어야 하면 참 */
@@ -279,11 +290,15 @@ export class VillageGround {
   }
 }
 
+export type GroundStyle = 0 | 1 | 2
+
 /** 받침 색(선형 RGB로 바꿔 넘긴다). 호박은 데이터의 빛 계열, 슬레이트는 꺼진 창 계열이다. */
 export const GROUND_COLORS = {
   fill: '#F0CC86',
   rimLit: '#D7A657',
   rimOff: '#45505B',
+  /** 울타리(기준 안에 지소 없음): 데이터의 빛도 꺼진 창도 아닌 옅은 회색 */
+  fence: '#AEB2B6',
 } as const
 
 /**
@@ -308,6 +323,7 @@ export function attachVillageGround(mat: THREE.MeshBasicMaterial, g: VillageGrou
     uVgFill: { value: new THREE.Color(GROUND_COLORS.fill) },
     uVgRimLit: { value: new THREE.Color(GROUND_COLORS.rimLit) },
     uVgRimOff: { value: new THREE.Color(GROUND_COLORS.rimOff) },
+    uVgFence: { value: new THREE.Color(GROUND_COLORS.fence) },
   }
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms)
@@ -321,6 +337,7 @@ uniform sampler2D uVgState;
 uniform vec3 uVgFill;
 uniform vec3 uVgRimLit;
 uniform vec3 uVgRimOff;
+uniform vec3 uVgFence;
 void main() {`,
       )
       .replace(
@@ -332,7 +349,9 @@ void main() {`,
     if (vid > 0.5) {
       vec4 st = texture2D(uVgState, vec2((vid - 0.5) / 256.0, 0.5));
       float level = st.r * 2.0;
-      float vis = st.g;
+      float style = floor(st.b * 255.0 + 0.5);
+      float vis = style > 0.5 && style < 1.5 ? 0.0 : st.g;
+      float fence = style > 1.5 ? 1.0 : 0.0;
       float s = (vg.r * 255.0 - 128.0) / 1000.0;
       float side = (vg.g * 255.0 - 128.0) / 100.0;
       float aa = max(fwidth(s), 0.002);
@@ -349,7 +368,12 @@ void main() {`,
       c *= 1.0 - vis * 0.1 * (1.0 - smoothstep(0.0, 0.035, s)) * (1.0 - inside);
       c = mix(c, uVgFill * lift, vis * inside * (1.0 - rim) * fill * ${GROUND_FILL_ALPHA.toFixed(2)});
       vec3 rimCol = mix(uVgRimOff * mix(vColor.rgb, vec3(1.0), 0.25) * diffuse, uVgRimLit * lift, lit);
+      // 울타리: 회색 테두리 두 겹(받침 테두리 + 바깥으로 한 폭 띄운 고리). 안쪽 고리는 집에 가려지므로 바깥에 둔다.
+      // 색만이 아니라 모양(두 겹)으로 빈 고리와 갈린다
+      float rim2 = smoothstep(rimW * 1.0 - aa, rimW * 1.0 + aa, s) * (1.0 - smoothstep(rimW * 2.0 - aa, rimW * 2.0 + aa, s));
+      rimCol = mix(rimCol, uVgFence * lift, fence);
       c = mix(c, rimCol, vis * rim * mix(${GROUND_RIM_ALPHA_OFF.toFixed(2)}, ${GROUND_RIM_ALPHA_LIT.toFixed(2)}, lit));
+      c = mix(c, uVgFence * lift, vis * fence * rim2 * ${GROUND_RIM_ALPHA_OFF.toFixed(2)});
       diffuseColor.rgb = c;
     }
   }`,

@@ -6,13 +6,13 @@ import { copy } from './content/copy'
 import { loadAppData } from './data/load'
 import type { AppData } from './data/types'
 import { remaining } from './engine/allocation'
-import { lostVillages } from './engine/compare'
+import { lostVillages, overlapCategories } from './engine/compare'
 import { allocDays, days1, missionDays, people, weekDays } from './engine/format'
 import { type Kpis, type Threshold, buildModel, computeKpis, emdShareAtLeast } from './engine/kpi'
 import { BRIEF_EMBER_MS, BRIEF_STEP_MS, BRIEF_WAIT_MS, BriefingCard, IntroCard, MobileNotice, StartCard, TutorialCard } from './screens/Cards'
 import { DataLimits } from './screens/DataLimits'
 import { DebriefPanel } from './screens/Debrief'
-import { FinaleBoard, FinalePanel } from './screens/Finale'
+import { FINALE_T, FinaleBoard, FinalePanel } from './screens/Finale'
 import { lostPinOrder } from './ui/changeSummary'
 import { WorldDebrief } from './screens/WorldDebrief'
 import { WorldFinale } from './screens/WorldFinale'
@@ -23,6 +23,7 @@ import type { Emphasis, Pick, StageEvent, StageMode, StageView } from './stage/S
 import { Heightmap } from './stage/terrain'
 import { buildWorld } from './stage/world'
 import {
+  type FinaleView,
   type GameConfig,
   allowedOps,
   canConfirm,
@@ -184,7 +185,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const [emphasis, setEmphasis] = useState<Emphasis>(null)
   const [live, setLive] = useState('')
   const [finaleHover, setFinaleHover] = useState<MissionId | null>(null)
-  const [finaleReturn, setFinaleReturn] = useState<MissionId | null>(null)
+  const [finaleReturn, setFinaleReturn] = useState<FinaleView | null>(null)
   const [hillshade, setHillshade] = useState<Hillshade | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [celebrate, setCelebrate] = useState(0)
@@ -228,6 +229,8 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     () => (s.screen === 'finale' ? finaleResults(s.results, landscape, cfg.evaluate) : null),
     [s.screen, s.results, landscape, cfg],
   )
+  // S6 겹쳐 보기(설계안 6-19): 세 배분의 15분 결과를 마을 갈래로. 결과가 바뀔 때만 다시 센다(전환 때 다시 만들지 않는다)
+  const overlap = useMemo(() => (finale ? overlapCategories(model, finale.map((r) => r.k15), FINALE_T) : null), [finale, model])
 
   // --- 빛의 순서(설계안 6-16): 계산은 이미 끝났다. 무대와 지표가 같은 순서로 보여 준다 ------------
   const opEvent = useMemo((): StageEvent | null => {
@@ -511,7 +514,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || s.dataOpen) return
       if (s.screen === 'finale' && s.finaleFocus === null) {
-        dispatch({ type: 'finaleFocus', m: finaleReturn ?? 'm1' })
+        dispatch({ type: 'finaleFocus', m: finaleReturn ?? 'overlap' })
         return
       }
       if (details) {
@@ -599,12 +602,13 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     }
     if (s.screen === 'finale' && finale) {
       const r = finale.find((x) => x.mission === s.finaleFocus) ?? finale[0]
-      const b = s.finaleFocus ? (s.finaleBase === 'current' ? null : finale.find((x) => x.mission === s.finaleBase)) : null
+      const one = s.finaleFocus !== null && s.finaleFocus !== 'overlap'
+      const b = one ? (s.finaleBase === 'current' ? null : finale.find((x) => x.mission === s.finaleBase)) : null
       return {
         alloc: r.alloc,
         k: r.k15,
-        base: s.finaleFocus ? (b ? b.k15 : current15) : null,
-        ghost: s.finaleFocus ? (b ? b.alloc : current) : null,
+        base: one ? (b ? b.k15 : current15) : null,
+        ghost: one ? (b ? b.alloc : current) : null,
         emdValues: null,
       }
     }
@@ -664,16 +668,22 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     return mission.kpi === 'cov3_pop' ? people(st.value) : missionDays(st.value, st.target)
   }, [previewInfo, s.screen, s.alloc, s.mission, model, landscape, mission.kpi])
 
+  const overlapOn = s.screen === 'finale' && s.finaleFocus === 'overlap' && !!overlap && !!finale
+  const stageOverlap = useMemo(
+    () => (overlapOn && overlap && finale ? { cat: overlap.cat, hits: overlap.hits, days: finale.map((r) => r.k15.villageDays) } : null),
+    [overlapOn, overlap, finale],
+  )
   const view: StageView = useMemo(
     () => ({
       mode: stageMode,
       alloc: shown.alloc,
       T: s.T,
-      villageDays: shown.k.villageDays,
+      // 겹쳐 보기: 창빛·받침은 셋 중 가장 낮은 단계(세 배분 모두에서 닿는 만큼)
+      villageDays: stageOverlap && overlap ? overlap.minDays : shown.k.villageDays,
       baseDays: shown.base ? shown.base.villageDays : null,
       deltaMode: s.deltaMode,
       emdDays: shown.k.emdDays,
-      worstEmd: s.screen === 'start' || s.screen === 'intro' || s.screen === 'briefing' ? null : shown.k.worstEmd,
+      worstEmd: s.screen === 'start' || s.screen === 'intro' || s.screen === 'briefing' || stageOverlap ? null : shown.k.worstEmd,
       ghostAlloc: shown.ghost,
       hoverFacility: interactive ? (previewInfo && !previewInfo.blocked ? previewInfo.j : stageHover?.kind === 'facility' ? stageHover.index : null) : null,
       selectedFacility: null,
@@ -688,8 +698,9 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       celebrate,
       preview: previewInfo && !previewInfo.blocked && previewInfo.villages.length ? { villages: previewInfo.villages, sign: previewInfo.dir } : null,
       appreciate: appreciating,
+      overlap: stageOverlap,
     }),
-    [stageMode, shown, s.T, s.deltaMode, s.screen, panelHoverEmd, s.regionEmd, lostPick, lost, emphasis, lightEvent, interactive, reducedMotion, celebrate, previewInfo, stageHover, appreciating],
+    [stageMode, shown, s.T, s.deltaMode, s.screen, panelHoverEmd, s.regionEmd, lostPick, lost, emphasis, lightEvent, interactive, reducedMotion, celebrate, previewInfo, stageHover, appreciating, stageOverlap, overlap],
   )
 
   const onStageHover = useCallback(
@@ -788,6 +799,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
                 order={order}
                 alloc={markerAlloc}
                 ghost={shown.ghost}
+                nameOnly={overlapOn}
                 interactive={interactive && !flat}
                 allowed={(j) => allowedOps(s, cfg, j)}
                 preview={previewInfo}
@@ -1063,6 +1075,8 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
           narrow={width < NARROW_MAX}
           focus={s.finaleFocus}
           onFocus={(m) => dispatch({ type: 'finaleFocus', m })}
+          overlap={overlap!}
+          order={order}
           base={s.finaleBase}
           onBase={(base) => dispatch({ type: 'finaleBase', base })}
           onBoard={() => {
@@ -1087,7 +1101,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
             setFinaleHover(null)
             dispatch({ type: 'finaleFocus', m })
           }}
-          returnFocus={finaleReturn}
+          returnFocus={finaleReturn === 'overlap' ? null : finaleReturn}
         />
       )}
 
@@ -1133,11 +1147,11 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
           {finaleBoard && finale && (
             <>
               <div className="sheet-head">
-                <button type="button" className="btn btn-small" onClick={() => dispatch({ type: 'finaleFocus', m: finaleReturn ?? 'm1' })}>
+                <button type="button" className="btn btn-small" onClick={() => dispatch({ type: 'finaleFocus', m: finaleReturn ?? 'overlap' })}>
                   {copy.world.finaleBoardClose}
                 </button>
               </div>
-              <FinalePanel results={finale} scenario={scenario} model={model} hover={finaleHover} focus={s.finaleFocus} onHome={() => dispatch({ type: 'home' })} onData={openData} />
+              <FinalePanel results={finale} scenario={scenario} model={model} hover={finaleHover} focus={s.finaleFocus === 'overlap' ? null : s.finaleFocus} onHome={() => dispatch({ type: 'home' })} onData={openData} />
             </>
           )}
         </aside>

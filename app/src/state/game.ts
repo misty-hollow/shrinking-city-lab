@@ -13,6 +13,8 @@ export type Screen = 'start' | 'intro' | 'tutorial' | 'briefing' | 'play' | 'deb
 export type Baseline = 'current' | 'last'
 /** S6에서 크게 본 배분의 증감 기준 */
 export type FinaleBase = 'current' | MissionId
+/** S6 무대에서 보는 것: 세 배분 겹쳐 보기(설계안 6-19) 또는 미션 하나 */
+export type FinaleView = 'overlap' | MissionId
 
 export interface GameConfig {
   current: readonly number[]
@@ -47,7 +49,8 @@ export interface GameState {
   /** 디브리핑: 무대 증감을 앞 미션 결과와 비교 */
   debriefCompare: boolean
   /** S6: 크게 본 배분(없으면 세 개를 나란히) */
-  finaleFocus: MissionId | null
+  /** S6 무대의 보기. null = 세 배분 나란히 보기(시트) */
+  finaleFocus: FinaleView | null
   finaleBase: FinaleBase
   selectedFacility: number | null
   regionEmd: number | null
@@ -79,7 +82,7 @@ export type Action =
   | { type: 'toggleDelta' }
   | { type: 'toggleGhost' }
   | { type: 'toggleCompare' }
-  | { type: 'finaleFocus'; m: MissionId | null }
+  | { type: 'finaleFocus'; m: FinaleView | null }
   | { type: 'finaleBase'; base: FinaleBase }
   | { type: 'selectFacility'; j: number | null }
   | { type: 'openRegion'; m: number | null }
@@ -160,15 +163,15 @@ export function reducer(cfg: GameConfig) {
     lastOp: null,
     lastTChange: null,
   })
-  // S6은 같은 세계에서 미션 1 배분부터 본다(설계안 6-17). 세 장의 지도는 finaleFocus = null.
+  // S6은 같은 세계에서 세 배분 겹쳐 보기부터 본다(설계안 6-19, 6-17). 세 장의 지도는 finaleFocus = null.
   const toFinale = (s: GameState): GameState => ({
     ...s,
     screen: 'finale',
     T: 15,
-    deltaMode: true,
+    deltaMode: false,
     ghost: false,
     debriefCompare: false,
-    finaleFocus: 'm1',
+    finaleFocus: 'overlap',
     finaleBase: 'current',
     selectedFacility: null,
     regionEmd: null,
@@ -299,7 +302,8 @@ export function reducer(cfg: GameConfig) {
           ...s,
           finaleFocus: a.m,
           finaleBase: a.m !== null && s.finaleBase === a.m ? 'current' : s.finaleBase,
-          deltaMode: a.m !== null,
+          // 증감 ▲▼는 미션 하나를 볼 때만(겹쳐 보기의 표시와 섞이지 않게)
+          deltaMode: a.m !== null && a.m !== 'overlap',
           selectedFacility: null,
         }
       case 'finaleBase':

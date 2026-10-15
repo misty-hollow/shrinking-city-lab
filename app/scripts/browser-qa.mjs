@@ -12,6 +12,8 @@
  *   v0.5(설계안 6-17 「세계가 먼저」): 지소 말풍선으로 놓기·빼기(키보드·클릭·− 손잡이), 놓기 전 미리보기 숫자 = 놓은 뒤 결과,
  *   되돌리기(↶, 미리보기 포함), 위에서 보기(같은 원근 세계), 막힌 조작 피드백, 결산 감상(건너뛰기)·세계 위 결과 글·잃은 마을 표지,
  *   S6 세계 탭(미션 고르기 · 6개 지표 한 표) ↔ 세 배분 나란히 보기.
+ *   6-2(2026-10-15 마우스): 왼쪽 끌기 = 평행 이동, 오른쪽 끌기 = 돌리기(브라우저 메뉴 없음), 지소 위에서 끌고 놓아도 배치되지 않음.
+ *   6-19(S6 겹쳐 보기): 탭 넷(겹쳐 보기 기본), 갈래 넷의 합 = 161곳·전체 주민, 보건지소별 진료일 표 = 세 배분, 받침·세 칸 기호 = 갈래.
  *   6-18(마을 받침): 소개 화면엔 받침이 없고, 빛이 다 닿은 뒤 161곳 모두 받침 단계 = 창 단계 = tierOf(A_i)(10·15·20분, 개발 서버에서만).
  *   목표 경계 배분은 파이썬 전처리가 만든 golden.json(boundary_*)에서 읽는다.
  * 무엇을 못 보나: 사람의 이해도·시각 품질 판단(스크린샷을 사람이 본다), 통합 GPU 전시 기기 성능.
@@ -83,6 +85,56 @@ async function groundCheck(page, label, intro = false) {
   else check(g.mismatch === 0 && g.counts[0] + g.counts[1] + g.counts[2] === 161, `${label}: 마을 받침 = 창 단계 = tierOf(A_i), 161곳`, JSON.stringify(g))
 }
 
+/** 카메라 상태(개발 서버의 무대 검사 창, 읽기만) */
+const cam = (page) => page.evaluate(() => (window.__sclStage?.camera ? window.__sclStage.camera() : null))
+
+/**
+ * 지도 마우스(설계안 6-2, 2026-10-15): 왼쪽 끌기 = 평행 이동, 오른쪽 끌기 = 돌리기·기울이기. 지소 건물 위에서 눌러 끌고 놓아도
+ * 진료일이 놓이지 않는다(클릭과 끌기는 5 px로 가른다). 오른쪽 끌기에서 브라우저 메뉴가 뜨지 않는다(기본 동작 막힘).
+ */
+async function mouseChecks(page, tag) {
+  const c0 = await cam(page)
+  if (!c0) return
+  const pool0 = await page.getByTestId('pool-remaining').textContent()
+  // 지소(계룡) 건물: 말풍선 줄기 끝 바로 아래
+  const stem = await page.locator('.marker[data-j="3"] .mk-stem').boundingBox()
+  const px = stem.x + stem.width / 2
+  const py = stem.y + stem.height + 10
+  await page.mouse.move(px, py)
+  await page.mouse.down()
+  for (let k = 1; k <= 8; k++) await page.mouse.move(px + k * 12, py + k * 5)
+  await page.mouse.up()
+  await page.waitForTimeout(400)
+  const c1 = await cam(page)
+  const pool1 = await page.getByTestId('pool-remaining').textContent()
+  const moved = Math.hypot(c1.target[0] - c0.target[0], c1.target[2] - c0.target[2])
+  check(moved > 0.2 && Math.abs(c1.azimuth - c0.azimuth) < 0.005 && Math.abs(c1.polar - c0.polar) < 0.005, `${tag} 마우스: 왼쪽 끌기 = 평행 이동(방위·앙각 그대로)`, JSON.stringify({ moved: +moved.toFixed(2), c0, c1 }))
+  check(pool1 === pool0, `${tag} 마우스: 지소 위에서 끌고 놓아도 진료일이 놓이지 않는다`, `${pool0} → ${pool1}`)
+  await page.evaluate(() => {
+    window.__ctx = []
+    window.addEventListener('contextmenu', (e) => window.__ctx.push(e.defaultPrevented))
+  })
+  const cx = (await page.viewportSize()).width * 0.62
+  const cy = (await page.viewportSize()).height * 0.55
+  await page.mouse.move(cx, cy)
+  await page.mouse.down({ button: 'right' })
+  for (let k = 1; k <= 8; k++) await page.mouse.move(cx + k * 14, cy - k * 4)
+  await page.mouse.up({ button: 'right' })
+  await page.waitForTimeout(400)
+  const c2 = await cam(page)
+  const ctx = await page.evaluate(() => window.__ctx)
+  const still = Math.hypot(c2.target[0] - c1.target[0], c2.target[2] - c1.target[2])
+  check(Math.abs(c2.azimuth - c1.azimuth) > 0.05 && still < 0.01, `${tag} 마우스: 오른쪽 끌기 = 돌리기(초점 그대로)`, JSON.stringify({ c1, c2 }))
+  check(ctx.every(Boolean), `${tag} 마우스: 오른쪽 끌기에 브라우저 메뉴가 뜨지 않는다(기본 동작 막힘)`, JSON.stringify(ctx))
+  check((await page.getByTestId('pool-remaining').textContent()) === pool0, `${tag} 마우스: 오른쪽 끌기 뒤에도 배분 그대로`)
+  // 휠 = 확대(거리가 준다), 범위 제한 안
+  await page.mouse.move(cx, cy)
+  await page.mouse.wheel(0, -240)
+  await page.waitForTimeout(500)
+  const c3 = await cam(page)
+  check(c3.distance < c2.distance, `${tag} 마우스: 휠 = 확대·축소`, `${c2.distance} → ${c3.distance}`)
+}
+
 /** 시나리오 순서 j의 지소 카드(도크는 서쪽→동쪽이라 화면 순서와 다르다) */
 const row = (page, j) => page.locator(`.fac-row[data-j="${j}"]`)
 
@@ -126,9 +178,26 @@ async function finaleChecks(page, tag, full, allocs) {
   await page.waitForSelector('#s6-title')
   await page.waitForTimeout(600)
   await groundCheck(page, `${tag} S6 세계`)
-  // 같은 세계 위에서 미션을 고른다(설계안 6-17): 탭 셋 · 6개 지표 한 표 · 고정 문장
+  // 겹쳐 보기(설계안 6-19)부터: 탭 넷, 갈래 넷의 합 = 161곳 · 전체 주민, 보건지소별 진료일 = 세 배분, 무대 표시 = 갈래, ▲▼ 없음
   const tabs = page.getByRole('tab')
-  check((await tabs.count()) === 3 && (await tabs.nth(0).getAttribute('aria-selected')) === 'true', `${tag} S6 세계: 미션 탭 셋, 미션 1부터`)
+  check((await tabs.count()) === 4 && (await tabs.nth(0).getAttribute('aria-selected')) === 'true' && (await tabs.nth(0).innerText()).includes('겹쳐 보기'), `${tag} S6 세계: 탭 넷(겹쳐 보기 + 미션 셋), 겹쳐 보기부터`)
+  const ovN = await page.locator('.wf-ov-cats .wf-ov-n').allInnerTexts()
+  const ovTotal = await page.locator('.wf-ov-total').innerText()
+  check(ovN.length === 4 && ovN.map((t) => Number(t.replace('곳', ''))).reduce((a, b) => a + b, 0) === 161 && ovTotal.includes('합계 161곳 · 40,204명'), `${tag} S6 겹쳐 보기: 갈래 넷의 합 = 161곳 · 40,204명`, `${ovN.join(' · ')} | ${ovTotal}`)
+  const ovAlloc = await page.locator('.wf-ov-alloc tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => (td.textContent === '·' ? 0 : Number(td.textContent)))))
+  const westEast = [0, 9, 8, 2, 7, 1, 6, 5, 3, 4]
+  check(same(ovAlloc, allocs.map((a) => westEast.map((j) => a[j]))), `${tag} S6 겹쳐 보기: 보건지소별 진료일 표 = 세 배분(서→동)`, JSON.stringify(ovAlloc))
+  const ovc = await page.evaluate(() => (window.__sclStage?.overlapCheck ? window.__sclStage.overlapCheck() : null))
+  if (ovc) check(ovc.mismatch === 0 && ovc.marks === Number(ovN[1].replace('곳', '')) && same(ovc.counts, ovN.map((t) => Number(t.replace('곳', '')))), `${tag} S6 겹쳐 보기: 무대의 받침·세 칸 기호 = 판의 갈래`, JSON.stringify(ovc))
+  check((await page.locator('.marker .mk-slots').count()) === 0 && !(await page.locator('.wf-base').isVisible()), `${tag} S6 겹쳐 보기: 말풍선은 이름만 · 증감 기준 없음(자리만)`)
+  await groundCheck(page, `${tag} S6 겹쳐 보기(가장 낮은 단계)`)
+  await page.getByRole('button', { name: '6개 지표 표' }).click()
+  check((await page.locator('.wf-kpis tbody:not(.wf-change) tr').count()) === 6, `${tag} S6 겹쳐 보기: [6개 지표 표]를 누르면 6×3 표가 열린다`)
+  if (full) await shot(page, `${tag}-s6-overlap`)
+  // 같은 세계 위에서 미션을 고른다(설계안 6-17): 6개 지표 한 표 · 고정 문장
+  await tabs.nth(1).click()
+  await page.waitForTimeout(300)
+  check((await tabs.nth(1).getAttribute('aria-selected')) === 'true' && (await page.locator('.wf-base').isVisible()), `${tag} S6 세계: 미션 1 탭 = 미션 하나 보기(증감 기준)`)
   const wf = await page.locator('.wf-table').innerText()
   check((await page.locator('.wf-kpis tbody:not(.wf-change) tr').count()) === 6 && (await page.locator('.wf-kpis td.is-goal').count()) === 3, `${tag} S6 세계: 6개 지표 × 세 배분, 목표 칸 셋`)
   check(wf.includes('실제 10일 + 가정 5일 = 15일 기준') && /진료가 닿지 않는 마을은 \d+ · \d+ · \d+곳이에요/.test(wf), `${tag} S6 세계: 15일 분해 · 고정 문장`)
@@ -138,7 +207,7 @@ async function finaleChecks(page, tag, full, allocs) {
   const m1Marks = await page.locator('.marker').evaluateAll((els) => els.map((e) => [Number(e.getAttribute('data-j')), e.querySelectorAll('.mk-slot.on').length]))
   const m1Days = Object.fromEntries(m1Marks)
   check(allocs[0].every((v, j) => m1Days[j] === Math.floor(v)), `${tag} S6 세계: 말풍선 칸 = 미션 1 확정 배분`, JSON.stringify(m1Marks))
-  await tabs.nth(1).click()
+  await tabs.nth(2).click()
   await page.waitForTimeout(300)
   const m2Days = Object.fromEntries(await page.locator('.marker').evaluateAll((els) => els.map((e) => [Number(e.getAttribute('data-j')), e.querySelectorAll('.mk-slot.on').length])))
   check(allocs[1].every((v, j) => m2Days[j] === Math.floor(v)), `${tag} S6 세계: 미션 2 탭 → 말풍선 칸 = 미션 2 배분`)
@@ -429,7 +498,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
     `${tag} S4: 되돌리기 — 15일로 돌아오고 되돌릴 것이 없어진다`,
   )
   await page.mouse.move(8, height / 2)
-  // 위에서 보기: 같은 원근 세계(말풍선이 그대로 선다)
+  if (full) await mouseChecks(page, tag)
+  // 위에서 보기: 같은 원근 세계(말풍선이 그대로 선다). 위에서 → 비스듬히로 돌아오면 전체 시점으로 다시 맞춘다(위의 끌기도 되돌린다)
   await page.getByRole('button', { name: '위에서 보기' }).click()
   await page.waitForTimeout(900)
   const vis = await page.locator('.marker').evaluateAll((els) => els.filter((e) => e.closest('.anchor')?.style.visibility !== 'hidden').length)
