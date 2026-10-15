@@ -186,6 +186,9 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const [live, setLive] = useState('')
   const [finaleHover, setFinaleHover] = useState<MissionId | null>(null)
   const [finaleReturn, setFinaleReturn] = useState<FinaleView | null>(null)
+  // S6 겹쳐 보기에서 판의 갈래 줄로 고른 갈래(누름 = 고정, 가리킴 = 잠깐). 지도에서 그 마을들을 청록으로 강조한다
+  const [ovPick, setOvPick] = useState<number | null>(null)
+  const [ovHover, setOvHover] = useState<number | null>(null)
   const [hillshade, setHillshade] = useState<Hillshade | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [celebrate, setCelebrate] = useState(0)
@@ -575,6 +578,12 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     }
     if (s.screen !== 'finale') setFinaleReturn(null)
   }, [s.screen])
+  useEffect(() => {
+    if (s.screen !== 'finale' || s.finaleFocus !== 'overlap') {
+      setOvPick(null)
+      setOvHover(null)
+    }
+  }, [s.screen, s.finaleFocus])
 
   const finaleBoard = s.screen === 'finale' && s.finaleFocus === null
   const showSheet = (s.screen === 'debrief' && details) || finaleBoard
@@ -670,8 +679,9 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
 
   const overlapOn = s.screen === 'finale' && s.finaleFocus === 'overlap' && !!overlap && !!finale
   const stageOverlap = useMemo(
-    () => (overlapOn && overlap && finale ? { cat: overlap.cat, hits: overlap.hits, days: finale.map((r) => r.k15.villageDays) } : null),
-    [overlapOn, overlap, finale],
+    () =>
+      overlapOn && overlap && finale ? { cat: overlap.cat, hits: overlap.hits, days: finale.map((r) => r.k15.villageDays), focus: ovHover ?? ovPick } : null,
+    [overlapOn, overlap, finale, ovHover, ovPick],
   )
   const view: StageView = useMemo(
     () => ({
@@ -1077,6 +1087,9 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
           onFocus={(m) => dispatch({ type: 'finaleFocus', m })}
           overlap={overlap!}
           order={order}
+          picked={ovPick}
+          onPick={(k) => setOvPick(ovPick === k ? null : k)}
+          onHoverCat={setOvHover}
           base={s.finaleBase}
           onBase={(base) => dispatch({ type: 'finaleBase', base })}
           onBoard={() => {

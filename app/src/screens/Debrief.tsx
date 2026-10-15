@@ -77,6 +77,10 @@ export function DebriefPanel(p: Props) {
         <div className={`verdict${p.status.achieved ? '' : ' missed'}`}>
           {p.status.achieved ? copy.debrief.achieved(p.status.topPercent) : copy.debrief.missed(p.status.topPercent)}
         </div>
+        {/* 목표 규칙(세계 위 결과 글에서 옮김, 설계안 6-20): 목표를 넘어도 상위 n%가 10보다 클 수 있는 이유 */}
+        <p className="small" style={{ margin: '0 0 8px' }}>
+          {copy.world.debriefKpiTitle}
+        </p>
         <div className="badges">
           <Badge cls="REAL_DATA">실제 10일</Badge>
           <Badge cls="SIMULATION_ASSUMPTION">가정 5일</Badge>
