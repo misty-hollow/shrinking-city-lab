@@ -492,37 +492,46 @@ describe('결산 두 칸: 나아진 주민 / 불리해진 주민(설계안 5-6)'
     expect(ch.worse.lost).toEqual([])
     expect(ch.worse.thinner.length).toBeGreaterThan(0)
     const worse = side(copy.world.worseLabel)
-    expect(worse).toContain(copy.world.sideTotal(people(ch.worse.pop), ch.worse.villages.length))
+    // 큰 숫자 = 주민, 그 아래 마을 수(두 줄로 나눠 숫자끼리 다투지 않게)
+    expect(worse).toContain(people(ch.worse.pop) + copy.world.sideVillages(ch.worse.villages.length))
     expect(worse).toContain(copy.world.worseParts(0, ch.worse.thinner.length))
     // 0곳인 갈래는 적지 않는다
     expect(worse).not.toContain('닿지 않게 됨')
     const better = side(copy.world.betterLabel)
-    expect(better).toContain(copy.world.sideTotal(people(ch.better.pop), ch.better.villages.length))
+    expect(better).toContain(people(ch.better.pop) + copy.world.sideVillages(ch.better.villages.length))
     expect(better).toContain(copy.world.betterParts(ch.better.newly.length, ch.better.more.length))
     // 어디서: 주민이 가장 많이 바뀐 읍·면이 먼저
     expect(worse).toContain(`주로 ${scenario.emds[ch.worse.emds[0].m].name}`)
-    expect(document.body.textContent).toContain(copy.world.mapGlyphs)
-    // 끊긴 마을이 없으면 빨간 표지 문장도 없다
-    expect(document.body.textContent).not.toContain(copy.world.lostOnMap)
+    // 지도 표지 한 줄: ▲▼만(끊긴 마을이 없으면 빨간 표지 말이 없다)
+    expect(document.querySelector('.wr-mapkey')?.textContent).toBe(copy.world.mapKey(true, false))
+    expect(document.body.textContent).not.toContain('빨간 표지')
   })
 
-  it('mission 1 reference: lost villages are named with the red map pin; none only dropped while still reached', () => {
+  it('reads in order: verdict → mission value and target → gained/lost sides → six indicators', () => {
+    const { r } = worldDebrief('m1', A1)
+    const order = ['.wr-verdict', '.wr-goal', '.wr-change', '.wr-table'].map((sel) => document.querySelector(sel)!)
+    for (let k = 1; k < order.length; k++) expect(order[k - 1].compareDocumentPosition(order[k]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const goal = document.querySelector('.wr-goal')!.textContent ?? ''
+    expect(goal).toContain(copy.missions.m1.kpiName)
+    expect(goal).toContain(copy.world.goalTarget(`주 ${r.status.target.toFixed(1)}일`))
+    // 6개 지표는 그대로 모두(내 배분 · 차이). 현재 실제 값은 [결과 자세히]에
+    expect(document.querySelectorAll('.wr-row')).toHaveLength(6)
+    // 두 칸은 같은 크기: 큰 숫자는 주민 수
+    const big = [...document.querySelectorAll('.wr-side b')].map((b) => b.textContent)
+    expect(big).toHaveLength(2)
+  })
+
+  it('mission 1 reference: lost villages are counted beside the red map pins (names live on the pins); none only dropped', () => {
     const { ch } = worldDebrief('m1', A1)
     expect(ch.worse.lost.length).toBeGreaterThan(0)
     expect(ch.worse.thinner).toEqual([])
     expect(side(copy.world.worseLabel)).toContain(copy.world.worseParts(ch.worse.lost.length, 0))
     expect(side(copy.world.worseLabel)).not.toContain('하루 이상 줄어듦')
-    expect(document.body.textContent).toContain(copy.world.lostOnMap)
-    // 문장의 이름 = 지도의 빨간 표지(App이 같은 lostPinOrder로 상위 3곳에 표지를 단다): 주민이 많은 순
+    expect(document.querySelector('.wr-mapkey')?.textContent).toBe(copy.world.mapKey(true, true))
+    // 이름은 결과 글에 다시 적지 않는다: 지도의 빨간 표지(App이 lostPinOrder로 주민이 많은 상위 3곳 + 외 n곳)가 말한다
     const named = lostPinOrder(ch.worse.lost, model.pop).slice(0, 3)
     expect(model.pop[named[0]]).toBeGreaterThanOrEqual(model.pop[named[1]])
-    const line = [...document.querySelectorAll('.wr-change p')].map((e) => e.textContent ?? '').find((t) => t.includes(copy.world.lostOnMap))!
-    let at = -1
-    for (const i of named) {
-      const pos = line.indexOf(`${scenario.villages[i].name} ${people(scenario.villages[i].pop)}`)
-      expect(pos).toBeGreaterThan(at)
-      at = pos
-    }
+    for (const i of named) expect(document.querySelector('.world-result')!.textContent).not.toContain(`${scenario.villages[i].name} ${people(scenario.villages[i].pop)}`)
   })
 
   it('sides never overlap and follow the ±1 day rule', () => {
@@ -552,14 +561,14 @@ describe('결산 두 칸: 나아진 주민 / 불리해진 주민(설계안 5-6)'
 
   it('when the map compares against the previous mission, the ▲▼ sentence is left out', () => {
     worldDebrief('m2', A2, { mapVsCurrent: false })
-    expect(document.body.textContent).not.toContain(copy.world.mapGlyphs)
+    expect(document.body.textContent).not.toContain('▲ ▼')
   })
 
   it('the current allocation itself: both sides say none', () => {
     worldDebrief('m2', scenario.current_allocation)
     expect(side(copy.world.betterLabel)).toContain(copy.world.sideNone)
     expect(side(copy.world.worseLabel)).toContain(copy.world.sideNone)
-    expect(document.body.textContent).not.toContain(copy.world.mapGlyphs)
+    expect(document.querySelector('.wr-mapkey')).toBeNull()
   })
 
   it('details sheet also states reduced villages next to lost ones', () => {
@@ -669,14 +678,14 @@ describe('S6 겹쳐 보기(설계안 6-19)', () => {
 
   it('lists the four groups with village and resident counts that add up to all 161 villages', () => {
     const { unmount } = draw()
-    const rows = [...document.querySelectorAll('.wf-ov-cats tr')]
+    const rows = [...document.querySelectorAll('.wf-ov-cats li')]
     expect(rows).toHaveLength(4)
     rows.forEach((r, k) => {
       expect(r.textContent).toContain(copy.world.overlapCats[k].title)
       expect(r.querySelector('.wf-ov-n')?.textContent).toBe(copy.world.overlapCount(ov.counts[k].villages))
       expect(r.querySelector('.wf-ov-pop')?.textContent).toBe(people(ov.counts[k].pop))
     })
-    expect(document.querySelector('.wf-ov-total')?.textContent).toBe(copy.world.overlapTotal(161, people(model.totalPop)))
+    expect(document.querySelector('.wf-ov-total')?.textContent).toContain(copy.world.overlapTotal(161, people(model.totalPop)))
     unmount()
   })
 
@@ -698,6 +707,38 @@ describe('S6 겹쳐 보기(설계안 6-19)', () => {
     expect(btn.getAttribute('aria-expanded')).toBe('true')
     expect(document.querySelectorAll('.wf-kpis tbody:not(.wf-change) tr')).toHaveLength(6)
     for (const line of finaleSummary(results, model)) expect(document.body.textContent).toContain(line)
+    unmount()
+  })
+
+  it('category rows are toggle buttons that pick a group to show on the map (0-village rows cannot be picked)', () => {
+    const picks: number[] = []
+    const hovers: (number | null)[] = []
+    const { unmount } = render(
+      <WorldFinale
+        results={results}
+        scenario={scenario}
+        model={model}
+        current15={current15}
+        focus="overlap"
+        onFocus={() => {}}
+        overlap={ov}
+        order={ORDER}
+        picked={1}
+        onPick={(k) => picks.push(k)}
+        onHoverCat={(k) => hovers.push(k)}
+        base="current"
+        onBase={() => {}}
+        onBoard={() => {}}
+        onHome={() => {}}
+      />,
+    )
+    const btns = [...document.querySelectorAll<HTMLButtonElement>('.wf-ov-cat')]
+    expect(btns.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'false', 'false'])
+    fireEvent.click(btns[0])
+    fireEvent.focus(btns[3])
+    expect(picks).toEqual([0])
+    expect(hovers).toEqual([3])
+    btns.forEach((b, k) => expect(b.disabled).toBe(ov.counts[k].villages === 0))
     unmount()
   })
 })

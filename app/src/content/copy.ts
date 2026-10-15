@@ -410,13 +410,18 @@ export const copy = {
     debriefDetails: '결과 자세히 · 배분 지형도',
     debriefDetailsClose: '결과 자세히 닫기',
     /** 목표치는 상위 10% 경계를 내림한 값이라 목표를 넘어도 '상위 n%'가 10보다 클 수 있다(설계안 7-7) */
-    debriefKpiTitle: '목표는 가능한 배분 중 상위 10% 경계를 내림한 값 · 6개 지표를 현재 실제(10일)와 내 배분(15일)으로 비교',
-    debriefCols: ['지표', '현재 실제', '내 배분', '차이'] as const,
+    debriefKpiTitle: '목표는 가능한 배분 중 상위 10% 경계를 내림한 값이에요. 그래서 목표를 넘어도 상위 n%가 10보다 클 수 있어요.',
+    /** 결과 글의 6개 지표(작게): 내 배분과 현재 실제 대비 차이. 현재 실제 값은 [결과 자세히]의 표에 있다 */
+    debriefKpis: '6개 지표 · 현재 실제(10일) 대비',
+    debriefCols: ['지표', '내 배분', '차이'] as const,
+    /** 판정 아래 미션 지표 한 줄의 목표 */
+    goalTarget: (t: string) => `· 목표 ${t}`,
     /** 두 칸의 머리. 기준선은 현재 실제(10일)라 늘어난 5일의 효과가 섞인다(아래 mixedEffect) */
     changeTitle: '현재 실제(10일)와 비교',
     betterLabel: '나아진 주민',
     worseLabel: '불리해진 주민',
     sideTotal: (pop: string, n: number) => `${pop} · 마을 ${n}곳`,
+    sideVillages: (n: number) => `마을 ${n}곳`,
     sideNone: '없음',
     /** 0곳인 갈래는 적지 않는다 */
     betterParts: (newly: number, more: number) =>
@@ -428,6 +433,9 @@ export const copy = {
     lostLabel: '닿지 않게 된 마을',
     lostDetail: (list: string, more: number) => (more > 0 ? `${list} 외 ${more}곳` : list),
     lostOnMap: '지도의 빨간 표지',
+    /** 결과 글의 지도 표지 한 줄: ▲▼(현재 실제 대비일 때만)과 빨간 표지(닿지 않게 된 마을이 있을 때만). 둘 다 없으면 빈 줄 */
+    mapKey: (glyphs: boolean, lost: boolean) =>
+      [glyphs ? '지도의 ▲ ▼ = 하루 이상 늘거나 줄어든 마을' : '', lost ? '빨간 표지 = 닿지 않게 된 마을' : ''].filter(Boolean).join(' · '),
     /** 증감 기준이 현재 실제일 때만(앞 미션 비교를 켜 두면 지도의 ▲▼ 기준이 다르다) */
     mapGlyphs: '지도의 ▲ ▼ 표지 = 하루 이상 늘거나 줄어든 마을',
     /** 미션 2·3: 같은 15일끼리 비교 = 배분만의 차이 */
@@ -443,12 +451,14 @@ export const copy = {
     overlapTabSub: '세 배분 한 땅에',
     overlapBasis: '도로망 15분 · 주 1일 이상 = 닿음. 모델 결과이며 실제 진료 이용 여부가 아니에요.',
     overlapCats: [
-      { title: '세 배분 모두 닿음', sub: '받침 밝기 = 셋 중 가장 낮은 단계' },
+      { title: '세 배분 모두 닿음', sub: '불 켜진 집 · 창 불빛 = 셋 중 가장 낮은 단계' },
       { title: '배분에 따라 갈림', sub: '세 칸 = 미션 1·2·3, 켜진 칸 = 그 배분에서 닿음' },
-      { title: '세 배분 모두 닿지 않음', sub: '기준 안에 지소가 있어 진료일을 두면 닿을 수 있음' },
+      { title: '세 배분 모두 닿지 않음', sub: '어두운 집 · 기준 안 지소에 진료일을 두면 닿을 수 있음' },
       { title: '15분 안에 지소 없음', sub: '회색 울타리 · 배분과 상관없음' },
     ] as const,
     overlapCount: (n: number) => `${n}곳`,
+    overlapCatsAria: '마을 갈래 · 누르면 지도에서 그 마을을 강조',
+    overlapHint: '갈래를 누르면 지도에서 그 마을이 청록으로 보여요',
     overlapTotal: (n: number, pop: string) => `합계 ${n}곳 · ${pop}`,
     overlapAria: '세 배분 겹쳐 보기 · 마을 갈래와 보건지소별 진료일',
     overlapFacilities: '보건지소별 진료일',

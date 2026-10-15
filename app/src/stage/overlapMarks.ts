@@ -3,7 +3,7 @@
  * 켜진 칸(호박) = 그 배분에서 주 1일 이상 닿음, 꺼진 칸(슬레이트) = 주 1일 미만. 색만이 아니라 칸의 자리로 어느 배분인지 읽힌다.
  * 다른 갈래(모두 닿음 · 모두 닿지 않음 · 지소 없음)는 마을 받침이 말하므로 기호를 띄우지 않는다.
  *
- * 판은 늘 카메라를 보고, 화면 크기를 반지름 6~10 px로 묶어 멀리서도 읽히고 가까이서도 집을 덮지 않는다.
+ * 판은 늘 카메라를 보고, 화면 크기를 반지름 10~15 px로 묶어 멀리서도 읽히고 가까이서도 집을 덮지 않는다.
  * 깜박이거나 움직이지 않는다. 드로우 하나(인스턴스).
  */
 
@@ -13,8 +13,8 @@ import { GROUND_COLORS } from './villageGround'
 
 /** 판의 반지름: 월드(km)와 화면 하한·상한(px). 높이는 폭의 0.42 */
 export const OVERLAP_MARK_KM = 0.2
-export const OVERLAP_MARK_MIN_PX = 9
-export const OVERLAP_MARK_MAX_PX = 14
+export const OVERLAP_MARK_MIN_PX = 10
+export const OVERLAP_MARK_MAX_PX = 15
 const ASPECT = 0.42
 
 export class OverlapMarks {

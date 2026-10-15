@@ -13,6 +13,7 @@
  *   되돌리기(↶, 미리보기 포함), 위에서 보기(같은 원근 세계), 막힌 조작 피드백, 결산 감상(건너뛰기)·세계 위 결과 글·잃은 마을 표지,
  *   S6 세계 탭(미션 고르기 · 6개 지표 한 표) ↔ 세 배분 나란히 보기.
  *   6-2(2026-10-15 마우스): 왼쪽 끌기 = 평행 이동, 오른쪽 끌기 = 돌리기(브라우저 메뉴 없음), 지소 위에서 끌고 놓아도 배치되지 않음.
+ *   6-20: S5 결과 글 읽는 순서(판정 → 미션 지표 → 얻은 것·잃은 것 → 6개 지표), S6 갈래 줄을 누르면 그 마을들을 지도에서 강조.
  *   6-19(S6 겹쳐 보기): 탭 넷(겹쳐 보기 기본), 갈래 넷의 합 = 161곳·전체 주민, 보건지소별 진료일 표 = 세 배분, 받침·세 칸 기호 = 갈래.
  *   6-18(마을 받침): 소개 화면엔 받침이 없고, 빛이 다 닿은 뒤 161곳 모두 받침 단계 = 창 단계 = tierOf(A_i)(10·15·20분, 개발 서버에서만).
  *   목표 경계 배분은 파이썬 전처리가 만든 golden.json(boundary_*)에서 읽는다.
@@ -191,6 +192,20 @@ async function finaleChecks(page, tag, full, allocs) {
   if (ovc) check(ovc.mismatch === 0 && ovc.marks === Number(ovN[1].replace('곳', '')) && same(ovc.counts, ovN.map((t) => Number(t.replace('곳', '')))), `${tag} S6 겹쳐 보기: 무대의 받침·세 칸 기호 = 판의 갈래`, JSON.stringify(ovc))
   check((await page.locator('.marker .mk-slots').count()) === 0 && !(await page.locator('.wf-base').isVisible()), `${tag} S6 겹쳐 보기: 말풍선은 이름만 · 증감 기준 없음(자리만)`)
   await groundCheck(page, `${tag} S6 겹쳐 보기(가장 낮은 단계)`)
+  // 갈래 줄 = 지도 강조(설계안 6-20): 누르면 그 갈래의 마을이 청록 받침, 다시 누르면 끈다
+  const splitRow = page.locator('.wf-ov-cat').nth(1)
+  if (!(await splitRow.isDisabled())) {
+    await splitRow.click()
+    await page.waitForTimeout(200)
+    const on = await page.evaluate(() => (window.__sclStage?.overlapCheck ? window.__sclStage.overlapCheck() : null))
+    const pressed = await splitRow.getAttribute('aria-pressed')
+    if (on) check(pressed === 'true' && on.focus === 1 && on.focused === on.counts[1] && on.mismatch === 0, `${tag} S6 겹쳐 보기: 「갈림」 줄을 누르면 그 마을들이 지도에서 강조(수 일치)`, JSON.stringify(on))
+    await splitRow.click()
+    await page.mouse.move(8, 8)
+    await page.waitForTimeout(200)
+    const off = await page.evaluate(() => (window.__sclStage?.overlapCheck ? window.__sclStage.overlapCheck() : null))
+    if (off) check((await splitRow.getAttribute('aria-pressed')) === 'false' && off.focused === 0, `${tag} S6 겹쳐 보기: 다시 누르면 강조를 끈다`, JSON.stringify(off))
+  }
   await page.getByRole('button', { name: '6개 지표 표' }).click()
   check((await page.locator('.wf-kpis tbody:not(.wf-change) tr').count()) === 6, `${tag} S6 겹쳐 보기: [6개 지표 표]를 누르면 6×3 표가 열린다`)
   if (full) await shot(page, `${tag}-s6-overlap`)
@@ -633,10 +648,16 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await toSummary(page)
   const wr = await page.locator('.world-result').innerText()
   check(/달성 · 가능한 배분 중 상위 \d+%/.test(wr) && (await page.locator('.wr-row').count()) === 6 && wr.includes('5일이 늘어난 효과도 섞여'), `${tag} S5 세계: 판정 · 6개 지표 · 15일 기준 문장`, wr.slice(0, 120))
-  // 결산 두 칸(PR #13): 닿지 않게 된 마을이 있으면 이름 줄(지도의 빨간 표지)과 표지 1~3개, 없으면 둘 다 없다
-  const lostLine = (await page.locator('.wr-change p').allInnerTexts()).find((t) => t.includes('닿지 않게 된 마을')) ?? ''
+  // 읽는 순서(설계안 6-20): 판정 → 미션 지표 한 줄(내 값 · 목표) → 얻은 것·잃은 것 → 6개 지표
+  const readOrder = await page.evaluate(() => ['.wr-verdict', '.wr-goal', '.wr-change', '.wr-table'].map((q) => document.querySelector(q)?.getBoundingClientRect().top ?? -1))
+  const goalLine = await page.locator('.wr-goal').innerText()
+  check(readOrder.every((y, k) => y >= 0 && (k === 0 || y > readOrder[k - 1])) && /· 목표 /.test(goalLine), `${tag} S5 세계: 판정 → 미션 지표(내 값 · 목표) → 얻은 것·잃은 것 → 6개 지표`, `${JSON.stringify(readOrder)} | ${goalLine}`)
+  // 결산 두 칸(PR #13): 닿지 않게 된 마을이 있으면 잃은 쪽에 그 수, 지도 표지 줄에 빨간 표지, 세계 속 표지 1~3개. 없으면 셋 다 없다
+  const worseSide = await page.locator('.wr-side.is-worse').innerText()
+  const mapKey = (await page.locator('.wr-mapkey').count()) ? await page.locator('.wr-mapkey').innerText() : ''
   const pins = await page.locator('.vpin').count()
-  check(lostLine ? lostLine.includes('지도의 빨간 표지') && pins >= 1 && pins <= 3 : pins === 0, `${tag} S5 세계: 잃은 마을은 세계 속 표지(많아야 셋)`, `${lostLine.replace(/\n/g, ' ')} · 표지 ${pins}`)
+  const lostN = Number((worseSide.match(/닿지 않게 됨 (\d+)곳/) ?? [0, 0])[1])
+  check(lostN > 0 ? mapKey.includes('빨간 표지') && pins >= 1 && pins <= 3 : pins === 0 && !mapKey.includes('빨간 표지'), `${tag} S5 세계: 잃은 마을은 세계 속 표지(많아야 셋)`, `${worseSide.replace(/\n/g, ' ')} | ${mapKey} · 표지 ${pins}`)
   await shot(page, `${tag}-s5-world`)
   await groundCheck(page, `${tag} S5 세계`)
   await layoutGeometry(page, `${tag} S5 세계`, check, { overview: true })

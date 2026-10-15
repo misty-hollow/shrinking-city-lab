@@ -92,6 +92,8 @@ export interface StageOverlap {
   cat: Uint8Array
   hits: Uint8Array
   days: readonly Float64Array[]
+  /** 판에서 고른(가리킨) 갈래: 그 마을들의 받침을 청록으로 강조. 없으면 null */
+  focus?: number | null
 }
 
 export interface StageCallbacks {
@@ -373,14 +375,17 @@ export class StageController {
           if (!ov) return null
           const counts = [0, 0, 0, 0]
           let mismatch = 0
+          let focused = 0
           for (let i = 0; i < this.model.nV; i++) {
             const c = ov.cat[i]
             counts[c]++
             const g = this.houses.groundOf(i)
-            const want = c === 1 ? 1 : c === 3 ? 2 : 0
+            const isFocus = ov.focus !== null && ov.focus !== undefined && ov.focus === c
+            const want = isFocus ? 3 : c === 0 || c === 1 ? 1 : c === 3 ? 2 : 0
             if (!g || g.style !== want) mismatch++
+            if (g && g.style === 3) focused++
           }
-          return { counts, mismatch, marks: this.marks.count() }
+          return { counts, mismatch, marks: this.marks.count(), focus: ov.focus ?? null, focused }
         },
         /** 마을 받침 = 창 단계 = tierOf(A_i)인지(빛이 다 닿은 뒤에 부른다). 단계별 마을 수와 어긋난 마을 수 */
         groundCheck: () => {
@@ -467,12 +472,17 @@ export class StageController {
       if (!prev) this.houses.setNow(i, level)
       else this.houses.setTarget(i, level, now)
     }
-    // S6 겹쳐 보기: 받침 그리는 방식(갈림 = 받침 없이 세 칸 기호, 지소 없음 = 울타리)
+    // S6 겹쳐 보기(설계안 6-20): 모두 닿음 = 받침 없이 창빛만(받침까지 더하면 섬 전체가 밝아져 차이가 묻힌다),
+    // 갈림 = 받침 없이 세 칸 기호, 모두 닿지 않음 = 슬레이트 빈 고리, 지소 없음 = 울타리. 판에서 고른 갈래는 청록 강조
     for (let i = 0; i < this.model.nV; i++) {
       const c = ov ? ov.cat[i] : 0
-      this.houses.setGroundStyle(i, c === 1 ? 1 : c === 3 ? 2 : 0)
+      const focused = ov && ov.focus !== null && ov.focus !== undefined && ov.focus === c
+      this.houses.setGroundStyle(i, !ov ? 0 : focused ? 3 : c === 0 || c === 1 ? 1 : c === 3 ? 2 : 0)
       this.marks.set(i, ov && c === 1 ? ov.hits[i] : null)
     }
+    // 겹쳐 보기: 빛 번짐을 낮춘다(창 불빛 = 닿음은 그대로). 갈래를 고르면 더 낮춰 청록 강조가 드러나게
+    const focusOn = !!ov && ov.focus !== null && ov.focus !== undefined
+    if (this.houses.setGlowGain(!ov ? 1 : focusOn ? 0.18 : 0.45)) this.dirty = true
     this.houses.setEmphasis(view.emphasis === 'zero' || view.emphasis === 'thick' ? view.emphasis : null)
     this.houses.setHighlight(view.highlightVillages ?? null)
     this.houses.setPreview(intro ? null : (view.preview?.villages ?? null), view.preview?.sign ?? 1)

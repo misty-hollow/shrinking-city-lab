@@ -491,6 +491,17 @@ export class HouseLayer {
     return this.ground ? this.ground.read(i) : null
   }
 
+  /**
+   * 집 빛 번짐의 세기(창 불빛은 그대로). S6 겹쳐 보기에서만 1보다 낮춘다(설계안 6-20): 「세 배분 모두 닿음」의 빛 번짐이 섬 전체를
+   * 채워 갈림·울타리·강조가 묻히지 않게. 바뀌었으면 참
+   */
+  setGlowGain(g: number): boolean {
+    const m = this.glow.mesh.material as THREE.ShaderMaterial
+    if (m.uniforms.uGain.value === g) return false
+    m.uniforms.uGain.value = g
+    return true
+  }
+
   /** 받침을 그리는 방식(S6 겹쳐 보기). 다음 update에서 올라간다 */
   setGroundStyle(i: number, style: GroundStyle): void {
     if (!this.ground) return

@@ -266,8 +266,8 @@ export class VillageGround {
   }
 
   /**
-   * 그리는 방식(S6 겹쳐 보기, 설계안 6-19): 0 보통 · 1 받침 없음(갈림 — 세 칸 기호가 말한다) · 2 울타리(기준 안에 지소 없음,
-   * 회색 테두리 두 겹). 미션 하나를 볼 때와 그 밖의 화면은 늘 0이다.
+   * 그리는 방식(S6 겹쳐 보기, 설계안 6-19·6-20): 0 보통 · 1 받침 없음 · 2 울타리(기준 안에 지소 없음, 회색 테두리 두 겹)
+   * · 3 강조(판에서 고른 갈래의 마을 — 청록 테두리와 옅은 채움, 선택 색이며 데이터 색이 아니다). 미션 하나를 볼 때와 그 밖의 화면은 늘 0이다.
    */
   setStyle(i: number, style: GroundStyle): void {
     const o = i * 4 + 2
@@ -290,7 +290,7 @@ export class VillageGround {
   }
 }
 
-export type GroundStyle = 0 | 1 | 2
+export type GroundStyle = 0 | 1 | 2 | 3
 
 /** 받침 색(선형 RGB로 바꿔 넘긴다). 호박은 데이터의 빛 계열, 슬레이트는 꺼진 창 계열이다. */
 export const GROUND_COLORS = {
@@ -299,6 +299,8 @@ export const GROUND_COLORS = {
   rimOff: '#45505B',
   /** 울타리(기준 안에 지소 없음): 데이터의 빛도 꺼진 창도 아닌 옅은 회색 */
   fence: '#AEB2B6',
+  /** 강조(S6 겹쳐 보기에서 고른 갈래): 선택·포커스 색(palette select) */
+  focus: '#8FD6CB',
 } as const
 
 /**
@@ -324,6 +326,7 @@ export function attachVillageGround(mat: THREE.MeshBasicMaterial, g: VillageGrou
     uVgRimLit: { value: new THREE.Color(GROUND_COLORS.rimLit) },
     uVgRimOff: { value: new THREE.Color(GROUND_COLORS.rimOff) },
     uVgFence: { value: new THREE.Color(GROUND_COLORS.fence) },
+    uVgFocus: { value: new THREE.Color(GROUND_COLORS.focus) },
   }
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms)
@@ -338,6 +341,7 @@ uniform vec3 uVgFill;
 uniform vec3 uVgRimLit;
 uniform vec3 uVgRimOff;
 uniform vec3 uVgFence;
+uniform vec3 uVgFocus;
 void main() {`,
       )
       .replace(
@@ -351,7 +355,8 @@ void main() {`,
       float level = st.r * 2.0;
       float style = floor(st.b * 255.0 + 0.5);
       float vis = style > 0.5 && style < 1.5 ? 0.0 : st.g;
-      float fence = style > 1.5 ? 1.0 : 0.0;
+      float fence = style > 1.5 && style < 2.5 ? 1.0 : 0.0;
+      float focus = style > 2.5 ? 1.0 : 0.0;
       float s = (vg.r * 255.0 - 128.0) / 1000.0;
       float side = (vg.g * 255.0 - 128.0) / 100.0;
       float aa = max(fwidth(s), 0.002);
@@ -374,6 +379,11 @@ void main() {`,
       rimCol = mix(rimCol, uVgFence * lift, fence);
       c = mix(c, rimCol, vis * rim * mix(${GROUND_RIM_ALPHA_OFF.toFixed(2)}, ${GROUND_RIM_ALPHA_LIT.toFixed(2)}, lit));
       c = mix(c, uVgFence * lift, vis * fence * rim2 * ${GROUND_RIM_ALPHA_OFF.toFixed(2)});
+      // 강조: 단계와 상관없이 청록 테두리 + 옅은 채움(마을 터 전체). 판의 갈래 줄을 누르면 그 마을들이 지도에서 보인다
+      c = mix(c, uVgFocus * lift, vis * focus * inside * (1.0 - rim) * 0.6);
+      c = mix(c, uVgFocus * lift, vis * focus * rim);
+      // 바깥 고리 한 겹(울타리와 같은 자리): 전체 시점에서도 강조한 마을이 보이게
+      c = mix(c, uVgFocus * lift, vis * focus * rim2 * 0.85);
       diffuseColor.rgb = c;
     }
   }`,

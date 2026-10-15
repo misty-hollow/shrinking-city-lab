@@ -36,6 +36,11 @@ interface Props {
   overlap: Overlap
   /** 지소 순서: 서쪽 → 동쪽(말풍선 Tab 순서와 같다) */
   order: readonly number[]
+  /** 지도에서 강조할 갈래(누름 = 고정). 다시 누르면 끈다 */
+  picked?: number | null
+  onPick?(k: number): void
+  /** 가리키거나 포커스한 갈래(잠깐 강조) */
+  onHoverCat?(k: number | null): void
   base: FinaleBase
   onBase(b: FinaleBase): void
   onBoard(): void
@@ -187,24 +192,38 @@ export function WorldFinale(p: Props) {
       {overlapOn ? (
         <section className="wf-table wf-overlap" aria-label={copy.world.overlapAria} data-occlude={p.narrow ? 'inset-left' : true}>
           <p className="wf-ov-basis small">{copy.world.overlapBasis}</p>
-          <table className="wf-ov-cats">
-            <tbody>
-              {p.overlap.counts.map((c, k) => (
-                <tr key={k} data-cat={k}>
-                  <td className="wf-ov-glyph" aria-hidden="true">
+          {/* 갈래 줄 = 지도와 잇는 손잡이: 누르면(Enter·Space) 그 마을들이 지도에서 청록으로 남고, 가리키면 잠깐 보인다 */}
+          <ul className="wf-ov-cats" aria-label={copy.world.overlapCatsAria}>
+            {p.overlap.counts.map((c, k) => (
+              <li key={k} data-cat={k}>
+                <button
+                  type="button"
+                  className={`wf-ov-cat${p.picked === k ? ' is-on' : ''}`}
+                  aria-pressed={p.picked === k}
+                  disabled={c.villages === 0}
+                  onClick={() => p.onPick?.(k)}
+                  onMouseEnter={() => p.onHoverCat?.(k)}
+                  onMouseLeave={() => p.onHoverCat?.(null)}
+                  onFocus={() => p.onHoverCat?.(k)}
+                  onBlur={() => p.onHoverCat?.(null)}
+                >
+                  <span className="wf-ov-glyph" aria-hidden="true">
                     <OverlapGlyph cat={k} />
-                  </td>
-                  <th scope="row">
+                  </span>
+                  <span className="wf-ov-name">
                     {copy.world.overlapCats[k].title}
                     <small>{copy.world.overlapCats[k].sub}</small>
-                  </th>
-                  <td className="num wf-ov-n">{copy.world.overlapCount(c.villages)}</td>
-                  <td className="num wf-ov-pop">{people(c.pop)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="wf-ov-total small num">{copy.world.overlapTotal(total.villages, people(total.pop))}</p>
+                  </span>
+                  <span className="num wf-ov-n">{copy.world.overlapCount(c.villages)}</span>
+                  <span className="num wf-ov-pop">{people(c.pop)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="wf-ov-total small num">
+            <span>{copy.world.overlapHint}</span>
+            <span>{copy.world.overlapTotal(total.villages, people(total.pop))}</span>
+          </p>
           <table className="wf-ov-alloc num">
             <caption>{copy.world.overlapFacilities}</caption>
             <thead>
@@ -282,24 +301,46 @@ export function WorldFinale(p: Props) {
   )
 }
 
-/** 겹쳐 보기 갈래 기호(무대와 같은 모양): 0 가득 찬 받침 · 1 세 칸 · 2 빈 고리 · 3 회색 두 겹 울타리 */
+/**
+ * 겹쳐 보기 갈래 기호 = 지도에 실제로 보이는 모양(설계안 6-20): 0 불 켜진 집 · 1 세 칸 판 · 2 어두운 집과 슬레이트 빈 고리
+ * · 3 어두운 집과 회색 두 겹 울타리
+ */
 function OverlapGlyph({ cat }: { cat: number }) {
+  const house = (lit: boolean) => (
+    <g transform="translate(15 9)">
+      <rect x="-5" y="-3" width="10" height="7" fill="#EFE6D6" />
+      <path d="M-6.4 -2.6 L0 -7.6 L6.4 -2.6 Z" fill="#9A5A45" />
+      <rect x="-3.4" y="-1" width="2.2" height="2.4" fill={lit ? '#FFD27A' : '#2F3A45'} />
+      <rect x="1.2" y="-1" width="2.2" height="2.4" fill={lit ? '#FFD27A' : '#2F3A45'} />
+    </g>
+  )
   return (
-    <svg className="swatch ov-glyph" width="30" height="16" viewBox="0 0 30 16">
-      {cat === 0 && <ellipse cx="15" cy="8" rx="13" ry="6" fill="#F0CC86" stroke="#D7A657" strokeWidth="1.4" />}
-      {cat === 1 && (
+    <svg className="swatch ov-glyph" width="30" height="20" viewBox="0 0 30 20">
+      {cat === 0 && (
         <g>
-          <rect x="3" y="3" width="24" height="10" rx="2" fill="#1B1D21" stroke="#EEE7DA" strokeWidth="1" />
-          <rect x="5" y="5" width="6" height="6" rx="1" fill="#F2B84B" />
-          <rect x="12" y="5" width="6" height="6" rx="1" fill="#45505B" />
-          <rect x="19" y="5" width="6" height="6" rx="1" fill="#F2B84B" />
+          <ellipse cx="15" cy="12" rx="13" ry="7" fill="#FFB347" opacity="0.35" />
+          {house(true)}
         </g>
       )}
-      {cat === 2 && <ellipse cx="15" cy="8" rx="12.5" ry="5.5" fill="#8E9774" stroke="#45505B" strokeWidth="1.8" />}
+      {cat === 1 && (
+        <g>
+          <rect x="3" y="5" width="24" height="10" rx="2" fill="#1B1D21" stroke="#EEE7DA" strokeWidth="1" />
+          <rect x="5" y="7" width="6" height="6" rx="1" fill="#F2B84B" />
+          <rect x="12" y="7" width="6" height="6" rx="1" fill="#45505B" />
+          <rect x="19" y="7" width="6" height="6" rx="1" fill="#F2B84B" />
+        </g>
+      )}
+      {cat === 2 && (
+        <g>
+          <ellipse cx="15" cy="15" rx="12" ry="4" fill="none" stroke="#45505B" strokeWidth="1.8" />
+          {house(false)}
+        </g>
+      )}
       {cat === 3 && (
         <g fill="none" stroke="#AEB2B6" strokeWidth="1.3">
-          <ellipse cx="15" cy="8" rx="13" ry="6" fill="#8E9774" />
-          <ellipse cx="15" cy="8" rx="9.5" ry="3.6" />
+          <ellipse cx="15" cy="15" rx="13.5" ry="4.6" />
+          <ellipse cx="15" cy="15" rx="10.5" ry="3.2" />
+          {house(false)}
         </g>
       )}
     </svg>
