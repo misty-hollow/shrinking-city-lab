@@ -8,7 +8,7 @@ import * as THREE from 'three'
 import { PALETTE } from './palette'
 import { type SceneUniforms, makeLitMaterial } from './shaders'
 import type { Heightmap } from './terrain'
-import type { TreeSpec } from './world'
+import { type TreeSpec, mulberry32 } from './world'
 
 function conifer(): THREE.BufferGeometry {
   const a = new THREE.ConeGeometry(0.055, 0.11, 6, 1).translate(0, 0.085, 0)
@@ -42,13 +42,39 @@ function merge(parts: THREE.BufferGeometry[], leaf: number[]): THREE.BufferGeome
   return out
 }
 
+/** 0..n-1을 씨앗 고정으로 섞은 순서. 앞에서 몇 개를 남겨도 섬 전체에 고르게 퍼진다 */
+export function scatterOrder(n: number, seed: number): number[] {
+  const order = Array.from({ length: n }, (_, k) => k)
+  const rnd = mulberry32(seed)
+  for (let q = n - 1; q > 0; q--) {
+    const r = Math.floor(rnd() * (q + 1))
+    ;[order[q], order[r]] = [order[r], order[q]]
+  }
+  return order
+}
+
 export class TreeLayer {
   readonly group = new THREE.Group()
   private readonly meshes: THREE.InstancedMesh[] = []
 
-  /** 느린 GPU에서 나무를 줄인다(풍경 표현이라 계산 의미가 없다). keep = 남길 비율 */
+  /**
+   * 느린 GPU에서 나무를 줄인다(풍경 표현이라 계산 의미가 없다). keep = 남길 비율.
+   * 인스턴스 순서를 미리 섞어 두었으므로 앞에서 keep만큼 남기면 섬 전체에서 고르게 줄어든다
+   * (이전에는 남→북 생성 순서 그대로라 북쪽 절반이 통째로 사라졌다, 2026-10-15 수정).
+   */
   thin(keep: number): void {
     for (const m of this.meshes) m.count = Math.max(1, Math.floor(m.instanceMatrix.count * keep))
+  }
+
+  /** 지금 그리는 나무 수 / 전체(검사용) */
+  shown(): { drawn: number; total: number } {
+    let drawn = 0
+    let total = 0
+    for (const m of this.meshes) {
+      drawn += m.count
+      total += m.instanceMatrix.count
+    }
+    return { drawn, total }
   }
 
   constructor(trees: TreeSpec[], hm: Heightmap, shadowAt: (x: number, y: number) => number, u: SceneUniforms) {
@@ -82,16 +108,18 @@ export class TreeLayer {
       const tint = new THREE.InstancedBufferAttribute(new Float32Array(list.length * 3), 3)
       const shade = new THREE.InstancedBufferAttribute(new Float32Array(list.length), 1)
       const palette = leafCols[kind]
-      list.forEach((t, k) => {
+      // 고르게 줄이기 위해 놓는 순서를 섞는다. 나무마다의 밝기 흔들림은 원래 번호(k)로 정해 모양은 그대로다.
+      scatterOrder(list.length, 20261015 + kind).forEach((k, slot) => {
+        const t = list[k]
         const y = hm.sample(t.x, t.y) - 0.006
         Q.setFromAxisAngle(Y, t.tint * Math.PI * 2)
         const h = t.s * (kind === 0 ? 1.08 : 0.95)
         M.compose(P.set(t.x, y, -t.y), Q, S.set(t.s, h, t.s))
-        mesh.setMatrixAt(k, M)
+        mesh.setMatrixAt(slot, M)
         const c = palette[Math.floor(t.tint * palette.length) % palette.length]
         const v = 0.9 + ((k * 2654435761) % 1000) / 5000
-        tint.setXYZ(k, c.r * v, c.g * v, c.b * v)
-        shade.setX(k, shadowAt(t.x, t.y))
+        tint.setXYZ(slot, c.r * v, c.g * v, c.b * v)
+        shade.setX(slot, shadowAt(t.x, t.y))
       })
       geo.setAttribute('aTint', tint)
       geo.setAttribute('aShadow', shade)

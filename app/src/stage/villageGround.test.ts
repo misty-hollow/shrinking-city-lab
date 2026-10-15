@@ -140,6 +140,37 @@ describe('village ground — shape', () => {
     }
   })
 
+  it('never crosses zero between a ground texel and its outside neighbours (no ring outside the ground)', () => {
+    // 셰이더는 부호 거리를 선형 보간한다. 마을 번호가 바뀌는 경계(받침 없음 포함)의 양쪽은 모두 바깥(> 0)이어야
+    // 보간값이 0을 지나지 않는다. 2026-10-15: 받침 없는 칸을 0(= 깊은 안쪽)으로 두어 점선 고리가 생겼던 회귀.
+    let crossings = 0
+    for (let r = 0; r < bake.rows; r++)
+      for (let c = 0; c < bake.cols; c++) {
+        const k = r * bake.cols + c
+        if (!bake.id[k]) {
+          if (bake.sdf[k * 2] !== 255) crossings++
+          continue
+        }
+        for (const [dr, dc] of [
+          [0, 1],
+          [1, 0],
+          [0, -1],
+          [-1, 0],
+          [1, 1],
+          [1, -1],
+          [-1, 1],
+          [-1, -1],
+        ]) {
+          const rr = r + dr
+          const cc = c + dc
+          if (rr < 0 || cc < 0 || rr >= bake.rows || cc >= bake.cols) continue
+          const q = rr * bake.cols + cc
+          if (bake.id[q] !== bake.id[k] && (sAt(k) <= 0 || sAt(q) <= 0)) crossings++
+        }
+      }
+    expect(crossings).toBe(0)
+  })
+
   it('covers only a small share of the island', () => {
     let inside = 0
     for (let k = 0; k < bake.cols * bake.rows; k++) if (bake.id[k] && sAt(k) < 0) inside++

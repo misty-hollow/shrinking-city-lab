@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { FAST_MS, RAISE_AFTER_MS, RAISE_TRIAL_MS, SLOW_MS, initialQuality, nextQuality, windowMedian } from './quality'
+import { FAST_MS, PROBE_MAX_GAP_MS, RAISE_AFTER_MS, RAISE_TRIAL_MS, SLOW_MS, afterProbe, initialProbe, initialQuality, nextQuality, probeDue, windowMedian } from './quality'
 
 const MAX = 3 // 픽셀 비율 세 칸(예: 1.25 · 1 · 0.75) + 나무 절반
 
@@ -76,5 +76,35 @@ describe('adaptive quality', () => {
     expect(windowMedian(new Array(12).fill(260))).toBe(260)
     // 가운데값이라 몇 프레임의 큰 멈춤에 흔들리지 않는다
     expect(windowMedian([...new Array(80).fill(6), ...new Array(10).fill(100)])).toBe(6)
+  })
+
+  it('checks a still screen only when there is a level to win back, then backs off', () => {
+    const top = initialQuality()
+    expect(probeDue(top, initialProbe(), 60_000)).toBe(false) // 최고 단계면 확인하지 않는다
+    let q = nextQuality(top, 40, 1000, MAX)
+    let p = initialProbe()
+    expect(probeDue(q, p, 1000 + RAISE_AFTER_MS - 1)).toBe(false) // 바꾼 직후는 기다린다
+    expect(probeDue(q, p, 1000 + RAISE_AFTER_MS)).toBe(true)
+    // 확인 그리기가 넉넉하면 올라간다 → 다음 확인은 기본 간격
+    const t1 = 1000 + RAISE_AFTER_MS + 500
+    const q1 = nextQuality(q, 5.6, t1, MAX)
+    expect(q1.level).toBe(0)
+    p = afterProbe(p, q1.level < q.level, t1)
+    expect(p.gap).toBe(RAISE_AFTER_MS)
+    // 넉넉하지 않으면 간격을 두 배씩, 60초까지
+    q = nextQuality(top, 40, 0, MAX)
+    p = initialProbe()
+    for (let k = 0; k < 8; k++) p = afterProbe(p, false, 10_000 * k)
+    expect(p.gap).toBe(PROBE_MAX_GAP_MS)
+    expect(probeDue(q, p, p.at + PROBE_MAX_GAP_MS - 1)).toBe(false)
+    expect(probeDue(q, p, p.at + PROBE_MAX_GAP_MS)).toBe(true)
+  })
+
+  it('a locked level is never probed again', () => {
+    let s = nextQuality(initialQuality(), 40, 0, MAX)
+    s = nextQuality(s, 16, RAISE_AFTER_MS, MAX)
+    s = nextQuality(s, 40, RAISE_AFTER_MS + 100, MAX)
+    expect(s.ceiling).toBe(1)
+    expect(probeDue(s, initialProbe(), 10 * 60_000)).toBe(false)
   })
 })

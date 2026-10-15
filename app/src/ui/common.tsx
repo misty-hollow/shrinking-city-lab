@@ -62,7 +62,7 @@ const WIN_OFF = '#2F3A45'
 
 /** 마을 받침 색(무대 stage/villageGround.ts의 GROUND_COLORS와 같다) */
 const GROUND_FILL = '#F0CC86'
-const GROUND_RIM_LIT = '#D39A3E'
+const GROUND_RIM_LIT = '#D7A657'
 const GROUND_RIM_OFF = '#45505B'
 
 /**

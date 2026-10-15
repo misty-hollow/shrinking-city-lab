@@ -37,8 +37,9 @@ export const PALETTE = {
   forecourt: '#D9D0C0',
   mastFrame: '#2B3036',
   // 변화와 조작
-  better: '#3C7BD6',
-  worse: '#B5533C',
+  /** 세계의 ▲▼ 깃발: 채도를 낮춘 파랑 / 갈색-주황(설계안 6-18 후속). 화면 UI의 증감색은 app.css 토큰 */
+  better: '#5A86C2',
+  worse: '#B8654F',
   select: '#8FD6CB',
   ghost: '#A9BBC8',
   lost: '#8FB8E0',
