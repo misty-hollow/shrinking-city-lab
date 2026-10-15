@@ -7,6 +7,7 @@
  *   소개 화면  창 자체가 없다(아직 진료 이야기를 하지 않는다).
  *
  * 빛이 닿는 순간 집이 한 번 들썩이고, 0일이 된 마을에는 1.2초 동안 차가운 윤곽이 남는다.
+ * 마을 받침(설계안 6-18, villageGround.ts)은 여기서 보이는 단계(빛이 닿는 순간 바뀌는 값)를 그대로 받는다.
  *
  * 표시(마크, 설계안 6-17): 놓기 전 미리보기는 **바뀔 마을**의 집에 테두리 빛(얻음 = 따뜻한 흰빛, 잃음 = 산호빛)을
  * 켠다. 놓은 뒤에는 빛이 그 마을에 닿는 순간 테두리가 불빛으로 바뀐다(빛의 계획의 도착 시각).
@@ -17,6 +18,7 @@ import * as THREE from 'three'
 import type { Heightmap } from './terrain'
 import { PALETTE } from './palette'
 import { type GlowUniforms, LIGHT_GLSL, type SceneUniforms, makeGlowMaterial, makeGlowMesh } from './shaders'
+import type { VillageGround } from './villageGround'
 import type { World } from './world'
 
 /** 마을 표시 단계: 0 닿지 않음 · 1 주 1~2일 · 2 주 3~5일 · 3 중립(소개) */
@@ -340,6 +342,8 @@ export class HouseLayer {
   private marksLive = false
   private dirty = true
   private readonly world: World
+  /** 마을 받침(설계안 6-18): 창과 같은 보이는 단계를 받는다 */
+  private readonly ground: VillageGround | null
 
   constructor(
     world: World,
@@ -347,8 +351,10 @@ export class HouseLayer {
     shadowAt: (x: number, y: number) => number,
     u: SceneUniforms,
     gu: GlowUniforms,
+    ground: VillageGround | null = null,
   ) {
     this.world = world
+    this.ground = ground
     const hs = world.houses
     const n = hs.length
     const halls = hs.filter((h) => h.kind === 1).length
@@ -480,6 +486,11 @@ export class HouseLayer {
     return this.anim[i].target
   }
 
+  /** 마을 받침에 올라간 단계(검사용) */
+  groundOf(i: number): { level: number; visible: boolean } | null {
+    return this.ground ? this.ground.read(i) : null
+  }
+
   setEmphasis(e: 'zero' | 'thick' | null): void {
     if (this.emphasis === e) return
     this.emphasis = e
@@ -577,6 +588,7 @@ export class HouseLayer {
       const losing = now - a.lostAt < LOST_MS
       const emph = this.emphasis !== null || this.highlight.size > 0 || this.hoverVillage !== null
       if (!(fading || hopping || losing || touched || emph || marking || wasMarking)) continue
+      this.ground?.set(i, levelNow(a, now), !a.neutral)
       const mark = this.markOf(i, now, reduced)
       if (fading || hopping || losing) animating = true
       const v = this.world.villages[i]
@@ -613,6 +625,7 @@ export class HouseLayer {
       }
     }
     if (this.emphasis === 'thick') animating = true
+    if (this.ground?.flush()) touched = true
     if (touched || animating) {
       this.aState.needsUpdate = true
       this.aInfo.needsUpdate = true

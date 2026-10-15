@@ -1,0 +1,80 @@
+/**
+ * 적응 화질 판단(quality.ts): 느리면 내리고, 넉넉하면 기다렸다 되돌리고, 올렸다 곧 느려진 칸은 잠근다.
+ */
+
+import { describe, expect, it } from 'vitest'
+
+import { FAST_MS, RAISE_AFTER_MS, RAISE_TRIAL_MS, SLOW_MS, initialQuality, nextQuality, windowMedian } from './quality'
+
+const MAX = 3 // 픽셀 비율 세 칸(예: 1.25 · 1 · 0.75) + 나무 절반
+
+describe('adaptive quality', () => {
+  it('stays at the top while frames keep up (a fast desktop never steps down)', () => {
+    let s = initialQuality()
+    for (let t = 0; t < 120_000; t += 1500) s = nextQuality(s, 5.6, t, MAX)
+    expect(s.level).toBe(0)
+    for (let t = 0; t < 120_000; t += 1500) s = nextQuality(s, 16.7, t, MAX)
+    expect(s.level).toBe(0)
+  })
+
+  it('steps down one level per slow window, trees last, and not below the floor', () => {
+    let s = initialQuality()
+    const seen: number[] = []
+    for (let k = 0; k < 6; k++) {
+      s = nextQuality(s, 40, k * 1000, MAX)
+      seen.push(s.level)
+    }
+    expect(seen).toEqual([1, 2, 3, 3, 3, 3])
+  })
+
+  it('recovers after a transient stall once frames are fast again for long enough', () => {
+    let s = initialQuality()
+    s = nextQuality(s, 60, 1000, MAX) // 한 번 멈칫
+    expect(s.level).toBe(1)
+    s = nextQuality(s, 16.7, 1000 + RAISE_AFTER_MS - 1, MAX)
+    expect(s.level).toBe(1) // 아직 기다린다
+    s = nextQuality(s, 16.7, 1000 + RAISE_AFTER_MS, MAX)
+    expect(s.level).toBe(0)
+  })
+
+  it('does not raise on middling frames (between FAST and SLOW)', () => {
+    let s = nextQuality(initialQuality(), 40, 0, MAX)
+    s = nextQuality(s, (FAST_MS + SLOW_MS) / 2, 60_000, MAX)
+    expect(s.level).toBe(1)
+  })
+
+  it('locks a level that turned slow right after raising (no oscillation)', () => {
+    let s = initialQuality()
+    s = nextQuality(s, 40, 0, MAX) // 0 → 1
+    s = nextQuality(s, 16, RAISE_AFTER_MS, MAX) // 1 → 0 시험
+    expect(s.level).toBe(0)
+    s = nextQuality(s, 40, RAISE_AFTER_MS + RAISE_TRIAL_MS - 1, MAX) // 곧 느려짐 → 1, 0은 잠김
+    expect(s.level).toBe(1)
+    expect(s.ceiling).toBe(1)
+    let changes = 0
+    for (let t = 30_000; t < 300_000; t += 1500) {
+      const n = nextQuality(s, 16, t, MAX)
+      if (n !== s) changes++
+      s = n
+    }
+    expect(s.level).toBe(1)
+    expect(changes).toBe(0)
+  })
+
+  it('a slow window long after a raise is a new slowdown, not a failed trial', () => {
+    let s = nextQuality(initialQuality(), 40, 0, MAX)
+    s = nextQuality(s, 16, RAISE_AFTER_MS, MAX)
+    s = nextQuality(s, 40, RAISE_AFTER_MS + RAISE_TRIAL_MS + 1, MAX)
+    expect(s.level).toBe(1)
+    expect(s.ceiling).toBe(0)
+  })
+
+  it('judges a window of 90 frames, or 12+ frames spanning 3 s on very slow GPUs', () => {
+    expect(windowMedian(new Array(89).fill(16))).toBeNull()
+    expect(windowMedian(new Array(90).fill(16))).toBe(16)
+    expect(windowMedian(new Array(11).fill(300))).toBeNull()
+    expect(windowMedian(new Array(12).fill(260))).toBe(260)
+    // 가운데값이라 몇 프레임의 큰 멈춤에 흔들리지 않는다
+    expect(windowMedian([...new Array(80).fill(6), ...new Array(10).fill(100)])).toBe(6)
+  })
+})
