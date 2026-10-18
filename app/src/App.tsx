@@ -708,9 +708,11 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       celebrate,
       preview: previewInfo && !previewInfo.blocked && previewInfo.villages.length ? { villages: previewInfo.villages, sign: previewInfo.dir } : null,
       appreciate: appreciating,
+      // W A S D 지도 이동(설계안 6-21): 자료와 한계 대화상자, 결산의 감상 시간(카메라가 스스로 돈다)에는 받지 않는다
+      keyPan: !s.dataOpen && !appreciating,
       overlap: stageOverlap,
     }),
-    [stageMode, shown, s.T, s.deltaMode, s.screen, panelHoverEmd, s.regionEmd, lostPick, lost, emphasis, lightEvent, interactive, reducedMotion, celebrate, previewInfo, stageHover, appreciating, stageOverlap, overlap],
+    [stageMode, shown, s.T, s.deltaMode, s.screen, s.dataOpen, panelHoverEmd, s.regionEmd, lostPick, lost, emphasis, lightEvent, interactive, reducedMotion, celebrate, previewInfo, stageHover, appreciating, stageOverlap, overlap],
   )
 
   const onStageHover = useCallback(

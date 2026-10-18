@@ -28,6 +28,7 @@ import { EngravedLabels } from './engraved'
 import { FlagLayer } from './flags'
 import { OverlapMarks } from './overlapMarks'
 import { HouseLayer, type VillageLevel } from './houses'
+import { KeyPan, PAN_SPEED, panKeyOf } from './keyPan'
 import type { LightPlan } from './lightPlan'
 import { LightPaths } from './lightPaths'
 import { PALETTE } from './palette'
@@ -81,6 +82,8 @@ export interface StageView {
   preview?: { villages: readonly number[]; sign: 1 | -1 } | null
   /** 결산의 감상 시간: 카메라가 천천히 한 바퀴 일부를 돈다 */
   appreciate?: boolean
+  /** W A S D 지도 이동을 받는가(설계안 6-21). 대화상자·감상 시간에는 false. 없으면 받는다 */
+  keyPan?: boolean
   /**
    * S6 겹쳐 보기(설계안 6-19): 마을 갈래(engine overlapCategories)와 배분마다 닿음 비트, 세 배분의 A_i.
    * 있으면 villageDays는 셋 중 가장 낮은 값이고, 탑은 낮추고(한 배분의 진료일이 아니므로), 갈림 마을에 세 칸 기호를 띄운다.
@@ -192,6 +195,10 @@ export class StageController {
   private downAt: { x: number; y: number } | null = null
   private stageHover: Pick = null
   private tween: Tween | null = null
+  private readonly keyPan = new KeyPan()
+  private readonly panRight = new THREE.Vector3()
+  private readonly panUp = new THREE.Vector3()
+  private readonly panStep = new THREE.Vector3()
   private lastEventSeq = -1
   private lastCelebrate = -1
   private celebrateAt = -1e9
@@ -345,6 +352,10 @@ export class StageController {
     el.addEventListener('pointerdown', this.onPointerDown)
     el.addEventListener('pointerup', this.onPointerUp)
     el.addEventListener('dblclick', this.onDblClick)
+    window.addEventListener('keydown', this.onKeyDown)
+    window.addEventListener('keyup', this.onKeyUp)
+    window.addEventListener('blur', this.onPanReset)
+    document.addEventListener('visibilitychange', this.onPanReset)
     this.ro = new ResizeObserver(() => this.resize())
     this.ro.observe(container)
     this.resize()
@@ -506,6 +517,7 @@ export class StageController {
       this.lastCelebrate = view.celebrate
     }
     this.renderer.domElement.dataset.mode = view.mode
+    if (view.keyPan === false) this.keyPan.clear()
     this.dirty = true
   }
 
@@ -629,6 +641,10 @@ export class StageController {
     el.removeEventListener('pointerdown', this.onPointerDown)
     el.removeEventListener('pointerup', this.onPointerUp)
     el.removeEventListener('dblclick', this.onDblClick)
+    window.removeEventListener('keydown', this.onKeyDown)
+    window.removeEventListener('keyup', this.onKeyUp)
+    window.removeEventListener('blur', this.onPanReset)
+    document.removeEventListener('visibilitychange', this.onPanReset)
     el.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.controls.dispose()
     this.anchorObserver?.disconnect()
@@ -914,6 +930,47 @@ export class StageController {
     this.cb.onClick(this.pick(e.clientX - r.left, e.clientY - r.top))
   }
 
+  // W A S D(설계안 6-21): 말풍선·탭·단추의 키 처리(React)가 먼저 돈다. 그쪽이 쓴 키(defaultPrevented)와 입력창은 건드리지 않는다.
+  private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (e.defaultPrevented || this.view?.keyPan === false) return
+    const code = panKeyOf(e)
+    if (!code) return
+    e.preventDefault()
+    if (this.keyPan.press(code)) {
+      // 손으로 움직인 카메라: 배치가 바뀌어도 전체 시점으로 돌아가지 않고(6-2), 진행 중인 초점 이동은 여기서 멈춘다
+      this.atOverview = false
+      this.tween = null
+    }
+  }
+
+  private readonly onKeyUp = (e: KeyboardEvent): void => {
+    this.keyPan.release(e.code)
+  }
+
+  private readonly onPanReset = (): void => {
+    this.keyPan.clear()
+  }
+
+  /** 누르고 있는 키만큼 초점과 카메라를 땅을 따라 함께 옮긴다(방위·앙각·거리는 그대로). 움직였으면 true */
+  private stepKeyPan(dt: number, reduced: boolean): boolean {
+    if (!this.keyPan.active) return false
+    const [vx, vy] = this.keyPan.step(dt, reduced)
+    if (vx === 0 && vy === 0) return false
+    // 화면 오른쪽·위를 땅에 눕힌 방향: 비스듬히 볼 때 화면 위 = 화면 안쪽, 위에서 볼 때도 화면 위 그대로
+    const q = this.persp.quaternion
+    this.panRight.set(1, 0, 0).applyQuaternion(q).setY(0).normalize()
+    this.panUp.set(0, 1, 0).applyQuaternion(q).setY(0).normalize()
+    const dist = this.persp.position.distanceTo(this.controls.target)
+    const s = PAN_SPEED * dist * dt
+    this.panStep.copy(this.panRight).multiplyScalar(vx * s).addScaledVector(this.panUp, vy * s)
+    this.controls.target.add(this.panStep)
+    this.persp.position.add(this.panStep)
+    this.clampTarget(this.controls)
+    // 땅이 포인터 밑으로 지나간다: 마우스로 끌 때처럼 가리킴(말풍선 미리보기·커서)을 다시 고른다
+    if (this.pointer) this.pointerMoved = true
+    return true
+  }
+
   private readonly onContextRestored = (): void => {
     this.dirty = true
   }
@@ -1008,6 +1065,7 @@ export class StageController {
       if (k >= 1) this.tween = null
       animating = true
     }
+    if (this.stepKeyPan(dt, reduced)) animating = true
     if (this.controls.update(dt)) animating = true
 
     if (this.pointerMoved) {
@@ -1250,8 +1308,16 @@ export class StageController {
         if (!p) continue
         const s = this.project(p)
         if (!s.ok) {
-          el.style.visibility = 'hidden'
-          el.classList.remove('is-occluded')
+          // 화면 밖: 숨긴다. 단 포커스가 있는 말풍선(키보드로 고른 채 W A S D·끌기로 지도를 옮김)은 visibility를 끄면
+          // 포커스가 몸으로 빠지므로, 흐리기만 해서(is-occluded, 층은 overflow: hidden) 포커스와 + − ↑ ↓ 조작을 지킨다
+          if (el.contains(document.activeElement)) {
+            el.style.visibility = ''
+            el.classList.add('is-occluded')
+            if (Number.isFinite(s.x) && Number.isFinite(s.y)) el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`
+          } else {
+            el.style.visibility = 'hidden'
+            el.classList.remove('is-occluded')
+          }
           continue
         }
         el.style.visibility = ''
