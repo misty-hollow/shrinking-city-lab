@@ -1,14 +1,16 @@
 /**
  * 무대의 한 가지 빛(설계안 6-16): 서남서의 낮은 해 + 푸른 하늘빛 + 흙빛 반사. 모든 재질은 무광이다.
- * 그림자 맵·후처리 블룸은 쓰지 않는다. 지형 그늘은 terrainBake가 미리 계산하고, 건물·나무는 선 자리의 그늘 값을 받는다.
+ * 지형의 산 그늘은 terrainBake가 미리 계산하고, 건물·나무는 선 자리의 그늘 값을 받는다. 집·나무·지소가 드리우는 그림자는
+ * 해 그림자 지도(shadow.ts, 설계안 6-25)가 더한다. 후처리 블룸은 쓰지 않는다.
  * 지형(MeshBasicMaterial + 굽은 조명)과 아래 셰이더가 같은 식을 써서 한 장면으로 보인다.
  */
 
 import * as THREE from 'three'
 
+import { SHADOW_GLSL, type ShadowUniforms, makeShadowUniforms } from './shadow'
 import { LIGHT, PALETTE, SUN_DIR } from './palette'
 
-export interface SceneUniforms {
+export interface SceneUniforms extends ShadowUniforms {
   uSunDir: { value: THREE.Vector3 }
   uSunColor: { value: THREE.Color }
   uSkyColor: { value: THREE.Color }
@@ -29,6 +31,7 @@ export function makeSceneUniforms(): SceneUniforms {
     uFogColor: { value: new THREE.Color(PALETTE.haze) },
     uFogNear: { value: 60 },
     uFogFar: { value: 200 },
+    ...makeShadowUniforms(),
   }
 }
 
@@ -47,6 +50,8 @@ export function bakeLight(u: SceneUniforms, nx: number, ny: number, nz: number, 
 }
 
 export const LIGHT_GLSL = /* glsl */ `
+${SHADOW_GLSL}
+varying vec3 vWP;
 uniform vec3 uSunDir;
 uniform vec3 uSunColor;
 uniform vec3 uSkyColor;
@@ -59,7 +64,7 @@ vec3 sceneLight(vec3 n, float shadow, float ao) {
   float ndl = max(dot(n, uSunDir), 0.0);
   float up = 0.5 + 0.5 * n.y;
   vec3 amb = mix(uGroundColor, uSkyColor, up) * ao;
-  return amb + uSunColor * ndl * shadow;
+  return amb + uSunColor * ndl * shadow * castShadow(vWP, n);
 }
 vec3 applyFog(vec3 c, float depth) {
   float f = smoothstep(uFogNear, uFogFar, depth);
@@ -93,6 +98,7 @@ export function makeLitMaterial(u: SceneUniforms, o: LitOptions = {}): THREE.Sha
     depthWrite: !o.transparent,
     uniforms: { ...u, uOpacity: { value: o.opacity ?? 1 }, uAlbedo: { value: new THREE.Color(1, 1, 1) } },
     vertexShader: /* glsl */ `
+      varying vec3 vWP;
       #ifdef INST_ALBEDO
       attribute vec3 aTint;
       #endif
@@ -130,6 +136,7 @@ export function makeLitMaterial(u: SceneUniforms, o: LitOptions = {}): THREE.Sha
         #ifdef VERT_SHADOW
         vShadow = aVShadow;
         #endif
+        vWP = wp.xyz;
         vec4 mv = viewMatrix * wp;
         vDepth = -mv.z;
         gl_Position = projectionMatrix * mv;
@@ -191,6 +198,7 @@ export function makeGlowMaterial(g: GlowUniforms, color: string, toward = 0.18, 
       uPxClamp: { value: new THREE.Vector2(minPx, maxPx) },
     },
     vertexShader: /* glsl */ `
+      varying vec3 vWP;
       attribute vec3 aPos;
       attribute vec2 aGlow;
       uniform float uToward;

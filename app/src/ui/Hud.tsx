@@ -235,18 +235,17 @@ export function ReadingKey(p: KeyProps) {
           ) : (
             <>
               <li>
-                <HouseGlyph tier={2} ground />
+                <HouseGlyph tier={2} />
                 {copy.legend.villageFull}
               </li>
               <li>
-                <HouseGlyph tier={1} ground />
+                <HouseGlyph tier={1} />
                 {copy.legend.villageHalf}
               </li>
               <li>
-                <HouseGlyph tier={0} ground />
+                <HouseGlyph tier={0} />
                 {copy.legend.villageEmpty}
               </li>
-              <li className="key-note">{copy.legend.ground}</li>
               <li className="key-note">{copy.legend.house}</li>
             </>
           )}

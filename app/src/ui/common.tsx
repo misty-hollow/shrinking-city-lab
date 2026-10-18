@@ -60,17 +60,11 @@ export function Cells({ value }: { value: number }) {
 const WIN_ON = '#FFD27A'
 const WIN_OFF = '#2F3A45'
 
-/** 마을 받침 색(무대 stage/villageGround.ts의 GROUND_COLORS와 같다) */
-const GROUND_FILL = '#F0CC86'
-const GROUND_RIM_LIT = '#D7A657'
-const GROUND_RIM_OFF = '#45505B'
-
 /**
  * 무대와 같은 마을 기호(설계안 6-16): 집 두 채. 0 창이 어둡다 / 1 벽마다 창 하나 / 2 모든 창 + 빛 번짐 / 3 중립(창 없음).
  * 벽·지붕 색은 모든 단계에서 같다(0일 마을도 사람이 사는 집이다).
- * ground: 3D 무대의 마을 받침(설계안 6-18)도 그린다 — 2 가득 / 1 서쪽 절반 / 0 테두리만. 받침이 없는 지도(S6 나란히 보기 등)에는 쓰지 않는다.
  */
-export function HouseGlyph({ tier, size = 22, ground = false }: { tier: 0 | 1 | 2 | 3; size?: number; ground?: boolean }) {
+export function HouseGlyph({ tier, size = 22 }: { tier: 0 | 1 | 2 | 3; size?: number }) {
   const gid = `hg${useId().replace(/:/g, '')}`
   const lit = (slot: number) => (tier === 3 ? null : tier === 2 || (tier === 1 && slot === 0) ? WIN_ON : WIN_OFF)
   const house = (x: number, y: number, s: number, roof: string) => (
@@ -88,17 +82,7 @@ export function HouseGlyph({ tier, size = 22, ground = false }: { tier: 0 | 1 | 
           <stop offset="0" stopColor="#FFB347" stopOpacity="0.75" />
           <stop offset="1" stopColor="#FFB347" stopOpacity="0" />
         </radialGradient>
-        <clipPath id={`${gid}w`}>
-          <rect x="0" y="0" width="12" height="24" />
-        </clipPath>
       </defs>
-      {ground && tier !== 3 && (
-        <g>
-          <ellipse cx="12" cy="18.6" rx="11" ry="4.6" fill="#8E9774" />
-          {tier > 0 && <ellipse cx="12" cy="18.6" rx="11" ry="4.6" fill={GROUND_FILL} clipPath={tier === 1 ? `url(#${gid}w)` : undefined} />}
-          <ellipse cx="12" cy="18.6" rx="10.4" ry="4.1" fill="none" stroke={tier > 0 ? GROUND_RIM_LIT : GROUND_RIM_OFF} strokeWidth="1.3" />
-        </g>
-      )}
       {tier === 2 && <ellipse cx="12" cy="15" rx="11" ry="7" fill={`url(#${gid})`} />}
       {house(8, 15, 0.95, '#6F7F8C')}
       {house(16.5, 18, 0.8, '#B8734E')}

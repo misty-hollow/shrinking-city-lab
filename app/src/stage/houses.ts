@@ -7,7 +7,8 @@
  *   소개 화면  창 자체가 없다(아직 진료 이야기를 하지 않는다).
  *
  * 빛이 닿는 순간 집이 한 번 들썩이고, 0일이 된 마을에는 1.2초 동안 차가운 윤곽이 남는다.
- * 마을 받침(설계안 6-18, villageGround.ts)은 여기서 보이는 단계(빛이 닿는 순간 바뀌는 값)를 그대로 받는다.
+ * 집 벽 아래쪽은 조금 어둡다(땅에 닿은 곳의 가려진 빛, 설계안 6-25). 해 그림자는 shadow.ts가 더한다.
+ * S6 겹쳐 보기에서 판으로 고른 갈래의 마을은 지붕·벽이 청록으로 선다(setFocus, 설계안 6-25). 창 불빛은 그 위에 그대로 남는다.
  *
  * 표시(마크, 설계안 6-17): 놓기 전 미리보기는 **바뀔 마을**의 집에 테두리 빛(얻음 = 따뜻한 흰빛, 잃음 = 산호빛)을
  * 켠다. 놓은 뒤에는 빛이 그 마을에 닿는 순간 테두리가 불빛으로 바뀐다(빛의 계획의 도착 시각).
@@ -18,7 +19,6 @@ import * as THREE from 'three'
 import type { Heightmap } from './terrain'
 import { PALETTE } from './palette'
 import { type GlowUniforms, LIGHT_GLSL, type SceneUniforms, makeGlowMaterial, makeGlowMesh } from './shaders'
-import type { GroundStyle, VillageGround } from './villageGround'
 import type { World } from './world'
 
 /** 마을 표시 단계: 0 닿지 않음 · 1 주 1~2일 · 2 주 3~5일 · 3 중립(소개) */
@@ -132,14 +132,18 @@ function bodyMaterial(u: SceneUniforms): THREE.ShaderMaterial {
       uWinOff: { value: new THREE.Color(PALETTE.windowOff) },
       uDoor: { value: new THREE.Color(PALETTE.door) },
       uLost: { value: new THREE.Color(PALETTE.lost) },
+      uFocus: { value: new THREE.Color(PALETTE.select) },
       uMarkGain: { value: new THREE.Color(PALETTE.markGain) },
       uMarkLoss: { value: new THREE.Color(PALETTE.markLoss) },
     },
     vertexShader: /* glsl */ `
+      varying vec3 vWP;
       attribute float aWall;
       attribute vec4 aState;
       attribute vec4 aInfo;
       attribute float aMark;
+      attribute float aFocus;
+      varying float vFocus;
       varying vec3 vN;
       varying vec2 vUv;
       varying float vWall;
@@ -150,6 +154,7 @@ function bodyMaterial(u: SceneUniforms): THREE.ShaderMaterial {
       varying float vMark;
       void main() {
         vMark = aMark;
+        vFocus = aFocus;
         mat4 m = modelMatrix * instanceMatrix;
         vec4 wp = m * vec4(position, 1.0);
         wp.y += aState.w;
@@ -158,6 +163,7 @@ function bodyMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         vWall = aWall;
         vState = aState;
         vInfo = aInfo;
+        vWP = wp.xyz;
         vec4 mv = viewMatrix * wp;
         vDepth = -mv.z;
         vView = normalize(cameraPosition - wp.xyz);
@@ -166,6 +172,8 @@ function bodyMaterial(u: SceneUniforms): THREE.ShaderMaterial {
     `,
     fragmentShader: /* glsl */ `
       ${LIGHT_GLSL}
+      uniform vec3 uFocus;
+      varying float vFocus;
       uniform vec3 uWall;
       uniform vec3 uWinOn;
       uniform vec3 uWinOff;
@@ -187,8 +195,12 @@ function bodyMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         float lost = vState.y;
         float neutral = vState.z;
         float hall = vInfo.z;
-        vec3 L = sceneLight(n, vInfo.x, 1.0) * uExposure;
+        // 벽 아래쪽은 조금 어둡게(땅에 닿은 곳의 가려진 빛, 설계안 6-25)
+        float wallAo = 0.7 + 0.3 * smoothstep(0.0, 0.75, vUv.y);
+        vec3 L = sceneLight(n, vInfo.x, wallAo) * uExposure;
         vec3 col = uWall * (0.93 + 0.1 * vInfo.y) * L;
+        // S6 겹쳐 보기에서 고른 갈래: 벽이 청록으로(창은 아래에서 그대로 덮어 그린다)
+        col = mix(col, uFocus * (0.55 + 0.45 * L), vFocus * 0.55);
         float nWin = vWall < 1.5 ? (hall > 0.5 ? 3.0 : 2.0) : 1.0;
         float u = vUv.x;
         float v = vUv.y;
@@ -213,6 +225,7 @@ function bodyMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         col = mix(col, mix(uDoor * L, uWinOn * 1.1, lamp * 0.7), door);
         float rim = pow(1.0 - max(dot(n, normalize(vView)), 0.0), 1.6);
         col += uLost * lost * (0.3 + 0.7 * rim) * 0.75;
+        col += uFocus * vFocus * rim * 0.55;
         col *= 1.0 + vInfo.w * 0.22;
         // 미리보기·사건 표시: 벽 가장자리가 밝게 선다(집 모양을 따라가는 테두리 빛)
         float mk = abs(vMark);
@@ -232,14 +245,18 @@ function roofMaterial(u: SceneUniforms): THREE.ShaderMaterial {
       ...u,
       uWall: { value: new THREE.Color(PALETTE.wall) },
       uLost: { value: new THREE.Color(PALETTE.lost) },
+      uFocus: { value: new THREE.Color(PALETTE.select) },
       uMarkGain: { value: new THREE.Color(PALETTE.markGain) },
       uMarkLoss: { value: new THREE.Color(PALETTE.markLoss) },
     },
     vertexShader: /* glsl */ `
+      varying vec3 vWP;
       attribute float aGable;
       attribute vec3 aRoof;
       attribute vec4 aRoofState;
       attribute float aRoofMark;
+      attribute float aRoofFocus;
+      varying float vFocus;
       varying vec3 vN;
       varying vec3 vCol;
       varying float vGable;
@@ -248,6 +265,7 @@ function roofMaterial(u: SceneUniforms): THREE.ShaderMaterial {
       varying float vMark;
       void main() {
         vMark = aRoofMark;
+        vFocus = aRoofFocus;
         mat4 m = modelMatrix * instanceMatrix;
         vec4 wp = m * vec4(position, 1.0);
         wp.y += aRoofState.w;
@@ -255,6 +273,7 @@ function roofMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         vCol = aRoof;
         vGable = aGable;
         vS = aRoofState;
+        vWP = wp.xyz;
         vec4 mv = viewMatrix * wp;
         vDepth = -mv.z;
         gl_Position = projectionMatrix * mv;
@@ -264,6 +283,8 @@ function roofMaterial(u: SceneUniforms): THREE.ShaderMaterial {
       ${LIGHT_GLSL}
       uniform vec3 uWall;
       uniform vec3 uLost;
+      uniform vec3 uFocus;
+      varying float vFocus;
       uniform vec3 uMarkGain;
       uniform vec3 uMarkLoss;
       varying vec3 vN;
@@ -278,6 +299,8 @@ function roofMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         vec3 col = mix(vCol, uWall * 0.96, vGable) * L;
         col += uLost * vS.y * 0.22;
         col *= 1.0 + vS.z * 0.2;
+        // S6 겹쳐 보기에서 고른 갈래: 지붕이 청록으로(전체 시점에서 집은 몇 px라 지붕 색이 갈래를 말한다)
+        col = mix(col, uFocus * (0.62 + 0.38 * L), vFocus * 0.72);
         col = mix(col, vMark > 0.0 ? uMarkGain : uMarkLoss, abs(vMark) * 0.42);
         col = applyFog(col, vDepth);
         gl_FragColor = vec4(col, 1.0);
@@ -319,9 +342,16 @@ export class HouseLayer {
   /** 표시 테두리의 번짐(얻음·잃음) */
   private readonly haloGain: ReturnType<typeof makeGlowMesh>
   private readonly haloLoss: ReturnType<typeof makeGlowMesh>
+  /** S6 겹쳐 보기에서 고른 갈래: 집 둘레의 청록 빛(전체 시점에서 집이 몇 px여도 찾을 수 있게 화면 크기 하한이 있다) */
+  private readonly haloFocus: ReturnType<typeof makeGlowMesh>
   private readonly aMark: THREE.InstancedBufferAttribute
   private readonly gMark: THREE.InstancedBufferAttribute
   private readonly hMark: THREE.InstancedBufferAttribute
+  private readonly aFocus: THREE.InstancedBufferAttribute
+  private readonly gFocus: THREE.InstancedBufferAttribute
+  private readonly hFocus: THREE.InstancedBufferAttribute
+  /** S6 겹쳐 보기에서 판으로 고른 갈래의 마을(청록) */
+  private focus = new Set<number>()
   private readonly aState: THREE.InstancedBufferAttribute
   private readonly aInfo: THREE.InstancedBufferAttribute
   private readonly gState: THREE.InstancedBufferAttribute
@@ -342,8 +372,6 @@ export class HouseLayer {
   private marksLive = false
   private dirty = true
   private readonly world: World
-  /** 마을 받침(설계안 6-18): 창과 같은 보이는 단계를 받는다 */
-  private readonly ground: VillageGround | null
 
   constructor(
     world: World,
@@ -351,10 +379,8 @@ export class HouseLayer {
     shadowAt: (x: number, y: number) => number,
     u: SceneUniforms,
     gu: GlowUniforms,
-    ground: VillageGround | null = null,
   ) {
     this.world = world
-    this.ground = ground
     const hs = world.houses
     const n = hs.length
     const halls = hs.filter((h) => h.kind === 1).length
@@ -370,7 +396,13 @@ export class HouseLayer {
     this.aMark = new THREE.InstancedBufferAttribute(new Float32Array(n), 1)
     this.gMark = new THREE.InstancedBufferAttribute(new Float32Array(n - halls), 1)
     this.hMark = new THREE.InstancedBufferAttribute(new Float32Array(halls), 1)
-    for (const a of [this.aState, this.aInfo, this.gState, this.hState, this.aMark, this.gMark, this.hMark]) a.setUsage(THREE.DynamicDrawUsage)
+    this.aFocus = new THREE.InstancedBufferAttribute(new Float32Array(n), 1)
+    this.gFocus = new THREE.InstancedBufferAttribute(new Float32Array(n - halls), 1)
+    this.hFocus = new THREE.InstancedBufferAttribute(new Float32Array(halls), 1)
+    for (const a of [this.aState, this.aInfo, this.gState, this.hState, this.aMark, this.gMark, this.hMark, this.aFocus, this.gFocus, this.hFocus]) a.setUsage(THREE.DynamicDrawUsage)
+    this.bodies.geometry.setAttribute('aFocus', this.aFocus)
+    this.gables.geometry.setAttribute('aRoofFocus', this.gFocus)
+    this.hips.geometry.setAttribute('aRoofFocus', this.hFocus)
     this.bodies.geometry.setAttribute('aState', this.aState)
     this.bodies.geometry.setAttribute('aInfo', this.aInfo)
     this.bodies.geometry.setAttribute('aMark', this.aMark)
@@ -386,6 +418,7 @@ export class HouseLayer {
     this.lamp = makeGlowMesh(halls, makeGlowMaterial(gu, PALETTE.windowOn, 0.1, 1.2, 6))
     this.haloGain = makeGlowMesh(n, makeGlowMaterial(gu, PALETTE.markGain, 0.2, 3, 18))
     this.haloLoss = makeGlowMesh(n, makeGlowMaterial(gu, PALETTE.markLoss, 0.2, 3, 18))
+    this.haloFocus = makeGlowMesh(n, makeGlowMaterial(gu, PALETTE.select, 0.2, 7, 18))
     this.roofOf = new Int32Array(n)
     this.baseY = new Float32Array(n)
     this.wakeDelay = new Float32Array(n)
@@ -430,6 +463,7 @@ export class HouseLayer {
       this.glow.pos.setXYZ(k, h.x, y + h.h * 0.7, -h.y)
       this.haloGain.pos.setXYZ(k, h.x, y + h.h * 0.8, -h.y)
       this.haloLoss.pos.setXYZ(k, h.x, y + h.h * 0.8, -h.y)
+      this.haloFocus.pos.setXYZ(k, h.x, y + h.h * 0.8, -h.y)
     })
     // 마을 안 깨어나는 순서: 대표점에서 가까운 집부터
     for (const v of world.villages) {
@@ -448,7 +482,7 @@ export class HouseLayer {
     this.gables.frustumCulled = false
     this.hips.frustumCulled = false
     this.hit.frustumCulled = false
-    this.group.add(this.bodies, this.gables, this.hips, this.hit, this.glow.mesh, this.lamp.mesh, this.haloGain.mesh, this.haloLoss.mesh)
+    this.group.add(this.bodies, this.gables, this.hips, this.hit, this.glow.mesh, this.lamp.mesh, this.haloGain.mesh, this.haloLoss.mesh, this.haloFocus.mesh)
   }
 
   /** 마을 i의 목표 단계. at = 적용 시각(performance.now 기준). 이미 같은 목표로 가는 중이면 그대로 둔다. */
@@ -486,14 +520,9 @@ export class HouseLayer {
     return this.anim[i].target
   }
 
-  /** 마을 받침에 올라간 단계(검사용) */
-  groundOf(i: number): { level: number; visible: boolean; style: GroundStyle } | null {
-    return this.ground ? this.ground.read(i) : null
-  }
-
   /**
    * 집 빛 번짐의 세기(창 불빛은 그대로). S6 겹쳐 보기에서만 1보다 낮춘다(설계안 6-20): 「세 배분 모두 닿음」의 빛 번짐이 섬 전체를
-   * 채워 갈림·울타리·강조가 묻히지 않게. 바뀌었으면 참
+   * 채워 갈림 기호·청록 강조가 묻히지 않게. 바뀌었으면 참
    */
   setGlowGain(g: number): boolean {
     const m = this.glow.mesh.material as THREE.ShaderMaterial
@@ -502,11 +531,17 @@ export class HouseLayer {
     return true
   }
 
-  /** 받침을 그리는 방식(S6 겹쳐 보기). 다음 update에서 올라간다 */
-  setGroundStyle(i: number, style: GroundStyle): void {
-    if (!this.ground) return
-    this.ground.setStyle(i, style)
+  /** S6 겹쳐 보기에서 판으로 고른 갈래의 마을: 지붕·벽을 청록으로(없으면 끔). 다음 update에서 올라간다 */
+  setFocus(list: readonly number[] | null): void {
+    const next = new Set(list ?? [])
+    if (next.size === this.focus.size && [...next].every((i) => this.focus.has(i))) return
+    this.focus = next
     this.dirty = true
+  }
+
+  /** 마을 i가 청록으로 섰나(검사용) */
+  isFocused(i: number): boolean {
+    return this.focus.has(i)
   }
 
   setEmphasis(e: 'zero' | 'thick' | null): void {
@@ -606,7 +641,7 @@ export class HouseLayer {
       const losing = now - a.lostAt < LOST_MS
       const emph = this.emphasis !== null || this.highlight.size > 0 || this.hoverVillage !== null
       if (!(fading || hopping || losing || touched || emph || marking || wasMarking)) continue
-      this.ground?.set(i, levelNow(a, now), !a.neutral)
+      const foc = this.focus.has(i) ? 1 : 0
       const mark = this.markOf(i, now, reduced)
       if (fading || hopping || losing) animating = true
       const v = this.world.villages[i]
@@ -637,13 +672,15 @@ export class HouseLayer {
         if (hs[k].kind === 1) this.lamp.glow.setXY(r, 0.13, a.neutral ? 0 : Math.max(0, l - 1) * 0.9)
         this.aMark.setX(k, mark)
         ;(hs[k].kind === 1 ? this.hMark : this.gMark).setX(r, mark)
+        this.aFocus.setX(k, foc)
+        ;(hs[k].kind === 1 ? this.hFocus : this.gFocus).setX(r, foc)
         const halo = Math.abs(mark) * norm
         this.haloGain.glow.setXY(k, mark > 0 ? 0.2 : 0, mark > 0 ? 0.34 * halo : 0)
         this.haloLoss.glow.setXY(k, mark < 0 ? 0.2 : 0, mark < 0 ? 0.34 * halo : 0)
+        this.haloFocus.glow.setXY(k, foc ? 0.22 : 0, foc ? 0.7 * Math.max(0.55, norm) : 0)
       }
     }
     if (this.emphasis === 'thick') animating = true
-    if (this.ground?.flush()) touched = true
     if (touched || animating) {
       this.aState.needsUpdate = true
       this.aInfo.needsUpdate = true
@@ -654,8 +691,12 @@ export class HouseLayer {
       this.aMark.needsUpdate = true
       this.gMark.needsUpdate = true
       this.hMark.needsUpdate = true
+      this.aFocus.needsUpdate = true
+      this.gFocus.needsUpdate = true
+      this.hFocus.needsUpdate = true
       this.haloGain.glow.needsUpdate = true
       this.haloLoss.glow.needsUpdate = true
+      this.haloFocus.glow.needsUpdate = true
     }
     return animating || touched
   }

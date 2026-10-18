@@ -157,9 +157,10 @@ async function probe(name) {
   await page.waitForSelector('.marker[data-j="3"] .marker-pop', { timeout: 10000 })
   const resultShownMs = Date.now() - ta
   const play = stats(await page.evaluate(() => window.__perf.playGaps))
-  await page.getByRole('button', { name: '위에서 보기' }).click()
+  await page.getByRole('button', { name: '위에서 보기', exact: true }).click()
   const top = stats(await page.evaluate(() => window.__perf.frames(1500)))
-  await page.getByRole('button', { name: '비스듬히 보기' }).click()
+  // 위에서 보기 단추는 상태와 상관없이 이름이 하나다(설계안 6-22): 다시 눌러 비스듬히 보기로
+  await page.getByRole('button', { name: '위에서 보기', exact: true }).click()
   await page.waitForTimeout(800)
   const tail = await page.evaluate((n) => {
     const l = window.__perf.long

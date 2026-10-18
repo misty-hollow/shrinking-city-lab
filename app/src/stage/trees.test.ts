@@ -10,7 +10,8 @@ import { describe, expect, it } from 'vitest'
 import type { Geometry, Scenario } from '../data/types'
 import { FLAG_CAP_PX, FLAG_MIN_PX, FLAG_SIZES } from './flags'
 import { Heightmap } from './terrain'
-import { scatterOrder } from './trees'
+import { makeSceneUniforms } from './shaders'
+import { TreeLayer, scatterOrder } from './trees'
 import { buildWorld } from './world'
 
 const dataDir = resolve(__dirname, '../../public/data')
@@ -65,5 +66,24 @@ describe('change flags keep the three size steps', () => {
     }
     // 화면 크기 범위가 단계마다 겹치지 않게 순서를 지킨다(하한 < 상한)
     for (const k of [1, 2, 3]) expect(FLAG_MIN_PX[k]).toBeLessThan(FLAG_CAP_PX[k])
+  })
+})
+
+describe('tree detail levels (설계안 6-25)', () => {
+  it('switching to the simple shape and back keeps every tree: same instances, colours and shade', () => {
+    const layer = new TreeLayer(world.trees, hm, () => 0.8, makeSceneUniforms())
+    const meshes = layer.group.children as import('three').InstancedMesh[]
+    const before = meshes.map((m) => ({ geo: m.geometry, tint: m.geometry.getAttribute('aTint'), count: m.count, tris: m.geometry.getAttribute('position').count }))
+    expect(layer.detailed).toBe(true)
+    expect(layer.setDetail(false)).toBe(true)
+    meshes.forEach((m, k) => {
+      expect(m.geometry).not.toBe(before[k].geo)
+      expect(m.geometry.getAttribute('aTint')).toBe(before[k].tint)
+      expect(m.count).toBe(before[k].count)
+      expect(m.geometry.getAttribute('position').count).toBeLessThan(before[k].tris)
+    })
+    expect(layer.setDetail(false)).toBe(false)
+    layer.setDetail(true)
+    meshes.forEach((m, k) => expect(m.geometry).toBe(before[k].geo))
   })
 })

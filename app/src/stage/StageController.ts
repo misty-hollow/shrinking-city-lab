@@ -33,12 +33,12 @@ import { KeyPan, PAN_SPEED, panKeyOf } from './keyPan'
 import type { LightPlan } from './lightPlan'
 import { LightPaths } from './lightPaths'
 import { PALETTE } from './palette'
-import { type ProbeState, type QualityState, afterProbe, initialProbe, initialQuality, nextQuality, probeDue, windowMedian } from './quality'
+import { SunShadow, markCasters, patchTerrainShadow } from './shadow'
+import { type ProbeState, type QualityState, afterProbe, initialProbe, initialQuality, lowestQualityLevel, nextQuality, probeDue, qualityLadder, windowMedian } from './quality'
 import { type GlowUniforms, makeGlowUniforms, makeSceneUniforms, type SceneUniforms } from './shaders'
 import { BASE_Y, bakeTerrain } from './terrainBake'
 import { type Heightmap, drapePath, pointInPolygons } from './terrain'
 import { TreeLayer } from './trees'
-import { VillageGround, attachVillageGround, bakeVillageGround } from './villageGround'
 import type { World } from './world'
 
 export type Pick = { kind: 'facility' | 'village' | 'emd'; index: number } | null
@@ -96,7 +96,7 @@ export interface StageOverlap {
   cat: Uint8Array
   hits: Uint8Array
   days: readonly Float64Array[]
-  /** 판에서 고른(가리킨) 갈래: 그 마을들의 받침을 청록으로 강조. 없으면 null */
+  /** 판에서 고른(가리킨) 갈래: 그 마을들의 집을 청록으로 강조. 없으면 null */
   focus?: number | null
 }
 
@@ -120,6 +120,9 @@ export interface ScreenRect {
   w: number
   h: number
 }
+
+/** 해 그림자 지도 한 변(텍셀). 카메라가 보는 땅에 맞추므로 확대하면 그만큼 선명해진다 */
+const SHADOW_SIZE = 4096
 
 const EL_DEFAULT = (47 * Math.PI) / 180
 /** 위에서 보기: 같은 원근 카메라를 높이(72°) 올린다 — 받침의 두께·집·나무가 그대로 남는다 */
@@ -198,6 +201,10 @@ export class StageController {
   private stageHover: Pick = null
   private tween: Tween | null = null
   private readonly keyPan = new KeyPan()
+  /** 해 그림자(설계안 6-25). 처음 그릴 때 만든다(섬 크기가 정해진 뒤) */
+  private sunShadow: SunShadow | null = null
+  /** 그림자를 던지는 물체(집·지소·나무)가 바뀌었다: 다음 그리기에서 그림자 지도도 다시 */
+  private castersDirty = true
   /**
    * 마지막 입력이 키보드였나(키를 누르면 true, 포인터를 누르면 false): 마우스로 눌러 생긴 포커스와 키보드 포커스를 가른다.
    * :focus-visible은 스크립트로 옮긴 포커스(↑ ↓로 옆 말풍선, 판을 닫은 뒤 복귀)에서 판단이 갈려 직접 센다
@@ -262,9 +269,9 @@ export class StageController {
     this.topView = bake.topView
     const trees = new TreeLayer(this.world.trees, this.hm, bake.shadowAt, this.u)
     this.trees = trees
-    const ground = new VillageGround(bakeVillageGround(this.world, this.hm))
-    attachVillageGround(this.terrainMat, ground)
-    this.houses = new HouseLayer(this.world, this.hm, bake.shadowAt, this.u, this.gu, ground)
+    // 땅도 집·나무·지소의 해 그림자를 받는다(설계안 6-25)
+    patchTerrainShadow(this.terrainMat, this.u)
+    this.houses = new HouseLayer(this.world, this.hm, bake.shadowAt, this.u, this.gu)
     this.clinics = new ClinicLayer(this.world.clinics, this.hm, bake.shadowAt, this.u, this.gu)
     const minutesOf = (i: number, j: number) => model.tenths[i * model.nF + j] / 10
     const outline = data.geometry.outer.polygons.map((p) => [p[0]])
@@ -380,7 +387,7 @@ export class StageController {
           geometries: this.renderer.info.memory.geometries,
           textures: this.renderer.info.memory.textures,
           lastRenderMs: this.lastRenderMs,
-          quality: { ...this.quality, pixelRatio: this.renderer.getPixelRatio(), pixelRatios: this.pixelRatios, trees: this.trees.shown() },
+          quality: { ...this.quality, pixelRatio: this.renderer.getPixelRatio(), pixelRatios: this.pixelRatios, trees: this.trees.shown(), shadow: this.u.uShadowOn.value === 1, detailedTrees: this.trees.detailed },
         }),
         qualityLog: () => [...this.qualityLog],
         /** 카메라(검사용, 읽기만): 초점·방위각·앙각·거리 */
@@ -390,7 +397,13 @@ export class StageController {
           polar: Math.round(this.controls.getPolarAngle() * 1000) / 1000,
           distance: Math.round(this.persp.position.distanceTo(this.controls.target) * 1000) / 1000,
         }),
-        /** S6 겹쳐 보기: 받침 그리는 방식·세 칸 기호가 마을 갈래와 맞는지. 갈래별 마을 수와 어긋난 마을 수 */
+        /** 같은 시점 비교 촬영용(개발 서버, 검사에는 쓰지 않는다): 초점·방위·앙각·거리로 카메라를 바로 놓는다 */
+        setCamera: (c: { target: [number, number, number]; azimuth: number; polar: number; distance: number }) => {
+          const t = new THREE.Vector3(...c.target)
+          this.atOverview = false
+          this.moveCamera(t, new THREE.Vector3().setFromSpherical(new THREE.Spherical(c.distance, c.polar, c.azimuth)).add(t), true)
+        },
+        /** S6 겹쳐 보기: 세 칸 기호·청록 강조가 마을 갈래와 맞는지. 갈래별 마을 수와 어긋난 마을 수 */
         overlapCheck: () => {
           const ov = this.view?.overlap
           if (!ov) return null
@@ -400,44 +413,42 @@ export class StageController {
           for (let i = 0; i < this.model.nV; i++) {
             const c = ov.cat[i]
             counts[c]++
-            const g = this.houses.groundOf(i)
             const isFocus = ov.focus !== null && ov.focus !== undefined && ov.focus === c
-            const want = isFocus ? 3 : c === 0 || c === 1 ? 1 : c === 3 ? 2 : 0
-            if (!g || g.style !== want) mismatch++
-            if (g && g.style === 3) focused++
+            const lit = this.houses.isFocused(i)
+            if (lit !== isFocus) mismatch++
+            if (lit) focused++
           }
           return { counts, mismatch, marks: this.marks.count(), focus: ov.focus ?? null, focused }
         },
-        /** 마을 받침 = 창 단계 = tierOf(A_i)인지(빛이 다 닿은 뒤에 부른다). 단계별 마을 수와 어긋난 마을 수 */
-        groundCheck: () => {
+        /** 창 단계 = tierOf(A_i)인지(빛이 다 닿은 뒤에 부른다). 소개 화면이면 모두 중립(창 없음). 단계별 마을 수와 어긋난 마을 수 */
+        windowCheck: () => {
           const v = this.view
           if (!v) return null
           const counts = [0, 0, 0]
           let mismatch = 0
-          let hidden = 0
+          let neutral = 0
           for (let i = 0; i < this.model.nV; i++) {
-            const g = this.houses.groundOf(i)
-            if (!g) return null
+            const t = this.houses.targetOf(i)
             if (v.mode !== 'normal') {
-              if (g.visible) mismatch++
-              else hidden++
+              if (t === 3) neutral++
+              else mismatch++
               continue
             }
             const want = tierOf(v.villageDays[i])
             counts[want]++
-            if (!g.visible || Math.abs(g.level - want) > 0.01 || this.houses.targetOf(i) !== want) mismatch++
+            if (t !== want) mismatch++
           }
-          return { counts, mismatch, hidden }
+          return { counts, mismatch, neutral }
         },
         /** n번 그리고 1픽셀을 읽어 GPU가 끝날 때까지 기다린다: 한 장면의 실제 비용(ms) */
         bench: (n = 30) => {
           const gl = this.renderer.getContext()
           const px = new Uint8Array(4)
-          this.renderer.render(this.scene, this.camera)
+          this.renderScene()
           gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px)
           const t0 = performance.now()
           for (let k = 0; k < n; k++) {
-            this.renderer.render(this.scene, this.camera)
+            this.renderScene()
             gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px)
           }
           return (performance.now() - t0) / n
@@ -493,14 +504,14 @@ export class StageController {
       if (!prev) this.houses.setNow(i, level)
       else this.houses.setTarget(i, level, now)
     }
-    // S6 겹쳐 보기(설계안 6-20): 모두 닿음 = 받침 없이 창빛만(받침까지 더하면 섬 전체가 밝아져 차이가 묻힌다),
-    // 갈림 = 받침 없이 세 칸 기호, 모두 닿지 않음 = 슬레이트 빈 고리, 지소 없음 = 울타리. 판에서 고른 갈래는 청록 강조
+    // S6 겹쳐 보기(설계안 6-20·6-25): 창 불빛 = 셋 중 가장 낮은 단계, 갈림 = 세 칸 기호, 판에서 고른 갈래 = 그 마을 집이 청록으로
+    const focusSet: number[] = []
     for (let i = 0; i < this.model.nV; i++) {
       const c = ov ? ov.cat[i] : 0
-      const focused = ov && ov.focus !== null && ov.focus !== undefined && ov.focus === c
-      this.houses.setGroundStyle(i, !ov ? 0 : focused ? 3 : c === 0 || c === 1 ? 1 : c === 3 ? 2 : 0)
+      if (ov && ov.focus !== null && ov.focus !== undefined && ov.focus === c) focusSet.push(i)
       this.marks.set(i, ov && c === 1 ? ov.hits[i] : null)
     }
+    this.houses.setFocus(focusSet)
     // 겹쳐 보기: 빛 번짐을 낮춘다(창 불빛 = 닿음은 그대로). 갈래를 고르면 더 낮춰 청록 강조가 드러나게
     const focusOn = !!ov && ov.focus !== null && ov.focus !== undefined
     if (this.houses.setGlowGain(!ov ? 1 : focusOn ? 0.18 : 0.45)) this.dirty = true
@@ -911,6 +922,26 @@ export class StageController {
     this.tween = { t0: performance.now(), dur: 600, from: this.controls.target.clone(), to: target, fromPos: this.persp.position.clone(), toPos: pos }
   }
 
+  /**
+   * 한 프레임 그리기. 해 그림자가 켜져 있으면(적응 화질 0단계) 카메라가 보는 땅에 맞춰 그림자 지도를 먼저 준비한다:
+   * 카메라가 움직였거나 집·지소·나무가 바뀐 때만 다시 그린다(설계안 6-25).
+   */
+  private renderScene(): void {
+    const on = qualityLadder(this.quality.level, this.pixelRatios.length).shadow
+    this.u.uShadowOn.value = on ? 1 : 0
+    if (on) {
+      if (!this.sunShadow) {
+        this.sunShadow = new SunShadow(SHADOW_SIZE, this.u, { cx: this.center.x, cz: this.center.z, hw: this.extent.w / 2 + 2, hd: this.extent.h / 2 + 2 })
+        for (const g of [this.houses.group, this.trees.group, this.clinics.group]) markCasters(g)
+      }
+      this.persp.updateMatrixWorld()
+      if (this.castersDirty) this.sunShadow.dirty = true
+      this.castersDirty = false
+      this.sunShadow.update(this.renderer, this.scene, this.persp)
+    }
+    this.renderer.render(this.scene, this.camera)
+  }
+
   /** 전체 시점 대비 확대 배율(1 = 전체) */
   private zoom(): number {
     return (this.viewMode === 'top' ? this.fitTop.dist : this.fitDistance) / Math.max(1e-3, this.persp.position.distanceTo(this.controls.target))
@@ -1129,8 +1160,14 @@ export class StageController {
       this.updateTimeLabels(view, hv, fj)
     }
 
-    if (this.houses.update(now, reduced)) animating = true
-    if (this.clinics.update(now, reduced)) animating = true
+    if (this.houses.update(now, reduced)) {
+      animating = true
+      this.castersDirty = true
+    }
+    if (this.clinics.update(now, reduced)) {
+      animating = true
+      this.castersDirty = true
+    }
     if (this.paths.update(now, reduced, dt)) animating = true
     if (this.flags.update(now, reduced)) animating = true
     if (this.marks.flush()) this.dirty = true
@@ -1193,7 +1230,7 @@ export class StageController {
     this.adaptQuality(dt, now)
     this.dirty = false
     const r0 = performance.now()
-    this.renderer.render(this.scene, this.camera)
+    this.renderScene()
     this.updateLabels()
     this.lastRenderMs = performance.now() - r0
   }
@@ -1201,7 +1238,7 @@ export class StageController {
   /**
    * 적응 화질(설계안 6-12 5항·6-18·6-23: 기준 기기는 최고 단계 유지, 저사양 기기는 프레임에 맞춰 내려간다): 이어서 그린 프레임이 느리면 픽셀 비율을 한 칸 낮추고, 가장 낮은 칸에서도
    * 느리면 나무를 절반으로 줄인다. 일시적 멈춤으로 내려갔으면 넉넉한 프레임이 이어질 때 한 칸씩 되돌린다(판단 규칙은 quality.ts).
-   * 데이터 표현(집·빛·탑·받침)은 줄이지 않는다. 캔버스의 data-quality에 지금 단계를 남긴다(성능 점검이 읽는다).
+   * 해 그림자 → 단순한 나무 → 픽셀 비율 → 나무 절반 순서다. 데이터 표현(집·창·빛 번짐·길의 빛·진료등)은 줄이지 않는다. 캔버스의 data-quality에 지금 단계를 남긴다(성능 점검이 읽는다).
    */
   private adaptQuality(dt: number, now: number): void {
     if (this.renderedLast) this.frameGaps.push(dt * 1000)
@@ -1210,7 +1247,7 @@ export class StageController {
     if (med === null) return
     const frames = this.frameGaps.length
     this.frameGaps.length = 0
-    const next = nextQuality(this.quality, med, now, this.pixelRatios.length)
+    const next = nextQuality(this.quality, med, now, lowestQualityLevel(this.pixelRatios.length))
     if (import.meta.env.DEV) {
       this.qualityLog.push({ t: Math.round(now), med: Math.round(med * 10) / 10, frames, level: next.level, probe: this.probing })
       if (this.qualityLog.length > 400) this.qualityLog.shift()
@@ -1221,8 +1258,12 @@ export class StageController {
     }
     if (next === this.quality) return
     this.quality = next
-    this.trees.thin(next.level >= this.pixelRatios.length ? 0.5 : 1)
-    const pr = this.pixelRatios[Math.min(next.level, this.pixelRatios.length - 1)]
+    // 적응 화질 단계(설계안 6-18·6-25): 해 그림자 → 단순한 나무 → 픽셀 비율 → 나무 절반. 데이터 표현은 그대로다
+    const lad = qualityLadder(next.level, this.pixelRatios.length)
+    this.trees.setDetail(lad.detailedTrees)
+    this.trees.thin(lad.halfTrees ? 0.5 : 1)
+    this.castersDirty = true
+    const pr = this.pixelRatios[lad.pixelRatioIndex]
     if (this.renderer.getPixelRatio() !== pr) {
       this.renderer.setPixelRatio(pr)
       this.resize(false)

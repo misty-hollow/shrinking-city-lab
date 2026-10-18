@@ -47,6 +47,8 @@ export const PALETTE = {
   markGain: '#FFF1D6',
   markLoss: '#E08A76',
   worstLine: '#E3ECF4',
+  /** S6 세 칸 기호의 꺼진 칸(슬레이트) */
+  markOff: '#45505B',
   // 조명(서남서 해, 고도 약 26°)
   sun: '#FFD9A8',
   sky: '#9DB4D3',
