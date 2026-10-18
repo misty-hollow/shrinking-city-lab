@@ -18,27 +18,29 @@ function useFocusOnMount<T extends HTMLElement>() {
 
 // --- S0 시작 -------------------------------------------------------------------------
 
-/** 시작(UI_DESIGN_SYSTEM 01): 사실 한 줄 → 질문 하나 → Primary 하나. 숫자와 단위, 질문의 어절은 끊지 않는다. */
+/** 시작(UI_DESIGN_SYSTEM 01): 제목 「닿는 날」 → 부제 → 사실 한 줄과 질문 → Primary 하나. 숫자와 단위, 질문의 어절은 끊지 않는다. */
 export function StartCard({ onStart, onData }: { onStart(): void; onData(): void }) {
   const h = useFocusOnMount<HTMLHeadingElement>()
   const [factLead, factNum] = copy.start.fact
   const [q1, q2] = copy.start.question
   return (
     <section className="center-card hero" aria-labelledby="s0-title">
-      <div className="eyebrow">
-        {copy.product} · {copy.scenario}
-      </div>
-      <h1 id="s0-title" tabIndex={-1} ref={h} aria-label={copy.start.headline}>
-        <span className="hero-fact" aria-hidden="true">
+      <div className="eyebrow">{copy.product}</div>
+      <h1 id="s0-title" tabIndex={-1} ref={h}>
+        {copy.scenario}
+      </h1>
+      <p className="hero-subtitle">{copy.subtitle}</p>
+      <p className="hero-lead">
+        <span className="hero-fact">
           {factLead}
           <span className="nw">{factNum}</span>
         </span>
-        <span className="hero-question" aria-hidden="true">
+        <span className="hero-question">
           <span className="nw">{q1}</span>
           <br />
           <span className="nw">{q2}</span>
         </span>
-      </h1>
+      </p>
       <p className="sub">{copy.start.sub}</p>
       <div className="actions">
         <button type="button" className="btn btn-primary btn-big" onClick={onStart}>
@@ -300,7 +302,7 @@ export function MobileNotice({ onData }: { onData(): void }) {
   return (
     <main className="mobile">
       <div className="small">
-        {copy.product} · {copy.scenario}
+        {copy.scenario} · {copy.subtitle}
       </div>
       <h1>{copy.start.headline}</h1>
       <p>{copy.mobile.body}</p>
