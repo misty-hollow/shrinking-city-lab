@@ -1,6 +1,6 @@
 # CLAUDE.md — Shrinking City Lab
 
-진료일을 나누다(공주 보건지소 편). 공개 저장소 `misty-hollow/shrinking-city-lab`, 기본 브랜치 main, 운영 사이트 geoleobom.kr(GitHub Pages `gh-pages`).
+닿는 날(공주시 보건지소 진료일 배분 시뮬레이션, 2026-10-18 이전 이름 「진료일을 나누다」). 공개 저장소 `misty-hollow/shrinking-city-lab`, 기본 브랜치 main, 운영 사이트 geoleobom.kr(GitHub Pages `gh-pages`).
 앱은 React 18 + TypeScript + Vite + three.js(WebGL), Node 24이고, 파이프라인은 Python 3.12다(OSRM·docker는 데이터 재생성 때만 쓴다).
 배포 형태는 웹 하나다. 전시 키오스크도 같은 빌드(`?kiosk=1`)이고, `deploy/`의 VPS 경로는 예비다.
 

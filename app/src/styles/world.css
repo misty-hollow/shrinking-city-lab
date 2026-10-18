@@ -1342,7 +1342,7 @@ body {
   background: var(--amber);
 }
 
-/* --- 시작: 사실 한 줄 → 질문 하나 → Primary 하나 -------------------------------------------------- */
+/* --- 시작: 제목 → 부제 → 사실 한 줄과 질문 → Primary 하나 ------------------------------------------ */
 
 .center-card.hero {
   left: 80px;
@@ -1366,22 +1366,40 @@ body {
 }
 
 .center-card.hero h1 {
-  margin: 24px 0 0;
-  font-size: 40px;
+  margin: 12px 0 0;
+  font-size: 72px;
   font-weight: 700;
-  line-height: 50px;
-  letter-spacing: -0.025em;
+  line-height: 80px;
+  letter-spacing: -0.04em;
   color: var(--text);
   text-wrap: nowrap;
 }
 
+.center-card.hero .hero-subtitle {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+  color: var(--text-2);
+}
+
+.center-card.hero .hero-lead {
+  margin: 40px 0 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 38px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
 .hero-fact {
   display: block;
-  margin-bottom: 8px;
-  font-size: 20px;
+  margin-bottom: 6px;
+  font-size: 17px;
   font-weight: 600;
-  line-height: 28px;
+  line-height: 26px;
   letter-spacing: 0;
+  color: var(--text-2);
 }
 
 .hero-question {
@@ -2400,8 +2418,14 @@ body {
   }
 
   .center-card.hero h1 {
-    font-size: 34px;
-    line-height: 42px;
+    font-size: 60px;
+    line-height: 68px;
+  }
+
+  .center-card.hero .hero-lead {
+    margin-top: 32px;
+    font-size: 24px;
+    line-height: 32px;
   }
 
   .world-result {
