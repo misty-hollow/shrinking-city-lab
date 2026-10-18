@@ -45,8 +45,10 @@ interface Props {
 
 export function WorldDebrief(p: Props) {
   const h = useRef<HTMLHeadingElement>(null)
+  // 결과에 들어올 때 판정 제목으로. 결과 자세히를 닫고 돌아올 때는 [결과 자세히] 단추가 이미 포커스를 받았으므로 그대로 둔다(useReturnFocus)
   useEffect(() => {
-    h.current?.focus()
+    const a = document.activeElement
+    if (!a || a === document.body) h.current?.focus()
   }, [])
   const c = copy.missions[p.missionId]
   const deltas = kpiDeltas(p.mine, p.base)
@@ -148,7 +150,7 @@ export function WorldDebrief(p: Props) {
         <button type="button" className="wr-link" onClick={p.onAgain}>
           {copy.debrief.again}
         </button>
-        <button type="button" className="wr-link" aria-expanded={p.detailsOpen} onClick={p.onDetails}>
+        <button type="button" className="wr-link" aria-expanded={p.detailsOpen} data-return-focus="details" onClick={p.onDetails}>
           {p.detailsOpen ? copy.world.debriefDetailsClose : copy.world.debriefDetails}
         </button>
       </div>

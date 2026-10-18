@@ -13,6 +13,8 @@
  *   되돌리기(↶, 미리보기 포함), 위에서 보기(같은 원근 세계), 막힌 조작 피드백, 결산 감상(건너뛰기)·세계 위 결과 글·잃은 마을 표지,
  *   S6 세계 탭(미션 고르기 · 6개 지표 한 표) ↔ 세 배분 나란히 보기.
  *   6-2(2026-10-15 마우스): 왼쪽 끌기 = 평행 이동, 오른쪽 끌기 = 돌리기(브라우저 메뉴 없음), 지소 위에서 끌고 놓아도 배치되지 않음.
+ *   6-22(2026-10-18): R = 처음 시점, ? 또는 [조작법] = 조작법 판(Esc로 닫으면 포커스가 연 자리로), 지역 카드·결과 자세히를 닫으면 포커스 복귀,
+ *     위에서 보기 단추 이름은 상태와 상관없이 하나(aria-pressed).
  *   6-21(2026-10-18 W A S D): 화면 방향 평행 이동(돌린 뒤에도), 놓으면 섬, 대각선 속도, 경계, 배분·포커스 그대로, 대화상자·감상 중에는 안 움직임.
  *   6-20: S5 결과 글 읽는 순서(판정 → 미션 지표 → 얻은 것·잃은 것 → 6개 지표), S6 갈래 줄을 누르면 그 마을들을 지도에서 강조.
  *   6-19(S6 겹쳐 보기): 탭 넷(겹쳐 보기 기본), 갈래 넷의 합 = 161곳·전체 주민, 보건지소별 진료일 표 = 세 배분, 받침·세 칸 기호 = 갈래.
@@ -202,6 +204,43 @@ async function keyChecks(page, tag, reduced) {
   )
   const act = await page.evaluate(() => `${document.activeElement?.tagName}.${document.activeElement?.className} j=${document.activeElement?.getAttribute('data-j')}`)
   check(act.endsWith('j=3'), `${tag} W A S D: 말풍선이 화면 밖으로 나가도 포커스는 그 말풍선에 남는다`, act)
+}
+
+/**
+ * R = 처음 시점, ? = 조작법(설계안 6-22). 말풍선에 포커스가 있어도 R은 배분을 바꾸지 않고, ?로 연 조작법은 Esc로 닫으면
+ * 포커스가 그 말풍선으로 돌아온다. [조작법] 단추로도 연다(aria-expanded).
+ */
+async function viewKeyChecks(page, tag) {
+  const c0 = await cam(page)
+  const pool0 = await page.getByTestId('pool-remaining').textContent()
+  await row(page, 0).focus()
+  if (c0) {
+    await holdKeys(page, ['KeyD'], 400)
+    await page.waitForTimeout(450)
+    const moved = await cam(page)
+    await page.keyboard.press('KeyR')
+    await page.waitForTimeout(800)
+    const back = await cam(page)
+    const d = Math.hypot(back.target[0] - c0.target[0], back.target[2] - c0.target[2])
+    check(Math.hypot(...panOf(c0, moved)) > 0.5 && d < 0.01 && sameView(c0, back), `${tag} R: 처음 시점으로 돌아온다`, JSON.stringify({ c0: c0.target, moved: moved.target, back: back.target }))
+  }
+  await page.keyboard.press('Shift+Slash')
+  await page.waitForSelector('#controls-help')
+  const help = await page.locator('#controls-help').innerText()
+  const onTitle = await page.evaluate(() => document.activeElement?.closest('#controls-help') !== null && document.activeElement?.tagName === 'H3')
+  check(help.includes('W A S D') && help.includes('처음 시점으로') && help.includes('Ctrl Z') && onTitle, `${tag} ?: 조작법이 열리고 제목으로 포커스(지도·진료일·그 밖)`, help.replace(/\n/g, ' | '))
+  if (tag.startsWith('1440')) await shot(page, `${tag}-s4-help`)
+  await layoutGeometry(page, `${tag} S4 조작법`, check)
+  await page.keyboard.press('Escape')
+  const after = await page.evaluate(() => ({ open: !!document.getElementById('controls-help'), j: document.activeElement?.getAttribute('data-j') }))
+  check(!after.open && after.j === '0', `${tag} ?: Esc로 닫으면 포커스가 연 자리(말풍선)로 돌아온다`, JSON.stringify(after))
+  // 글이 「조작법 ↔ 조작법 닫기」로 바뀌는 펼침 단추라 이름 대신 자리로 찾는다
+  const hb = page.locator('.help-toggle')
+  check((await hb.innerText()).trim() === '조작법' && (await hb.getAttribute('aria-expanded')) === 'false', `${tag} [조작법] 단추(닫힘)`)
+  await hb.click()
+  check((await hb.getAttribute('aria-expanded')) === 'true' && (await page.locator('#controls-help').count()) === 1, `${tag} [조작법] 단추로도 연다`)
+  await page.getByRole('button', { name: '조작법 닫기' }).click()
+  check((await page.locator('#controls-help').count()) === 0 && (await page.getByTestId('pool-remaining').textContent()) === pool0, `${tag} R·?: 배분은 그대로`, pool0)
 }
 
 /** 시나리오 순서 j의 지소 카드(도크는 서쪽→동쪽이라 화면 순서와 다르다) */
@@ -587,11 +626,15 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await page.getByRole('button', { name: '위에서 보기' }).click()
   await page.waitForTimeout(900)
   const vis = await page.locator('.marker').evaluateAll((els) => els.filter((e) => e.closest('.anchor')?.style.visibility !== 'hidden').length)
-  check((await page.getByRole('button', { name: '비스듬히 보기' }).getAttribute('aria-pressed')) === 'true' && vis === 10, `${tag} S4: 위에서 보기(말풍선 10개가 그대로)`, String(vis))
+  // 아이콘 단추 이름은 상태와 상관없이 「위에서 보기」, 켬은 aria-pressed(RELEASE_READINESS 8절, 설계안 6-22). 툴팁만 「비스듬히 보기」
+  const topBtn = page.getByRole('button', { name: '위에서 보기', exact: true })
+  check((await topBtn.getAttribute('aria-pressed')) === 'true' && vis === 10, `${tag} S4: 위에서 보기(말풍선 10개가 그대로)`, String(vis))
+  check((await topBtn.locator('.rb-tip').innerText()).startsWith('비스듬히 보기') && (await page.getByRole('button', { name: '비스듬히 보기' }).count()) === 0, `${tag} S4: 위에서 보기 단추 — 이름은 그대로, 툴팁만 「비스듬히 보기」`)
   if (full) await shot(page, `${tag}-s4-top`)
   await layoutGeometry(page, `${tag} S4 위에서 보기`, check, { overview: true })
-  await page.getByRole('button', { name: '비스듬히 보기' }).click()
+  await topBtn.click()
   await page.waitForTimeout(700)
+  await viewKeyChecks(page, tag)
   const kBefore = await kpiText(page)
   await row(page, 0).focus()
   await page.keyboard.press('+')
@@ -697,12 +740,17 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   const hid = page.locator('.anchor.is-occluded:not([style*="hidden"]) .marker')
   if (await hid.count()) {
     const hj = await hid.first().getAttribute('data-j')
+    // 키보드로 닿는 경우: 포커스를 옮긴 뒤 키 입력(Shift)이 있어야 키보드 포커스다(마우스로 눌러 생긴 포커스는 HUD 위에 남기지 않는다, 설계안 6-22)
     await row(page, Number(hj)).focus()
+    await page.keyboard.press('Shift')
     await page.waitForTimeout(150)
     const back = await row(page, Number(hj)).evaluate((e) => e === document.activeElement && !e.closest('.anchor').classList.contains('is-occluded'))
     check(back, `${tag} S4: HUD 뒤에 흐려 둔 말풍선(j=${hj})에 포커스하면 다시 보인다`)
   } else pass(`${tag} S4: 가까이 보기에서 HUD 뒤에 흐려 둔 말풍선 없음(포커스 검사 생략)`)
   await page.locator('.region-card').getByRole('button', { name: '닫기', exact: true }).click()
+  // 지역 카드를 닫으면 포커스가 문서 처음이 아니라 그 카드를 연 읍·면 목록의 줄로(RELEASE_READINESS 8절)
+  const backTo = await page.evaluate(() => document.activeElement?.getAttribute('data-return-focus') ?? document.activeElement?.tagName)
+  check(/^region-\d+$/.test(backTo ?? ''), `${tag} S4: 지역 카드를 닫으면 포커스가 읍·면 목록의 그 줄로`, String(backTo))
   await page.locator('.hud-links').getByRole('button', { name: '지표 자세히 닫기' }).click()
 
   await settle(page)
@@ -771,6 +819,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   // 미션 2 → (다시 배분) → 미션 3 → S6
   const m1Alloc = (await gameState(page)).results.m1.alloc
   await closeDetails(page)
+  const backS5 = await page.evaluate(() => document.activeElement?.getAttribute('data-return-focus') ?? document.activeElement?.tagName)
+  check(backS5 === 'details', `${tag} S5: 결과 자세히를 닫으면 포커스가 [결과 자세히] 단추로`, String(backS5))
   await page.getByRole('button', { name: '다음 미션' }).click()
   const m2At = await missionRound(page, tag, full, 'm2')
   await page.getByRole('button', { name: '다시 배분' }).click()

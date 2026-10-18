@@ -695,7 +695,7 @@ body {
 }
 
 .hud-left .compare-last:hover,
-.hud-left .compare-last[aria-pressed='true'] {
+.hud-left .compare-last.is-on {
   background: none;
   text-decoration-thickness: 2px;
   text-decoration-color: var(--text);
@@ -848,6 +848,7 @@ body {
 
 .hud-links .toggle:hover:not(:disabled),
 .hud-links .toggle[aria-pressed='true'],
+.hud-links .toggle.is-on,
 .hud-links .toggle[aria-expanded='true'] {
   color: var(--text);
   background: none;
@@ -1009,21 +1010,22 @@ body {
   height: 20px;
 }
 
-.round-btn:hover:not(:disabled),
+.round-btn:hover:not(:disabled):not([aria-disabled='true']),
 .corner-tools .sound-toggle:hover,
 .start-corner .sound-toggle:hover {
   background: var(--cream-hover);
   border-color: var(--cream-hover);
 }
 
-.round-btn:active:not(:disabled),
+.round-btn:active:not(:disabled):not([aria-disabled='true']),
 .corner-tools .sound-toggle:active,
 .start-corner .sound-toggle:active {
   background: var(--cream-press);
   border-color: var(--cream-press);
 }
 
-.round-btn:disabled {
+.round-btn:disabled,
+.round-btn[aria-disabled='true'] {
   opacity: 0.4;
   cursor: default;
 }
@@ -1251,7 +1253,7 @@ body {
   bottom: 18px;
   z-index: 9;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 16px;
   max-width: calc(50vw - 240px);
 }
@@ -1262,12 +1264,29 @@ body {
   bottom: auto;
 }
 
-.corner-bl .reading-key ul {
+/* 조작법 단추는 읽는 법 위에 쌓는다: 아래 한 줄(읽는 법 · 기준일 · 자료와 한계)의 폭을 늘리면 가운데 손과 겹친다 */
+.corner-bl .key-toggles {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.corner-bl .data-chip,
+.corner-bl .data-link {
+  line-height: 32px;
+}
+
+.corner-bl .reading-key ul,
+.corner-bl .key-panel {
   position: absolute;
   left: 0;
   bottom: calc(100% + 8px);
   width: 340px;
   margin: 0;
+}
+
+.corner-bl .key-panel.is-wide {
+  width: 580px;
 }
 
 .corner-bl .data-chip {

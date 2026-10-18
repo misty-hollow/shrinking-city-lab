@@ -74,13 +74,21 @@ const ICONS = {
   ),
 }
 
+/**
+ * 둥근 아이콘 단추. 화면 낭독 이름(label)은 상태와 상관없이 하나로 두고, 켬·펼침은 aria-pressed·aria-expanded가 말한다
+ * (이름까지 뒤집으면 "비스듬히 보기, 눌림"처럼 둘이 어긋나게 읽힌다). 눈에 보이는 툴팁(tip)은 누르면 일어날 일을 쓴다.
+ * busy = 지금은 누를 수 없음(aria-disabled): disabled와 달리 포커스를 잃지 않는다(예: 빛이 날아가는 동안의 ↶).
+ */
 export function RoundButton(p: {
   icon: keyof typeof ICONS
   label: string
+  /** 눈에 보이는 툴팁 글(없으면 label) */
+  tip?: string
   /** 툴팁에 함께 보이는 단축키(있을 때만) */
   kbd?: string
   onClick(): void
   disabled?: boolean
+  busy?: boolean
   pressed?: boolean
   expanded?: boolean
   onHover?(on: boolean): void
@@ -92,9 +100,12 @@ export function RoundButton(p: {
       aria-label={p.label}
       aria-keyshortcuts={p.kbd ? p.kbd.replace(' ', '+') : undefined}
       disabled={p.disabled}
+      aria-disabled={p.busy || undefined}
       aria-pressed={p.pressed}
       aria-expanded={p.expanded}
-      onClick={p.onClick}
+      onClick={() => {
+        if (!p.busy) p.onClick()
+      }}
       onMouseEnter={() => p.onHover?.(true)}
       onMouseLeave={() => p.onHover?.(false)}
       onFocus={() => p.onHover?.(true)}
@@ -102,7 +113,7 @@ export function RoundButton(p: {
     >
       {ICONS[p.icon]}
       <span className="rb-tip" aria-hidden="true">
-        {p.label}
+        {p.tip ?? p.label}
         {p.kbd && <kbd>{p.kbd}</kbd>}
       </span>
     </button>
@@ -126,9 +137,9 @@ export function CornerTools(p: ToolsProps) {
     <div className="corner-tools" data-occlude>
       <ThresholdSwitch T={p.T} onT={p.onT} locked={p.tLocked} coach={p.coachT} />
       <div className="round-row">
-        {p.undo && <RoundButton icon="undo" label={copy.world.undo} kbd="Ctrl Z" disabled={!p.undo.enabled} onClick={p.undo.onUndo} onHover={p.undo.onHover} />}
-        <RoundButton icon="top" label={p.top ? copy.world.topOff : copy.world.topOn} pressed={p.top} onClick={p.onTop} />
-        {p.details && <RoundButton icon="list" label={p.details.open ? copy.world.detailsClose : copy.world.details} expanded={p.details.open} onClick={p.details.onToggle} />}
+        {p.undo && <RoundButton icon="undo" label={copy.world.undo} kbd="Ctrl Z" busy={!p.undo.enabled} onClick={p.undo.onUndo} onHover={p.undo.onHover} />}
+        <RoundButton icon="top" label={copy.world.topOn} tip={p.top ? copy.world.topOff : copy.world.topOn} pressed={p.top} onClick={p.onTop} />
+        {p.details && <RoundButton icon="list" label={copy.world.details} tip={p.details.open ? copy.world.detailsClose : copy.world.details} expanded={p.details.open} onClick={p.details.onToggle} />}
         <SoundToggle />
       </div>
     </div>
