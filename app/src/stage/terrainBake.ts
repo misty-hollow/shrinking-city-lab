@@ -145,6 +145,10 @@ export function bakeTerrain(hm: Heightmap, geo: Geometry, world: World, u: Scene
   // 골짜기 AO: 넓게 흐린 높이와의 차이
   const blur = boxBlur(Y, cols, rows, 5)
   const light = new Float32Array(n * 3)
+  /** 정점 빛 중 해의 몫(해 그림자가 이만큼만 뺀다, 설계안 6-25) */
+  const sunL = new Float32Array(n * 3)
+  /** 정점마다 굽은 그늘·AO(비교 전용 화소 조명이 쓴다) */
+  const sa = new Float32Array(n * 2)
   const tmp = new THREE.Color()
   const sx = 2 * cell
   for (let r = 0; r < rows; r++) {
@@ -168,6 +172,12 @@ export function bakeTerrain(hm: Heightmap, geo: Geometry, world: World, u: Scene
       light[k * 3] = tmp.r
       light[k * 3 + 1] = tmp.g
       light[k * 3 + 2] = tmp.b
+      bakeLight(u, nx, ny, nz, 0, ao, tmp)
+      sunL[k * 3] = light[k * 3] - tmp.r
+      sunL[k * 3 + 1] = light[k * 3 + 1] - tmp.g
+      sunL[k * 3 + 2] = light[k * 3 + 2] - tmp.b
+      sa[k * 2] = shadow[k]
+      sa[k * 2 + 1] = ao
     }
   }
 
@@ -185,6 +195,8 @@ export function bakeTerrain(hm: Heightmap, geo: Geometry, world: World, u: Scene
   geom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
   geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
   geom.setAttribute('color', new THREE.BufferAttribute(light, 3))
+  geom.setAttribute('aSunL', new THREE.BufferAttribute(sunL, 3))
+  geom.setAttribute('aSA', new THREE.BufferAttribute(sa, 2))
   geom.setIndex(idx)
   geom.computeBoundingSphere()
   const texture = buildLandTexture(hm, geo, world, maxAnisotropy)

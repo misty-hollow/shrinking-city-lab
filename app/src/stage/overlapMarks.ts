@@ -1,7 +1,7 @@
 /**
  * S6 겹쳐 보기의 세 칸 기호(설계안 6-19): 배분에 따라 갈리는 마을 위에 작은 판 하나. 칸 셋 = 미션 1·2·3(왼쪽부터),
  * 켜진 칸(호박) = 그 배분에서 주 1일 이상 닿음, 꺼진 칸(슬레이트) = 주 1일 미만. 색만이 아니라 칸의 자리로 어느 배분인지 읽힌다.
- * 다른 갈래(모두 닿음 · 모두 닿지 않음 · 지소 없음)는 마을 받침이 말하므로 기호를 띄우지 않는다.
+ * 다른 갈래(모두 닿음 · 모두 닿지 않음 · 지소 없음)는 기호를 띄우지 않는다: 창 불빛과 판의 갈래 줄, 갈래를 고르면 청록으로 서는 집이 말한다.
  *
  * 판은 늘 카메라를 보고, 화면 크기를 반지름 10~15 px로 묶어 멀리서도 읽히고 가까이서도 집을 덮지 않는다.
  * 깜박이거나 움직이지 않는다. 드로우 하나(인스턴스).
@@ -9,7 +9,7 @@
 
 import * as THREE from 'three'
 
-import { GROUND_COLORS } from './villageGround'
+import { PALETTE } from './palette'
 
 /** 판의 반지름: 월드(km)와 화면 하한·상한(px). 높이는 폭의 0.42 */
 export const OVERLAP_MARK_KM = 0.2
@@ -42,7 +42,7 @@ export class OverlapMarks {
       uniforms: {
         uPxScale: pxScale,
         uOn: { value: new THREE.Color('#F2B84B') },
-        uOff: { value: new THREE.Color(GROUND_COLORS.rimOff) },
+        uOff: { value: new THREE.Color(PALETTE.markOff) },
         uPlate: { value: new THREE.Color('#1B1D21') },
         uEdge: { value: new THREE.Color('#EEE7DA') },
       },

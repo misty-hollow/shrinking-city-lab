@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { FAST_MS, PROBE_MAX_GAP_MS, RAISE_AFTER_MS, RAISE_TRIAL_MS, SLOW_MS, afterProbe, initialProbe, initialQuality, nextQuality, probeDue, windowMedian } from './quality'
+import { FAST_MS, VERY_SLOW_MS, PROBE_MAX_GAP_MS, RAISE_AFTER_MS, RAISE_TRIAL_MS, SLOW_MS, afterProbe, initialProbe, initialQuality, lowestQualityLevel, nextQuality, probeDue, qualityLadder, windowMedian } from './quality'
 
 const MAX = 3 // 픽셀 비율 세 칸(예: 1.25 · 1 · 0.75) + 나무 절반
 
@@ -106,5 +106,41 @@ describe('adaptive quality', () => {
     s = nextQuality(s, 40, RAISE_AFTER_MS + 100, MAX)
     expect(s.ceiling).toBe(1)
     expect(probeDue(s, initialProbe(), 10 * 60_000)).toBe(false)
+  })
+})
+
+describe('quality ladder (설계안 6-25)', () => {
+  it('drops the sun shadow first, then the detailed trees, then pixel ratios, then half the trees', () => {
+    const n = 3 // 픽셀 비율 세 칸
+    const steps = Array.from({ length: lowestQualityLevel(n) + 1 }, (_, l) => qualityLadder(l, n))
+    expect(steps[0]).toEqual({ shadow: true, detailedTrees: true, pixelRatioIndex: 0, halfTrees: false })
+    expect(steps[1]).toEqual({ shadow: false, detailedTrees: true, pixelRatioIndex: 0, halfTrees: false })
+    expect(steps[2]).toEqual({ shadow: false, detailedTrees: false, pixelRatioIndex: 0, halfTrees: false })
+    expect(steps.slice(2, 5).map((s) => s.pixelRatioIndex)).toEqual([0, 1, 2])
+    expect(steps[lowestQualityLevel(n)]).toEqual({ shadow: false, detailedTrees: false, pixelRatioIndex: 2, halfTrees: true })
+  })
+
+  it('every step changes something (no dead levels) and never turns a feature back on', () => {
+    for (const n of [1, 2, 4]) {
+      const steps = Array.from({ length: lowestQualityLevel(n) + 1 }, (_, l) => qualityLadder(l, n))
+      for (let l = 1; l < steps.length; l++) {
+        expect(JSON.stringify(steps[l])).not.toBe(JSON.stringify(steps[l - 1]))
+        if (!steps[l - 1].shadow) expect(steps[l].shadow).toBe(false)
+        if (!steps[l - 1].detailedTrees) expect(steps[l].detailedTrees).toBe(false)
+        expect(steps[l].pixelRatioIndex).toBeGreaterThanOrEqual(steps[l - 1].pixelRatioIndex)
+      }
+    }
+  })
+})
+
+describe('very slow devices', () => {
+  it('drop two levels per window when frames are slower than VERY_SLOW_MS, never past the floor', () => {
+    let s = initialQuality()
+    s = nextQuality(s, VERY_SLOW_MS + 40, 1000, 5)
+    expect(s.level).toBe(2)
+    s = nextQuality(s, VERY_SLOW_MS + 40, 2000, 5)
+    expect(s.level).toBe(4)
+    s = nextQuality(s, VERY_SLOW_MS + 40, 3000, 5)
+    expect(s.level).toBe(5)
   })
 })

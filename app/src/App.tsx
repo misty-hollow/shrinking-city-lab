@@ -728,7 +728,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       mode: stageMode,
       alloc: shown.alloc,
       T: s.T,
-      // 겹쳐 보기: 창빛·받침은 셋 중 가장 낮은 단계(세 배분 모두에서 닿는 만큼)
+      // 겹쳐 보기: 창빛은 셋 중 가장 낮은 단계(세 배분 모두에서 닿는 만큼)
       villageDays: stageOverlap && overlap ? overlap.minDays : shown.k.villageDays,
       baseDays: shown.base ? shown.base.villageDays : null,
       deltaMode: s.deltaMode,

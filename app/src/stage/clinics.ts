@@ -69,6 +69,7 @@ function chamberMaterial(u: SceneUniforms): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: { ...u, uOn: { value: new THREE.Color(PALETTE.chamberOn) }, uOff: { value: new THREE.Color(PALETTE.chamberOff) } },
     vertexShader: /* glsl */ `
+      varying vec3 vWP;
       attribute vec4 aCh;
       varying vec3 vN;
       varying vec2 vUv;
@@ -81,6 +82,7 @@ function chamberMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         vN = normalize(transpose(inverse(mat3(m))) * normal);
         vUv = uv;
         vCh = aCh;
+        vWP = wp.xyz;
         vec4 mv = viewMatrix * wp;
         vDepth = -mv.z;
         vView = normalize(cameraPosition - wp.xyz);
@@ -109,6 +111,7 @@ function chamberMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         c *= 1.0 - vCh.z * 0.45;
         c = applyFog(c, vDepth);
         gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
     `,
