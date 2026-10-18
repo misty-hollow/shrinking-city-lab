@@ -155,7 +155,6 @@ export function makeLitMaterial(u: SceneUniforms, o: LitOptions = {}): THREE.Sha
         vec3 c = vAlb * uAlbedo * sceneLight(n, vShadow, 1.0) * uExposure;
         c = applyFog(c, vDepth);
         gl_FragColor = vec4(c, uOpacity);
-        #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
     `,

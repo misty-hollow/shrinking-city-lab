@@ -25,7 +25,6 @@ import { allocDays, people, roadMinutes, weekDays } from '../engine/format'
 import { type Model, type Threshold, facilitiesReaching, tierOf, villagesReachedBy } from '../engine/kpi'
 import { ClinicLayer, CHAMBERS } from './clinics'
 import { EngravedLabels } from './engraved'
-import { LOOK, buildBumpTexture, buildMaterialMask, buildReliefNormalMap, patchTerrainRelief } from './lookCompare'
 import { CAMERA_SETTLED } from './events'
 import { FlagLayer } from './flags'
 import { OverlapMarks } from './overlapMarks'
@@ -36,11 +35,11 @@ import { LightPaths } from './lightPaths'
 import { PALETTE } from './palette'
 import { SunShadow, markCasters, patchTerrainShadow } from './shadow'
 import { type ProbeState, type QualityState, afterProbe, initialProbe, initialQuality, lowestQualityLevel, nextQuality, probeDue, qualityLadder, windowMedian } from './quality'
-import { type GlowUniforms, LIGHT_GLSL, makeGlowUniforms, makeSceneUniforms, type SceneUniforms } from './shaders'
+import { type GlowUniforms, makeGlowUniforms, makeSceneUniforms, type SceneUniforms } from './shaders'
 import { BASE_Y, bakeTerrain } from './terrainBake'
 import { type Heightmap, drapePath, pointInPolygons } from './terrain'
 import { TreeLayer } from './trees'
-import { LAND_FIELD, LAND_FOREST, LAND_PADDY, LAND_WATER, type World } from './world'
+import type { World } from './world'
 
 export type Pick = { kind: 'facility' | 'village' | 'emd'; index: number } | null
 export type Emphasis = 'worst' | 'zero' | 'thick' | null
@@ -250,11 +249,6 @@ export class StageController {
     this.renderer.domElement.dataset.quality = '0'
     this.renderer.setClearColor(0x000000, 0)
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
-    // [비교 전용 · 개발 서버] ?look=tone: 땅·집·나무에 Neutral 톤(빛 번짐·길의 빛·깃발은 그대로). 기본은 꺼짐(설계안 6-25)
-    if (LOOK.has('tone')) {
-      this.renderer.toneMapping = THREE.NeutralToneMapping
-      this.renderer.toneMappingExposure = 1.12
-    }
     container.appendChild(this.renderer.domElement)
     this.renderer.domElement.setAttribute('aria-hidden', 'true')
     // GPU 재설정 뒤 three.js가 문맥을 되살려도, 움직임 없는 화면(플레이·결산·S6)은 다음 입력 전까지 다시 그리지 않는다.
@@ -275,14 +269,8 @@ export class StageController {
     this.topView = bake.topView
     const trees = new TreeLayer(this.world.trees, this.hm, bake.shadowAt, this.u)
     this.trees = trees
-    // 땅: 해 그림자(설계안 6-25). [비교 전용 · 개발 서버] ?look=relief면 화소마다 빛 + 표면 결(그림자 포함)
-    if (LOOK.has('relief')) {
-      patchTerrainRelief(this.terrainMat, this.u as unknown as Record<string, { value: unknown }>, LIGHT_GLSL, {
-        normal: buildReliefNormalMap(this.hm.cols, this.hm.rows, this.hm.cell, (r, c) => this.hm.nodeY(r, c)),
-        mask: buildMaterialMask(this.hm.cols, this.hm.rows, this.world.land, LAND_FOREST, LAND_FIELD, LAND_PADDY, LAND_WATER),
-        bump: buildBumpTexture(),
-      })
-    } else patchTerrainShadow(this.terrainMat, this.u)
+    // 땅도 집·나무·지소의 해 그림자를 받는다(설계안 6-25)
+    patchTerrainShadow(this.terrainMat, this.u)
     this.houses = new HouseLayer(this.world, this.hm, bake.shadowAt, this.u, this.gu)
     this.clinics = new ClinicLayer(this.world.clinics, this.hm, bake.shadowAt, this.u, this.gu)
     const minutesOf = (i: number, j: number) => model.tenths[i * model.nF + j] / 10

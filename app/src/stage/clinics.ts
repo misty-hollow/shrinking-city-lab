@@ -111,7 +111,6 @@ function chamberMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         c *= 1.0 - vCh.z * 0.45;
         c = applyFog(c, vDepth);
         gl_FragColor = vec4(c, 1.0);
-        #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
     `,

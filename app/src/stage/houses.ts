@@ -233,7 +233,6 @@ function bodyMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         col = mix(col, mcol, mk * (0.22 + 0.6 * rim));
         col = applyFog(col, vDepth);
         gl_FragColor = vec4(col, 1.0);
-        #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
     `,
@@ -305,7 +304,6 @@ function roofMaterial(u: SceneUniforms): THREE.ShaderMaterial {
         col = mix(col, vMark > 0.0 ? uMarkGain : uMarkLoss, abs(vMark) * 0.42);
         col = applyFog(col, vDepth);
         gl_FragColor = vec4(col, 1.0);
-        #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
     `,
