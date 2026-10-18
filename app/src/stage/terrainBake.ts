@@ -3,7 +3,7 @@
  *
  * - 빛은 한 번 계산해 정점 색에 굽는다: 낮은 해(서남서) 쪽 사면은 따뜻하게, 반대 사면과 능선 그늘은 푸르게.
  *   그늘은 높이 격자를 따라 해 쪽으로 광선을 걸어 부드럽게 구한다(그림자 맵 없음). 골짜기는 조금 어둡게(AO).
- * - 땅 그림: 논(황금)·밭(세이지)·숲·물·마을 터·길. 풍경 표현이며 토지이용 자료가 아니다.
+ * - 땅 그림: 논·밭(세이지·올리브 색 덩어리)·숲·물·마을 터·길. 풍경 표현이며 토지이용 자료가 아니다.
  *   공주 시내(모델 밖)는 반투명 트레이싱지 한 장으로 덮는다. 어둠은 '진료가 닿지 않음'에만 쓰므로 어둡게 칠하지 않는다.
  * - 섬 가장자리의 계단 모양은 경계선 위로 끌어 붙여 부드럽게 한다.
  */
@@ -14,7 +14,7 @@ import type { Geometry, PolygonRings, XY } from '../data/types'
 import { PALETTE } from './palette'
 import { type SceneUniforms, bakeLight } from './shaders'
 import type { Heightmap } from './terrain'
-import { LAND_FIELD, LAND_FOREST, LAND_PADDY, LAND_WATER, type World, fbm, mulberry32 } from './world'
+import { LAND_FIELD, LAND_FOREST, LAND_PADDY, LAND_WATER, type World, fbm } from './world'
 
 /** 받침 바닥(월드 Y) */
 export const BASE_Y = -0.95
@@ -452,59 +452,8 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
   const sc = W / (cols - 1)
   ctx.drawImage(small, -sc / 2, -sc / 2, cols * sc, rows * sc)
 
-  const rnd = mulberry32(20260925)
-  // 2) 논 구획: 골짜기 바닥에 크기가 제각각인 사각 논을 골짜기 방향으로. 올리브·연두·벤 논(마른 짚빛). 황금빛은 쓰지 않는다.
-  const tones = ['rgba(190,190,128,0.42)', 'rgba(172,176,112,0.38)', 'rgba(158,172,112,0.34)', 'rgba(188,178,128,0.32)', 'rgba(140,150,100,0.3)']
-  for (let y = hm.y0; y < hm.y0 + hm.height; y += 0.075) {
-    for (let x = hm.x0; x < hm.x0 + hm.width; x += 0.075) {
-      const px0 = x + (rnd() - 0.5) * 0.07
-      const py0 = y + (rnd() - 0.5) * 0.07
-      const c = Math.round((px0 - hm.x0) / hm.cell)
-      const r = Math.round((py0 - hm.y0) / hm.cell)
-      if (c < 0 || r < 0 || c >= cols || r >= rows) continue
-      const k = r * cols + c
-      if (world.land[k] !== LAND_PADDY) continue
-      if (rnd() < 0.45) continue
-      const flow = fbm(px0 * 0.35, py0 * 0.35, 21) * Math.PI
-      const ang = Math.atan2(-f.down[k * 2 + 1], f.down[k * 2]) * 0.6 + flow * 0.4 + (rnd() - 0.5) * 0.12
-      const w = (0.05 + rnd() * 0.09) * s
-      const h = (0.035 + rnd() * 0.05) * s
-      ctx.save()
-      ctx.translate(X(px0), Yp(py0))
-      ctx.rotate(ang)
-      ctx.fillStyle = tones[Math.floor(rnd() * tones.length)]
-      ctx.fillRect(-w / 2, -h / 2, w, h)
-      if (rnd() < 0.5) {
-        ctx.strokeStyle = 'rgba(96,92,60,0.2)'
-        ctx.lineWidth = 0.8
-        ctx.strokeRect(-w / 2, -h / 2, w, h)
-      }
-      ctx.restore()
-    }
-  }
-  // 3) 밭: 드문 이랑 줄
-  ctx.strokeStyle = 'rgba(92,98,58,0.22)'
-  ctx.lineWidth = 1
-  for (let y = hm.y0; y < hm.y0 + hm.height; y += 0.16) {
-    for (let x = hm.x0; x < hm.x0 + hm.width; x += 0.16) {
-      const c = Math.round((x - hm.x0) / hm.cell)
-      const r = Math.round((y - hm.y0) / hm.cell)
-      if (c < 0 || r < 0 || c >= cols || r >= rows) continue
-      if (world.land[r * cols + c] !== LAND_FIELD || rnd() < 0.55) continue
-      const k = r * cols + c
-      const ang = Math.atan2(-f.down[k * 2 + 1], f.down[k * 2]) + Math.PI / 2
-      const L = 0.1 * s
-      ctx.beginPath()
-      for (let q = -1; q <= 1; q++) {
-        const ox = Math.cos(ang + Math.PI / 2) * q * 3
-        const oy = Math.sin(ang + Math.PI / 2) * q * 3
-        ctx.moveTo(X(x) + ox - (Math.cos(ang) * L) / 2, Yp(y) + oy - (Math.sin(ang) * L) / 2)
-        ctx.lineTo(X(x) + ox + (Math.cos(ang) * L) / 2, Yp(y) + oy + (Math.sin(ang) * L) / 2)
-      }
-      ctx.stroke()
-    }
-  }
-  // 4) 마을 터: 집 둘레 흙빛
+  // 논·밭은 위 색 덩어리만으로 그린다(설계안 6-26). 작은 사각 논 구획과 밭 이랑 줄은 서로 겹쳐 낙서처럼 보여서 없앴다.
+  // 2) 마을 터: 집 둘레 흙빛
   const ground = hex(PALETTE.villageGround)
   for (const h of world.houses) {
     const g = ctx.createRadialGradient(X(h.x), Yp(h.y), 0, X(h.x), Yp(h.y), 0.2 * s)
@@ -525,7 +474,7 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
   }
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  // 5) 물: 모래톱 테두리 → 물 → 가운데 밝은 결
+  // 3) 물: 모래톱 테두리 → 물 → 가운데 밝은 결
   ctx.strokeStyle = PALETTE.sand
   ctx.lineWidth = 0.06 * s
   ctx.beginPath()
@@ -555,7 +504,7 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
     line(r.coords)
     ctx.stroke()
   }
-  // 6) 길: 경로에 쓰인 작은 길 → 국도·지방도(가장자리 + 흙길)
+  // 4) 길: 경로에 쓰인 작은 길 → 국도·지방도(가장자리 + 흙길)
   ctx.strokeStyle = PALETTE.lane
   ctx.globalAlpha = 0.85
   ctx.lineWidth = 0.028 * s
@@ -582,7 +531,7 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
       ctx.stroke()
     }
   }
-  // 7) 읍·면 경계: 가는 점선
+  // 5) 읍·면 경계: 가는 점선
   ctx.setLineDash([9, 7])
   ctx.strokeStyle = 'rgba(52,40,28,0.38)'
   ctx.lineWidth = 1.4
@@ -592,7 +541,7 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
     ctx.stroke()
   }
   ctx.setLineDash([])
-  // 8) 공주 시내: 반투명 트레이싱지
+  // 6) 공주 시내: 반투명 트레이싱지
   ctx.save()
   ctx.beginPath()
   for (const p of geo.city_core.polygons) poly(p)
