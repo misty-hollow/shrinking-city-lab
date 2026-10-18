@@ -13,6 +13,7 @@
  *   되돌리기(↶, 미리보기 포함), 위에서 보기(같은 원근 세계), 막힌 조작 피드백, 결산 감상(건너뛰기)·세계 위 결과 글·잃은 마을 표지,
  *   S6 세계 탭(미션 고르기 · 6개 지표 한 표) ↔ 세 배분 나란히 보기.
  *   6-2(2026-10-15 마우스): 왼쪽 끌기 = 평행 이동, 오른쪽 끌기 = 돌리기(브라우저 메뉴 없음), 지소 위에서 끌고 놓아도 배치되지 않음.
+ *   6-21(2026-10-18 W A S D): 화면 방향 평행 이동(돌린 뒤에도), 놓으면 섬, 대각선 속도, 경계, 배분·포커스 그대로, 대화상자·감상 중에는 안 움직임.
  *   6-20: S5 결과 글 읽는 순서(판정 → 미션 지표 → 얻은 것·잃은 것 → 6개 지표), S6 갈래 줄을 누르면 그 마을들을 지도에서 강조.
  *   6-19(S6 겹쳐 보기): 탭 넷(겹쳐 보기 기본), 갈래 넷의 합 = 161곳·전체 주민, 보건지소별 진료일 표 = 세 배분, 받침·세 칸 기호 = 갈래.
  *   6-18(마을 받침): 소개 화면엔 받침이 없고, 빛이 다 닿은 뒤 161곳 모두 받침 단계 = 창 단계 = tierOf(A_i)(10·15·20분, 개발 서버에서만).
@@ -134,6 +135,73 @@ async function mouseChecks(page, tag) {
   await page.waitForTimeout(500)
   const c3 = await cam(page)
   check(c3.distance < c2.distance, `${tag} 마우스: 휠 = 확대·축소`, `${c2.distance} → ${c3.distance}`)
+}
+
+/** 키(KeyboardEvent.code)들을 함께 ms 동안 누르고 있다가 놓는다 */
+async function holdKeys(page, keys, ms) {
+  for (const k of keys) await page.keyboard.down(k)
+  await page.waitForTimeout(ms)
+  for (const k of keys) await page.keyboard.up(k)
+}
+
+/** 땅 위 초점의 이동(x, z) */
+const panOf = (a, b) => [b.target[0] - a.target[0], b.target[2] - a.target[2]]
+const sameView = (a, b) => Math.abs(a.azimuth - b.azimuth) < 0.005 && Math.abs(a.polar - b.polar) < 0.005 && Math.abs(a.distance - b.distance) < 0.01
+
+/**
+ * 지도 W A S D(설계안 6-21): 말풍선에 포커스가 있어도 D = 화면 오른쪽, W = 화면 안쪽(지금 방위 기준), 방위·앙각·거리는 그대로,
+ * 놓으면 선다(움직임 줄이기면 바로), 대각선이 한 방향보다 빠르지 않다, 경계 밖으로 나가지 않는다, 배분·화면·포커스는 그대로.
+ */
+async function keyChecks(page, tag, reduced) {
+  const c0 = await cam(page)
+  if (!c0) return
+  const labels = () => page.locator('.fac-row').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')))
+  const pool0 = await page.getByTestId('pool-remaining').textContent()
+  const st0 = await gameState(page)
+  const lab0 = await labels()
+  await row(page, 3).focus()
+  const az = c0.azimuth
+  const right = [Math.cos(az), -Math.sin(az)]
+  const fwd = [-Math.sin(az), -Math.cos(az)]
+  const along = (d, u) => (d[0] * u[0] + d[1] * u[1]) / Math.max(1e-9, Math.hypot(d[0], d[1]))
+  await holdKeys(page, ['KeyD'], 500)
+  await page.waitForTimeout(reduced ? 60 : 450)
+  const c1 = await cam(page)
+  await page.waitForTimeout(300)
+  const c1b = await cam(page)
+  const dD = panOf(c0, c1)
+  const lenD = Math.hypot(...dD)
+  check(lenD > 0.5 && along(dD, right) > 0.98 && sameView(c0, c1), `${tag} W A S D: D = 화면 오른쪽 평행 이동(방위·앙각·거리 그대로)`, JSON.stringify({ moved: +lenD.toFixed(2), along: +along(dD, right).toFixed(3), c0, c1 }))
+  check(Math.hypot(...panOf(c1, c1b)) < 1e-3, `${tag} W A S D: 놓으면 선다${reduced ? '(움직임 줄이기: 바로)' : '(0.45초 안)'}`, JSON.stringify({ c1: c1.target, c1b: c1b.target }))
+  await holdKeys(page, ['KeyW'], 500)
+  await page.waitForTimeout(450)
+  const c2 = await cam(page)
+  const dW = panOf(c1b, c2)
+  check(along(dW, fwd) > 0.98 && sameView(c0, c2), `${tag} W A S D: W = 화면 안쪽(지금 방위 기준)`, JSON.stringify({ along: +along(dW, fwd).toFixed(3), c2 }))
+  // 대각선은 온 길(D·W)을 거슬러 S+A로: 경계에 닿지 않는 쪽이다
+  await holdKeys(page, ['KeyS', 'KeyA'], 500)
+  await page.waitForTimeout(450)
+  const c3 = await cam(page)
+  const dSA = panOf(c2, c3)
+  const lenSA = Math.hypot(...dSA)
+  const diag = [-(right[0] + fwd[0]) / Math.SQRT2, -(right[1] + fwd[1]) / Math.SQRT2]
+  check(lenSA / lenD < 1.15 && lenSA / lenD > 0.8 && along(dSA, diag) > 0.98, `${tag} W A S D: 대각선(S+A)은 한 방향보다 빠르지 않다`, `D ${lenD.toFixed(2)} · S+A ${lenSA.toFixed(2)} · 방향 ${along(dSA, diag).toFixed(3)}`)
+  // A를 오래 눌러 경계에서 멈추는지
+  await holdKeys(page, ['KeyA'], 5000)
+  await page.waitForTimeout(450)
+  const c4 = await cam(page)
+  await holdKeys(page, ['KeyA'], 800)
+  await page.waitForTimeout(450)
+  const c5 = await cam(page)
+  check(Math.hypot(...panOf(c4, c5)) < 0.05 && sameView(c0, c5), `${tag} W A S D: 이동 범위 경계에서 멈춘다`, JSON.stringify({ c4: c4.target, c5: c5.target }))
+  const st1 = await gameState(page)
+  check(
+    (await page.getByTestId('pool-remaining').textContent()) === pool0 && same(await labels(), lab0) && same(st0, st1),
+    `${tag} W A S D: 말풍선에 포커스가 있어도 배분·화면은 그대로`,
+    `${pool0} · ${st1.screen}`,
+  )
+  const act = await page.evaluate(() => `${document.activeElement?.tagName}.${document.activeElement?.className} j=${document.activeElement?.getAttribute('data-j')}`)
+  check(act.endsWith('j=3'), `${tag} W A S D: 말풍선이 화면 밖으로 나가도 포커스는 그 말풍선에 남는다`, act)
 }
 
 /** 시나리오 순서 j의 지소 카드(도크는 서쪽→동쪽이라 화면 순서와 다르다) */
@@ -514,6 +582,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   )
   await page.mouse.move(8, height / 2)
   if (full) await mouseChecks(page, tag)
+  await keyChecks(page, tag, reducedMotion === 'reduce')
   // 위에서 보기: 같은 원근 세계(말풍선이 그대로 선다). 위에서 → 비스듬히로 돌아오면 전체 시점으로 다시 맞춘다(위의 끌기도 되돌린다)
   await page.getByRole('button', { name: '위에서 보기' }).click()
   await page.waitForTimeout(900)
@@ -644,6 +713,14 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
     await page.waitForSelector('.appreciate-skip')
     check((await page.locator('.world-result').count()) === 0 && (await page.locator('.hud-left').count()) === 0, `${tag} S5: 확정하면 HUD 없이 섬을 잠시 본다(감상)`)
     if (full) await shot(page, `${tag}-s5-appreciate`)
+    // 감상 시간(카메라가 스스로 돈다)에는 W A S D를 받지 않고, 감상도 건너뛰지 않는다
+    await page.waitForTimeout(700) // 결산으로 들어오며 전체 시점으로 옮기는 0.6초가 끝난 뒤(자동 회전은 초점을 옮기지 않는다)
+    const ca = await cam(page)
+    if (ca) {
+      await holdKeys(page, ['KeyW'], 300)
+      const cb = await cam(page)
+      check(Math.hypot(...panOf(ca, cb)) < 1e-3 && (await page.locator('.appreciate-skip').count()) === 1, `${tag} S5: 감상 중 W는 지도를 옮기지 않고 감상을 끝내지 않는다`, JSON.stringify({ ca: ca.target, cb: cb.target }))
+    }
   }
   await toSummary(page)
   const wr = await page.locator('.world-result').innerText()
@@ -681,6 +758,13 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   check((s8.match(/\n/g) ?? []).length > 20 && s8.includes('미션의 진료일 15일 중 5일은'), `${tag} S8: 한계 9문장`)
   if (full) await shot(page, `${tag}-s8-data`)
   await layoutGeometry(page, `${tag} S8`, check)
+  const cs = await cam(page)
+  if (cs) {
+    await holdKeys(page, ['KeyD'], 300)
+    await page.waitForTimeout(200)
+    const ct = await cam(page)
+    check(Math.hypot(...panOf(cs, ct)) < 1e-3 && (await page.locator('#s8-title').count()) === 1, `${tag} S8: 대화상자가 열려 있으면 W A S D로 지도가 움직이지 않는다`)
+  }
   await page.keyboard.press('Escape')
   check((await page.locator('#s8-title').count()) === 0 && (await page.locator('.verdict').count()) === 1, `${tag} S8: 닫아도 상태 유지`)
 

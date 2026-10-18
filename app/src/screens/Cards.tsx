@@ -185,9 +185,12 @@ export function TutorialCard(p: TutorialProps) {
         {copy.tutorial.title} · {p.step}/3
       </div>
       {p.step === 1 && (
-        <p tabIndex={-1} ref={h}>
-          {keepDays(copy.tutorial.step1)}
-        </p>
+        <>
+          <p tabIndex={-1} ref={h}>
+            {keepDays(copy.tutorial.step1)}
+          </p>
+          <p className="small">{copy.tutorial.mapControls}</p>
+        </>
       )}
       {p.step === 2 && (
         <>
