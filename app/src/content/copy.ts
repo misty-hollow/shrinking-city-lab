@@ -66,7 +66,7 @@ export const copy = {
     title: '튜토리얼 · 지금의 공주',
     step1: '마을에서 자동차 도로망으로 15분 안에 있는 보건지소들의 진료일을 더하면, 그 마을에 닿는 진료일이 돼요(최대 주 5일). 창에 불이 켜진 마을은 진료가 닿고, 불이 꺼진 마을은 닿지 않아요. 불이 꺼진 마을에도 사람이 살아요.',
     /** 지도 조작 안내(설계안 6-19 마우스 · 6-21 W A S D). 첫 단계 카드 아래 한 줄 */
-    mapControls: '지도는 끌거나 W A S D 키로 옮기고, 오른쪽 끌기로 돌리고, 휠로 확대해요.',
+    mapControls: '지도는 끌거나 W A S D 키로 옮기고, 오른쪽 끌기로 돌리고, 휠로 확대해요. R 키는 처음 시점, ? 키는 조작법이에요.',
     step2: '오른쪽 위 10분 · 15분 · 20분 중 다른 시간을 눌러 보세요. 몇 분까지를 "닿는다"고 볼지가 바뀌어요.',
     step2Changed: (fromT: number, from: string, toT: number, to: string) =>
       `같은 배분인데 주 1일 이상 닿는 주민이 ${fromT}분 기준 ${from}에서 ${toT}분 기준 ${to}으로 바뀌었어요. 기준도 선택이에요.`,
@@ -360,6 +360,43 @@ export const copy = {
     worst: '흰 점선 = 가장 불리한 읍·면',
     cityCore: '흐린 종이 = 공주 시내(이번 모델 밖)',
     landscape: '논·밭·숲·나무·지붕 색은 풍경 표현이에요. 자료가 아니에요.',
+  },
+
+  /** 조작법(설계안 6-22): 왼쪽 아래 [조작법] 단추 또는 ? 키. [키, 하는 일] — 라벨이라 명사형 */
+  help: {
+    open: '조작법',
+    close: '조작법 닫기',
+    title: '조작법',
+    mapTitle: '지도',
+    map: [
+      ['왼쪽 끌기 · W A S D', '지도 옮기기'],
+      ['오른쪽 끌기', '돌리기 · 기울이기'],
+      ['휠', '확대 · 축소'],
+      ['R', '처음 시점으로'],
+    ],
+    allocTitle: '진료일',
+    alloc: [
+      ['말풍선 누르기', '하루 놓기'],
+      ['− · 오른쪽 클릭', '하루 빼기'],
+      ['Tab 뒤 + − 또는 → ←', '키보드로 놓기 · 빼기'],
+      ['↑ ↓', '옆 지소로'],
+      ['Ctrl Z', '되돌리기'],
+    ],
+    otherTitle: '그 밖',
+    other: [
+      ['Esc', '미리보기 취소 · 판 닫기'],
+      ['?', '조작법 열기 · 닫기'],
+    ],
+  } as {
+    open: string
+    close: string
+    title: string
+    mapTitle: string
+    map: readonly (readonly [string, string])[]
+    allocTitle: string
+    alloc: readonly (readonly [string, string])[]
+    otherTitle: string
+    other: readonly (readonly [string, string])[]
   },
 
   /** 세계가 먼저(설계안 6-17): 말풍선·손·미리보기·아이콘 */

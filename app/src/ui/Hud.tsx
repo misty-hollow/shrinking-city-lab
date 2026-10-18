@@ -3,11 +3,12 @@
  * 모두 무대 위에 얹히되 가운데를 비워 둔다. 장식은 모서리 깎기 하나뿐이다.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 
 import { sound } from '../audio/sound'
 import { copy } from '../content/copy'
 import type { Manifest } from '../data/types'
+import { CAMERA_SETTLED } from '../stage/events'
 import { ClinicGlyph, HouseGlyph } from './common'
 import { type Box, clearOffset } from './toastPlace'
 
@@ -117,6 +118,14 @@ export function Toasts({ items, layout, pops }: { items: Toast[]; layout: string
     const id = window.setTimeout(() => placeToasts(el), 700)
     return () => window.clearTimeout(id)
   }, [layout])
+  // 소식이 떠 있는 동안 카메라를 끌거나 W A S D로 옮겼으면, 멈춘 뒤 한 번 다시 잰다(말풍선이 소식 밑으로 들어온 경우)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !hasToast) return
+    const on = () => placeToasts(el)
+    window.addEventListener(CAMERA_SETTLED, on)
+    return () => window.removeEventListener(CAMERA_SETTLED, on)
+  }, [hasToast])
   return (
     <div className="toasts" aria-hidden="true" ref={ref}>
       {shown.map((t) => (
@@ -131,22 +140,91 @@ export function Toasts({ items, layout, pops }: { items: Toast[]; layout: string
 
 // --- 읽는 법(범례) ------------------------------------------------------------------------
 
+export type KeyPanel = 'legend' | 'controls' | null
+
 interface KeyProps {
   deltaMode: boolean
   neutral: boolean
   ghost: boolean
   coached: boolean
+  /** 열린 판: 읽는 법 · 조작법(같은 자리라 하나만) */
+  panel: KeyPanel
+  onPanel(p: KeyPanel): void
+  /** 진료일을 놓고 뺄 수 있는 화면(튜토리얼·미션)이면 조작법에 진료일 줄도 */
+  canAllocate: boolean
+  /** ? 키로 열었으면 조작법 제목으로 포커스를 옮긴다(단추로 열면 단추에 머문다) */
+  focusHelp: boolean
+}
+
+function HelpRows({ rows }: { rows: readonly (readonly [string, string])[] }) {
+  return (
+    <dl>
+      {rows.map(([k, v]) => (
+        <div key={k}>
+          <dt>
+            <kbd>{k}</kbd>
+          </dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+/** 조작법(설계안 6-22): 지도 · 진료일 · 그 밖. 키보드·마우스 조작을 한 판에 */
+function ControlsHelp({ canAllocate, focus }: { canAllocate: boolean; focus: boolean }) {
+  const title = useRef<HTMLHeadingElement>(null)
+  // 열릴 때 한 번만(뒤 화면이 다시 그려질 때마다 포커스가 튀지 않게)
+  const focusOnOpen = useRef(focus)
+  useEffect(() => {
+    if (focusOnOpen.current) title.current?.focus({ preventScroll: true })
+  }, [])
+  return (
+    <div className={`key-panel controls-help${canAllocate ? ' is-wide' : ''}`} id="controls-help">
+      <h3 tabIndex={-1} ref={title}>
+        {copy.help.title}
+      </h3>
+      {/* 두 칸(지도 · 그 밖 | 진료일): 한 칸으로 쌓으면 1024×768 튜토리얼에서 위 카드의 단추까지 올라간다 */}
+      <div className="help-groups">
+        <section className="help-map">
+          <h4>{copy.help.mapTitle}</h4>
+          <HelpRows rows={copy.help.map} />
+        </section>
+        {canAllocate && (
+          <section className="help-alloc">
+            <h4>{copy.help.allocTitle}</h4>
+            <HelpRows rows={copy.help.alloc} />
+          </section>
+        )}
+        <section className="help-other">
+          <h4>{copy.help.otherTitle}</h4>
+          <HelpRows rows={copy.help.other} />
+        </section>
+      </div>
+    </div>
+  )
 }
 
 export function ReadingKey(p: KeyProps) {
-  const [open, setOpen] = useState(false)
-  const shown = open || p.coached
+  const shown = p.panel === 'legend' || (p.coached && p.panel === null)
+  const help = p.panel === 'controls'
   return (
-    <section className={`reading-key legend${p.coached ? ' is-coached' : ''}${shown ? ' is-open' : ''}`} aria-label={copy.legend.title} data-occlude>
-      <button type="button" className="key-toggle" onClick={() => setOpen(!open)} aria-expanded={shown}>
-        <span aria-hidden="true">?</span>
-        {shown ? copy.legend.collapse : copy.legend.expand}
-      </button>
+    <section className={`reading-key legend${p.coached && shown ? ' is-coached' : ''}${shown || help ? ' is-open' : ''}`} aria-label={copy.legend.title} data-occlude>
+      <div className="key-toggles">
+        <button type="button" className="key-toggle" onClick={() => p.onPanel(p.panel === 'legend' ? null : 'legend')} aria-expanded={shown}>
+          <span aria-hidden="true">?</span>
+          {shown ? copy.legend.collapse : copy.legend.expand}
+        </button>
+        <button type="button" className="key-toggle help-toggle" data-return-focus="help" onClick={() => p.onPanel(help ? null : 'controls')} aria-expanded={help} aria-controls={help ? 'controls-help' : undefined} aria-keyshortcuts="?">
+          {/* 읽는 법의 ? 동그라미와 헷갈리지 않게 자판 그림. ? 키는 튜토리얼 한 줄과 판의 마지막 줄이 알린다 */}
+          <svg className="kb-glyph" viewBox="0 0 20 14" aria-hidden="true">
+            <rect x="1" y="1" width="18" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M4.5 4.5h1M8 4.5h1M11.5 4.5h1M15 4.5h.5M4.5 7.5h1M8 7.5h1M11.5 7.5h1M15 7.5h.5M6 10.5h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+          {help ? copy.help.close : copy.help.open}
+        </button>
+      </div>
+      {help && <ControlsHelp canAllocate={p.canAllocate} focus={p.focusHelp} />}
       {shown && (
         <ul>
           {p.neutral ? (
@@ -250,7 +328,7 @@ export function SoundToggle() {
       type="button"
       className="sound-toggle"
       aria-pressed={!muted}
-      aria-label={muted ? copy.sound.off : copy.sound.on}
+      aria-label={copy.sound.label}
       onClick={() => {
         sound.unlock()
         sound.setMuted(!muted)
@@ -268,7 +346,6 @@ export function SoundToggle() {
           </>
         )}
       </svg>
-      <span className="sr-only">{copy.sound.label}</span>
       <span className="rb-tip" aria-hidden="true">
         {muted ? copy.sound.off : copy.sound.on}
       </span>

@@ -473,6 +473,7 @@ input {
 }
 
 .toggle[aria-pressed='true'],
+.toggle.is-on,
 .toggle[aria-expanded='true'] {
   border-color: var(--cream);
 }
@@ -1485,6 +1486,90 @@ input {
   padding-left: 30px;
   font-size: 12px;
   color: var(--text-3);
+}
+
+/* 읽는 법 · 조작법 단추 한 줄(같은 자리에 판 하나) */
+.key-toggles {
+  display: flex;
+  gap: 8px;
+}
+
+.key-toggle .kb-glyph {
+  width: 18px;
+  height: 13px;
+}
+
+/* 조작법(설계안 6-22): 범례와 같은 Sheet 재질. 키 · 하는 일 두 칸 */
+.key-panel {
+  margin: 6px 0 0;
+  padding: 12px 14px;
+  background: var(--sheet-bg);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+  animation: fade-in 160ms ease-out;
+}
+
+.controls-help h3 {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.controls-help h4 {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.controls-help dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.controls-help.is-wide .help-groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    'map alloc'
+    'other alloc';
+  column-gap: 20px;
+}
+
+.controls-help .help-map {
+  grid-area: map;
+}
+
+.controls-help .help-alloc {
+  grid-area: alloc;
+}
+
+.controls-help .help-other {
+  grid-area: other;
+}
+
+.controls-help dl > div {
+  display: grid;
+  grid-template-columns: 124px 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.controls-help dt,
+.controls-help dd {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.controls-help kbd {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .reading-key.is-coached ul {

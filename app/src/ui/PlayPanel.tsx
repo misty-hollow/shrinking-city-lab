@@ -4,7 +4,7 @@
  * 3D를 쓸 수 없는 브라우저의 대체 조작이다(키보드만으로도 플레이, 5-11). 자세한 지표·읍·면 목록은 [지표 자세히] Sheet에서.
  */
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { copy } from '../content/copy'
 import type { MissionData, Scenario } from '../data/types'
@@ -367,6 +367,7 @@ export function EmdList(p: EmdListProps) {
               <button
                 type="button"
                 className={`emd-row${p.highlight === m ? ' is-hover' : ''}${p.k.worstEmd === m ? ' is-worst' : ''}`}
+                data-return-focus={`region-${m}`}
                 onMouseEnter={() => p.onHover(m)}
                 onMouseLeave={() => p.onHover(null)}
                 onFocus={() => p.onHover(m)}
@@ -483,7 +484,8 @@ export function MissionCard(p: MissionCardProps) {
       )}
       {p.T !== 15 && <div className="chip-note">{copy.missionCard.judgedAt15}</div>}
       {p.last && (
-        <button type="button" className="toggle compare-last" aria-pressed={p.last.on} onClick={() => p.last?.onToggle(!p.last.on)}>
+        // 글이 할 일을 말한다(비교하며 보기 ↔ 돌아가기): 눌림 상태(aria-pressed)는 붙이지 않고 겉모양만 is-on
+        <button type="button" className={`toggle compare-last${p.last.on ? ' is-on' : ''}`} onClick={() => p.last?.onToggle(!p.last.on)}>
           {p.last.on ? copy.missionCard.compareLastOff : copy.missionCard.compareLast(p.last.n)}
         </button>
       )}
@@ -571,6 +573,12 @@ interface RegionCardProps {
 
 export function RegionCard(p: RegionCardProps) {
   const e = p.scenario.emds[p.m]
+  // 읍·면 목록의 줄에서 열면 그 줄이 카드로 바뀌며 사라져 포커스가 몸으로 빠진다: 카드 제목으로 받는다(다른 곳에 포커스가 있으면 그대로)
+  const title = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    const a = document.activeElement
+    if (!a || a === document.body) title.current?.focus({ preventScroll: true })
+  }, [p.m])
   const zero = p.scenario.villages.map((v, i) => ({ v, i })).filter(({ i }) => p.model.emd[i] === p.m && p.k.villageDays[i] < 1)
   const unreachable = new Set(unreachableVillages(p.model, p.t))
   const zeroPop = zero.reduce((n, { v }) => n + v.pop, 0)
@@ -579,7 +587,9 @@ export function RegionCard(p: RegionCardProps) {
   return (
     <aside className="hud-panel region-card" aria-label={e.name} data-occlude>
       <div className="block-title">
-        <h3>{e.name}</h3>
+        <h3 tabIndex={-1} ref={title}>
+          {e.name}
+        </h3>
         <button type="button" className="btn btn-small" onClick={p.onClose}>
           {copy.region.close}
         </button>

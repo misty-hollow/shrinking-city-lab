@@ -44,7 +44,8 @@ import {
 } from './state/results'
 import { feedbackKey, feedbackStale } from './ui/feedback'
 import { Hand } from './ui/Hand'
-import { DataChip, type EmberHandle, EmberLayer, ReadingKey, SoundToggle, type Toast, Toasts, useAudioUnlock } from './ui/Hud'
+import { useReturnFocus } from './ui/focusReturn'
+import { DataChip, type EmberHandle, EmberLayer, type KeyPanel, ReadingKey, SoundToggle, type Toast, Toasts, useAudioUnlock } from './ui/Hud'
 import { ClinicMarkers, type Pop, type VillagePin, VillagePins } from './ui/Markers'
 import { EmdList, FacilityDock, GOAL_TILE, KpiLedger, MissionCard, RegionCard, dockOrder } from './ui/PlayPanel'
 import { type PreviewInfo, buildPreview } from './ui/preview'
@@ -204,6 +205,9 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const [pops, setPops] = useState<Pop[]>([])
   const [details, setDetails] = useState(false)
   const [topView, setTopView] = useState(false)
+  // 왼쪽 아래 판: 읽는 법 · 조작법(설계안 6-22). ? 키로 열었으면(helpByKey) 조작법 제목으로 포커스를 옮긴다(단추로 열면 단추에 머문다)
+  const [keyPanel, setKeyPanel] = useState<KeyPanel>(null)
+  const [helpByKey, setHelpByKey] = useState(false)
   const [phase, setPhase] = useState<'appreciate' | 'summary'>('summary')
   const [flat, setFlat] = useState(false)
   useAudioUnlock()
@@ -516,6 +520,10 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || s.dataOpen) return
+      if (keyPanel) {
+        setKeyPanel(null)
+        return
+      }
       if (s.screen === 'finale' && s.finaleFocus === null) {
         dispatch({ type: 'finaleFocus', m: finaleReturn ?? 'overlap' })
         return
@@ -533,7 +541,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [s.dataOpen, s.screen, s.finaleFocus, details, phase, finaleReturn])
+  }, [s.dataOpen, s.screen, s.finaleFocus, details, phase, finaleReturn, keyPanel])
 
   // 튜토리얼 단계가 바뀌면 앞 단계의 알림을 지운다(화면이 바뀔 때는 아래에서 지운다).
   useEffect(() => {
@@ -589,6 +597,38 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const showSheet = (s.screen === 'debrief' && details) || finaleBoard
   const sheetWidth = showSheet ? sheetWidthFor(width) : 0
   const appreciating = s.screen === 'debrief' && phase === 'appreciate'
+  /** 왼쪽 아래(읽는 법 · 조작법 · 기준일 · 자료와 한계)가 보이는 화면 */
+  const cornerShown = !appreciating && !finaleBoard && s.screen !== 'start'
+  useEffect(() => {
+    if (!cornerShown) setKeyPanel(null)
+  }, [cornerShown])
+
+  // 판을 닫으면 연 자리로 포커스를 돌려준다(RELEASE_READINESS 8절). 지역 카드는 읍·면 목록의 그 줄로
+  const lastRegion = useRef<number | null>(null)
+  if (s.regionEmd !== null) lastRegion.current = s.regionEmd
+  useReturnFocus(details, 'details')
+  useReturnFocus(s.regionEmd !== null, `region-${lastRegion.current}`)
+
+  // R = 처음 시점(지금 보기 방식의 전체 시점: 위에서 보기면 위에서 본 전체), ? = 조작법 열기·닫기(설계안 6-22).
+  // W A S D처럼 입력창·Ctrl·Alt·⌘ 조합·자료와 한계 대화상자·감상 시간에는 받지 않고, 말풍선·탭의 키 처리가 먼저 쓴 키도 건드리지 않는다
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || s.dataOpen || appreciating) return
+      const t = e.target as HTMLElement | null
+      if (t?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return
+      if (e.code === 'KeyR' && !e.shiftKey && !e.repeat) {
+        e.preventDefault()
+        stage.current?.preset(topView ? 'top' : 'overview')
+      } else if ((e.key === '?' || (e.code === 'Slash' && e.shiftKey)) && cornerShown && !e.repeat) {
+        e.preventDefault()
+        setHelpByKey(true)
+        setKeyPanel(keyPanel === 'controls' ? null : 'controls')
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [s.dataOpen, appreciating, topView, cornerShown, keyPanel])
+  useReturnFocus(keyPanel === 'controls', 'help')
 
   // --- 무대 상태 ---------------------------------------------------------------------------
   const stageMode: StageMode = s.screen === 'intro' && s.introStep === 0 ? 'intro-villages' : s.screen === 'intro' && s.introStep === 1 ? 'intro-towers' : 'normal'
@@ -865,13 +905,20 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
         />
       )}
 
-      {!appreciating && !finaleBoard && s.screen !== 'start' && (
+      {cornerShown && (
         <div className="corner-bl" data-occlude>
           <ReadingKey
             deltaMode={s.deltaMode && (interactive || s.screen === 'debrief' || s.screen === 'finale')}
             neutral={stageMode !== 'normal'}
             ghost={shown.ghost !== null}
             coached={s.screen === 'tutorial' && s.tutorialStep === 1}
+            panel={keyPanel}
+            onPanel={(p) => {
+              setHelpByKey(false)
+              setKeyPanel(p)
+            }}
+            canAllocate={interactive}
+            focusHelp={helpByKey}
           />
           <DataChip manifest={manifest} onData={openData} floating={false} />
           <button type="button" className="link-button data-link" onClick={openData}>

@@ -25,6 +25,7 @@ import { allocDays, people, roadMinutes, weekDays } from '../engine/format'
 import { type Model, type Threshold, facilitiesReaching, tierOf, villagesReachedBy } from '../engine/kpi'
 import { ClinicLayer, CHAMBERS } from './clinics'
 import { EngravedLabels } from './engraved'
+import { CAMERA_SETTLED } from './events'
 import { FlagLayer } from './flags'
 import { OverlapMarks } from './overlapMarks'
 import { HouseLayer, type VillageLevel } from './houses'
@@ -132,6 +133,7 @@ function overlaps(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 }
 
+
 function levelOf(days: number): 0 | 1 | 2 {
   return tierOf(days)
 }
@@ -196,6 +198,12 @@ export class StageController {
   private stageHover: Pick = null
   private tween: Tween | null = null
   private readonly keyPan = new KeyPan()
+  /**
+   * 마지막 입력이 키보드였나(키를 누르면 true, 포인터를 누르면 false): 마우스로 눌러 생긴 포커스와 키보드 포커스를 가른다.
+   * :focus-visible은 스크립트로 옮긴 포커스(↑ ↓로 옆 말풍선, 판을 닫은 뒤 복귀)에서 판단이 갈려 직접 센다
+   */
+  private keyboardInput = false
+  private camMoving = false
   private readonly panRight = new THREE.Vector3()
   private readonly panUp = new THREE.Vector3()
   private readonly panStep = new THREE.Vector3()
@@ -352,6 +360,8 @@ export class StageController {
     el.addEventListener('pointerdown', this.onPointerDown)
     el.addEventListener('pointerup', this.onPointerUp)
     el.addEventListener('dblclick', this.onDblClick)
+    window.addEventListener('keydown', this.onInputKey, true)
+    window.addEventListener('pointerdown', this.onInputPointer, true)
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
     window.addEventListener('blur', this.onPanReset)
@@ -641,6 +651,8 @@ export class StageController {
     el.removeEventListener('pointerdown', this.onPointerDown)
     el.removeEventListener('pointerup', this.onPointerUp)
     el.removeEventListener('dblclick', this.onDblClick)
+    window.removeEventListener('keydown', this.onInputKey, true)
+    window.removeEventListener('pointerdown', this.onInputPointer, true)
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     window.removeEventListener('blur', this.onPanReset)
@@ -930,6 +942,24 @@ export class StageController {
     this.cb.onClick(this.pick(e.clientX - r.left, e.clientY - r.top))
   }
 
+  private readonly onInputKey = (): void => {
+    if (this.keyboardInput) return
+    this.keyboardInput = true
+    this.dirty = true
+  }
+
+  private readonly onInputPointer = (): void => {
+    if (!this.keyboardInput) return
+    this.keyboardInput = false
+    this.dirty = true
+  }
+
+  /** el 안의 요소가 키보드로 받은 포커스를 갖고 있나 */
+  private keyFocused(el: HTMLElement): boolean {
+    const a = document.activeElement
+    return this.keyboardInput && !!a && el.contains(a)
+  }
+
   // W A S D(설계안 6-21): 말풍선·탭·단추의 키 처리(React)가 먼저 돈다. 그쪽이 쓴 키(defaultPrevented)와 입력창은 건드리지 않는다.
   private readonly onKeyDown = (e: KeyboardEvent): void => {
     if (e.defaultPrevented || this.view?.keyPan === false) return
@@ -1057,6 +1087,7 @@ export class StageController {
     const reduced = !!view?.reducedMotion
     let animating = false
 
+    let camMoving = !!this.tween
     if (this.tween) {
       const k = Math.min(1, (now - this.tween.t0) / this.tween.dur)
       const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2
@@ -1065,8 +1096,12 @@ export class StageController {
       if (k >= 1) this.tween = null
       animating = true
     }
-    if (this.stepKeyPan(dt, reduced)) animating = true
-    if (this.controls.update(dt)) animating = true
+    if (this.stepKeyPan(dt, reduced)) camMoving = true
+    if (this.controls.update(dt)) camMoving = true
+    if (camMoving) animating = true
+    // 카메라가 멈춘 순간 한 번: 떠 있는 소식이 말풍선을 덮지 않는지 다시 잰다(Toasts). 움직이는 동안은 재지 않는다
+    if (this.camMoving && !camMoving) window.dispatchEvent(new Event(CAMERA_SETTLED))
+    this.camMoving = camMoving
 
     if (this.pointerMoved) {
       this.pointerMoved = false
@@ -1341,7 +1376,9 @@ export class StageController {
           if (lift > 110) break
         }
         const outside = rect.x < 0 || rect.y < 0 || rect.x + rect.w > this.width || rect.y + rect.h > this.height
-        const occluded = !this.atOverview && (outside || hud.some((r) => overlaps(r, rect))) && !it.el.contains(document.activeElement)
+        // 키보드로 받은 포커스가 있는 말풍선만 숨기지 않는다. 마우스로 누른 말풍선도 포커스는 남지만, 그것까지 남기면
+        // 가까이 보기에서 HUD 판 위에 그대로 그려진다(WORKLOG 「마우스로 누른 말풍선」)
+        const occluded = !this.atOverview && (outside || hud.some((r) => overlaps(r, rect))) && !this.keyFocused(it.el)
         it.el.classList.toggle('is-occluded', occluded)
         if (occluded) continue
         const prev = Number(it.el.dataset.lift ?? 0)

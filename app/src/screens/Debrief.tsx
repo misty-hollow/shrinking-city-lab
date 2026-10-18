@@ -203,7 +203,7 @@ export function DebriefPanel(p: Props) {
               .filter(Boolean)
               .join(' · ')}
           </div>
-          <button type="button" className="toggle" aria-pressed={p.ghost} onClick={p.onToggleGhost}>
+          <button type="button" className={`toggle${p.ghost ? ' is-on' : ''}`} onClick={p.onToggleGhost}>
             {p.ghost ? copy.debrief.ghostHide : copy.debrief.ghostShow}
           </button>
         </section>
@@ -280,7 +280,7 @@ function CompareBlock(p: Props & { prev: { n: number; k15: Kpis } }) {
       <div className="emd-change num">
         <strong>{copy.debrief.compareWorse}</strong> {list('worse')}
       </div>
-      <button type="button" className="toggle" aria-pressed={p.compare} onClick={p.onToggleCompare}>
+      <button type="button" className={`toggle${p.compare ? ' is-on' : ''}`} onClick={p.onToggleCompare}>
         {p.compare ? copy.debrief.compareStageOff : copy.debrief.compareStage(n)}
       </button>
     </section>
