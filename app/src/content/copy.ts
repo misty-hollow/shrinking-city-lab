@@ -66,9 +66,9 @@ export const copy = {
 
   tutorial: {
     title: '튜토리얼 · 지금의 공주',
-    step1: '마을에서 자동차 도로망으로 15분 안에 있는 보건지소들의 진료일을 더하면, 그 마을에 닿는 진료일이 돼요(최대 주 5일). 창에 불이 켜진 마을은 진료가 닿고, 불이 꺼진 마을은 닿지 않아요. 불이 꺼진 마을에도 사람이 살아요.',
+    step1: '도로망 15분 안에 있는 보건지소들의 진료일을 더하면 그 마을에 닿는 진료일이에요(최대 주 5일). 그만큼 창에 불이 켜지고, 불이 꺼진 마을에도 사람이 살아요.',
     /** 지도 조작 안내(설계안 6-19 마우스 · 6-21 W A S D). 첫 단계 카드 아래 한 줄 */
-    mapControls: '지도는 끌거나 W A S D 키로 옮기고, 오른쪽 끌기로 돌리고, 휠로 확대해요. R 키는 처음 시점, ? 키는 조작법이에요.',
+    mapControls: '끌기·W A S D 이동 · 오른쪽 끌기 회전 · 휠 확대 · R 처음 시점 · ? 조작법',
     step2: '오른쪽 위 10분 · 15분 · 20분 중 다른 시간을 눌러 보세요. 몇 분까지를 "닿는다"고 볼지가 바뀌어요.',
     step2Changed: (fromT: number, from: string, toT: number, to: string) =>
       `같은 배분인데 주 1일 이상 닿는 주민이 ${fromT}분 기준 ${from}에서 ${toT}분 기준 ${to}으로 바뀌었어요. 기준도 선택이에요.`,
@@ -117,6 +117,8 @@ export const copy = {
 
   briefing: {
     resource: '배분할 진료일 주 15일 = 실제 10일 + 가정 5일',
+    /** 튜토리얼의 지금 배분을 이어 가지 않고 모든 지소 0일에서 시작한다(설계안 7-2 시작 조건) */
+    fresh: '모든 지소를 0일로 비우고 15일을 처음부터 나눠요.',
     realBadge: (date: string) => `실제 자료 · 진료일정 ${date}`,
     assumptionBadge: '게임 가정 · 5일이 더 확보됐다면',
     assumption:
@@ -124,7 +126,8 @@ export const copy = {
     judged: '판정 기준 도로망 15분',
     kept: '확정한 배분은 마지막 「세 개의 공주」에서 나란히 다시 봐요.',
     begin: '배분 시작',
-    skip: '건너뛰기',
+    /** 설명만이 아니라 미션 전체를 건너뛴다(결과 칸은 참고 배분으로 채워진다) */
+    skip: '이 미션 건너뛰기',
   },
 
   pool: {
@@ -240,6 +243,9 @@ export const copy = {
     lostNone: '기준선보다 불리해진 마을 없음',
     more: (n: number) => `${n}곳 더 보기`,
     less: '접기',
+    /** 읍·면마다 주민이 많은 마을 셋만 이름을 적고 나머지는 수로(전체는 [마을 이름 모두 보기]) */
+    lostRest: (n: number) => `외 ${n}곳`,
+    lostAll: '마을 이름 모두 보기',
     table: '6개 지표',
     colKpi: '지표',
     colBase: '현재 실제 (10일)',
@@ -409,6 +415,7 @@ export const copy = {
     handCaption: '남은 진료일',
     handTutorial: '옮길 진료일',
     handTutorialEmpty: '의당에서 하루를 가져와요',
+    handTutorialDone: '하루를 옮겼어요',
     handEmpty: '모두 놓았어요',
     handReal: (n: number) => `실제 ${n}`,
     handAssumed: (n: number) => `가정 ${n}`,
@@ -456,6 +463,9 @@ export const copy = {
     debriefCols: ['지표', '내 배분', '차이'] as const,
     /** 판정 아래 미션 지표 한 줄의 목표 */
     goalTarget: (t: string) => `· 목표 ${t}`,
+    /** 판정(크게) = 목표에 닿았는가. 순위는 이 미션 지표 기준이라 미션 지표 줄 끝에 작게(세 결과가 모두 「상위 1%」로 크게 보이면 셋 다 좋은 배분처럼 읽힌다) */
+    verdict: (achieved: boolean) => (achieved ? '목표 달성' : '목표 미달'),
+    rank: (n: number) => `· 가능한 배분 중 상위 ${n}%`,
     /** 두 칸의 머리. 기준선은 현재 실제(10일)라 늘어난 5일의 효과가 섞인다(아래 mixedEffect) */
     changeTitle: '현재 실제(10일)와 비교',
     betterLabel: '나아진 주민',
@@ -475,7 +485,7 @@ export const copy = {
     lostOnMap: '지도의 빨간 표지',
     /** 결과 글의 지도 표지 한 줄: ▲▼(현재 실제 대비일 때만)과 빨간 표지(닿지 않게 된 마을이 있을 때만). 둘 다 없으면 빈 줄 */
     mapKey: (glyphs: boolean, lost: boolean) =>
-      [glyphs ? '지도의 ▲ ▼ = 하루 이상 늘거나 줄어든 마을' : '', lost ? '빨간 표지 = 닿지 않게 된 마을' : ''].filter(Boolean).join(' · '),
+      [glyphs ? '지도의 ▲ ▼ = 하루 이상 늘거나 줄어든 마을' : '', lost ? '빨간 표지 = 닿지 않게 된 큰 마을(3곳까지)' : ''].filter(Boolean).join(' · '),
     /** 증감 기준이 현재 실제일 때만(앞 미션 비교를 켜 두면 지도의 ▲▼ 기준이 다르다) */
     mapGlyphs: '지도의 ▲ ▼ 표지 = 하루 이상 늘거나 줄어든 마을',
     /** 미션 2·3: 같은 15일끼리 비교 = 배분만의 차이 */

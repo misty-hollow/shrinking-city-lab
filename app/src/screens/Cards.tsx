@@ -282,6 +282,7 @@ export function BriefingCard({ mission, targetText, scheduleDate, reducedMotion,
         </div>
         <p style={{ margin: '6px 0 0' }}>{copy.briefing.assumption}</p>
       </div>
+      <p className="small">{copy.briefing.fresh}</p>
       <p className="small">{copy.briefing.judged}</p>
       {mission !== 'm1' && <p className="small">{copy.briefing.kept}</p>}
       <div className="actions">

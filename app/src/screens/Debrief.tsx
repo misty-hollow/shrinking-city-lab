@@ -56,6 +56,7 @@ export function DebriefPanel(p: Props) {
     h.current?.focus()
   }, [])
   const [more, setMore] = useState(false)
+  const [allNames, setAllNames] = useState(false)
   const c = copy.missions[p.missionId]
   const deltas = kpiDeltas(p.mine, p.base)
   const gains = topGains(deltas, p.model.totalPop)
@@ -67,6 +68,10 @@ export function DebriefPanel(p: Props) {
   }
   const groups = [...byEmd.entries()].sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
   const shown = more ? groups : groups.slice(0, 5)
+  // 읍·면마다 주민이 많은 마을 셋만 이름으로(이름 벽을 만들지 않는다). 나머지는 「외 n곳」, 전체는 [마을 이름 모두 보기]
+  const NAMES = 3
+  const byPop = (list: number[]) => [...list].sort((a, b) => p.scenario.villages[b].pop - p.scenario.villages[a].pop || a - b)
+  const clipped = groups.some(([, list]) => list.length > NAMES)
   return (
     <>
       {/* 1 판정 */}
@@ -124,13 +129,19 @@ export function DebriefPanel(p: Props) {
                   ) : (
                     <strong>{p.scenario.emds[m].name}</strong>
                   )}{' '}
-                  {list.map((i) => `${p.scenario.villages[i].name} ${people(p.scenario.villages[i].pop)}`).join(', ')}
+                  {(allNames ? byPop(list) : byPop(list).slice(0, NAMES)).map((i) => `${p.scenario.villages[i].name} ${people(p.scenario.villages[i].pop)}`).join(', ')}
+                  {!allNames && list.length > NAMES && ` ${copy.debrief.lostRest(list.length - NAMES)}`}
                 </li>
               ))}
             </ul>
             {groups.length > 5 && (
               <button type="button" className="link-button" onClick={() => setMore(!more)}>
                 {more ? copy.debrief.less : copy.debrief.more(groups.length - 5)}
+              </button>
+            )}
+            {clipped && (
+              <button type="button" className="link-button" aria-expanded={allNames} onClick={() => setAllNames(!allNames)}>
+                {allNames ? copy.debrief.less : copy.debrief.lostAll}
               </button>
             )}
           </>

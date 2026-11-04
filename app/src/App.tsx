@@ -676,10 +676,8 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const pins = useMemo((): VillagePin[] => {
     if (!lost || appreciating || details) return []
     const top = lostPinOrder(lost.lost, model.pop).slice(0, 3)
-    return top.map((i, q) => ({
-      i,
-      text: q === top.length - 1 && lost.lost.length > top.length ? `${copy.world.lostPin(scenario.villages[i].name, people(scenario.villages[i].pop))} · ${copy.world.lostMore(lost.lost.length - top.length)}` : copy.world.lostPin(scenario.villages[i].name, people(scenario.villages[i].pop)),
-    }))
+    // 「외 n곳」은 표지에 붙이지 않는다: 특정 마을 둘레에 몰려 있는 것처럼 읽힌다. 전체 수는 결과 글의 불리해진 주민 칸에 있다
+    return top.map((i) => ({ i, text: copy.world.lostPin(scenario.villages[i].name, people(scenario.villages[i].pop)) }))
   }, [lost, appreciating, details, model, scenario])
 
   // --- 미리보기: 놓기 전에 결과를 본다 --------------------------------------------------------
@@ -996,7 +994,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
               </>
             )}
           </div>
-          {showHand && <Hand left={handLeft} budget={s.budget} mission={s.screen === 'play'} />}
+          {showHand && <Hand left={handLeft} budget={s.budget} mission={s.screen === 'play'} done={s.screen === 'tutorial' && s.tutorialPlaced !== null} />}
           {s.screen === 'play' && (
             <FinishCorner
               canConfirm={canConfirm(s)}

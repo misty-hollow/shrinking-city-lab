@@ -75,10 +75,11 @@ export function WorldDebrief(p: Props) {
     <section className="world-result" aria-labelledby="s5-title" data-occlude>
       <div className="wr-eyebrow">{c.title}</div>
       <h2 id="s5-title" className={`verdict wr-verdict${p.status.achieved ? '' : ' missed'}`} tabIndex={-1} ref={h}>
-        {p.status.achieved ? copy.debrief.achieved(p.status.topPercent) : copy.debrief.missed(p.status.topPercent)}
+        {copy.world.verdict(p.status.achieved)}
       </h2>
       <p className="wr-goal">
-        <span>{c.kpiName}</span> <b className="num">{mineGoal}</b> <span className="num">{copy.world.goalTarget(target)}</span>
+        <span>{c.kpiName}</span> <b className="num">{mineGoal}</b> <span className="num">{copy.world.goalTarget(target)}</span>{' '}
+        <span className="num wr-rank">{copy.world.rank(p.status.topPercent)}</span>
       </p>
       {/* 얻은 것과 잃은 것: 같은 크기로 나란히. 얼마나(주민·마을), 무엇이(새로 닿음·늘어남 / 끊김·줄어듦), 어디서(읍·면) */}
       <section className="wr-change" aria-labelledby="s5-change">
