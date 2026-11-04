@@ -2011,10 +2011,6 @@ input {
   border-color: var(--cream);
 }
 
-.finale-col.is-dim {
-  opacity: 0.72;
-}
-
 .finale-col-head {
   display: flex;
   align-items: center;

@@ -17,6 +17,7 @@ import { type MissionId, type MissionResult, missionNumber } from '../state/resu
 import { Badge, Cells, ClinicGlyph, Delta } from '../ui/common'
 import { GOAL_KPI, KPI_KEYS, KPI_NAME, fmtKpi } from '../ui/kpiText'
 import { MiniMap } from '../ui/MiniMap'
+import { dockOrder } from '../ui/PlayPanel'
 import { ArrowIcon } from '../ui/WorldHud'
 
 export type FinaleResults = readonly [MissionResult, MissionResult, MissionResult]
@@ -162,7 +163,7 @@ function FinaleColumn({ r, scenario, geometry, model, hillshade, world, hover, o
   )
   return (
     <article
-      className={`finale-col${hover === m ? ' is-hover' : hover ? ' is-dim' : ''}`}
+      className={`finale-col${hover === m ? ' is-hover' : ''}`}
       data-mission={m}
       aria-labelledby={`finale-col-${m}`}
       onMouseEnter={() => onHover(m)}
@@ -211,22 +212,26 @@ function FinaleColumn({ r, scenario, geometry, model, hillshade, world, hover, o
   )
 }
 
-/** 지소 10곳의 탑을 한 줄로(칸 1개 = 진료일 1일). 정확한 값은 패널 표에도 있다. */
+/** 지소 10곳의 탑을 한 줄로(칸 1개 = 진료일 1일), 서쪽→동쪽(겹쳐 보기 표·말풍선 순서와 같다). 정확한 값은 패널 표에도 있다. */
 function AllocStrip({ scenario, alloc }: { scenario: Scenario; alloc: readonly number[] }) {
-  const label = `${copy.finale.allocStrip}: ${scenario.facilities.map((f, j) => `${f.short} ${alloc[j]}`).join(', ')}`
+  const order = dockOrder(scenario)
+  const label = `${copy.finale.allocStrip}: ${order.map((j) => `${scenario.facilities[j].short} ${alloc[j]}`).join(', ')}`
   return (
     <div className="alloc-strip" role="img" aria-label={label}>
-      {scenario.facilities.map((f, j) => (
-        <span key={f.id} className={alloc[j] < 1 ? 'is-closed' : ''} aria-hidden="true">
-          <span className="alloc-tower">
-            {[4, 3, 2, 1, 0].map((c) => (
-              <i key={c} className={alloc[j] - c >= 1 ? 'on' : ''} />
-            ))}
+      {order.map((j) => {
+        const f = scenario.facilities[j]
+        return (
+          <span key={f.id} className={alloc[j] < 1 ? 'is-closed' : ''} aria-hidden="true">
+            <span className="alloc-tower">
+              {[4, 3, 2, 1, 0].map((c) => (
+                <i key={c} className={alloc[j] - c >= 1 ? 'on' : ''} />
+              ))}
+            </span>
+            <b className="num">{alloc[j]}</b>
+            <small>{f.short}</small>
           </span>
-          <b className="num">{alloc[j]}</b>
-          <small>{f.short}</small>
-        </span>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -380,18 +385,21 @@ export function FinalePanel(p: PanelProps) {
         <table className="kpi-table finale-table">
           <thead>{head}</thead>
           <tbody>
-            {p.scenario.facilities.map((f, j) => (
-              <tr key={f.id}>
-                <th scope="row">{f.short}</th>
-                {p.results.map((r) => (
-                  <td key={r.mission} className={col(r.mission)}>
-                    <span className="nowrap">
-                      <Cells value={r.alloc[j]} /> <span className="num">{r.alloc[j] < 1 ? copy.facility.closed : allocDays(r.alloc[j])}</span>
-                    </span>
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {dockOrder(p.scenario).map((j) => {
+              const f = p.scenario.facilities[j]
+              return (
+                <tr key={f.id}>
+                  <th scope="row">{f.short}</th>
+                  {p.results.map((r) => (
+                    <td key={r.mission} className={col(r.mission)}>
+                      <span className="nowrap">
+                        <Cells value={r.alloc[j]} /> <span className="num">{r.alloc[j] < 1 ? copy.facility.closed : allocDays(r.alloc[j])}</span>
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
           </tbody>
           <tfoot>
             <tr>

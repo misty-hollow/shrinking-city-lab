@@ -347,7 +347,9 @@ async function finaleChecks(page, tag, full, allocs) {
   check(chips.length === 3 && chips.every((c) => /^(달성|미달) · 상위 \d+%$/.test(c)), `${tag} S6: 세 열 모두 플레이한 결과`, chips.join(' | '))
   const strips = await page.locator('.alloc-strip').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')))
   const nums = strips.map((s) => [...s.matchAll(/ (\d)(?:,|$)/g)].map((x) => Number(x[1])))
-  check(same(nums, allocs), `${tag} S6: 각 열 배분 = 그 미션 확정 배분`, JSON.stringify(nums))
+  // 막대는 서→동(겹쳐 보기 표·말풍선과 같은 순서, 2026-11-04)
+  const WE = [0, 9, 8, 2, 7, 1, 6, 5, 3, 4]
+  check(same(nums, allocs.map((a) => WE.map((j) => a[j]))), `${tag} S6: 각 열 배분 = 그 미션 확정 배분(서→동)`, JSON.stringify(nums))
   check(board.includes('세 배분 모두 같은 주 15일을 나눴지만') && board.includes('실제 10일 + 가정 5일 = 15일 기준'), `${tag} S6: 같은 15일 · 분해 문장(무대)`)
   check(panel.includes('주 15일 = 실제 10일 + 가정 5일') && panel.includes('지금 실제로 운영하는 주 10일과는 다른 가상 배분'), `${tag} S6: 15일 분해 · 현재 실제와 구분(패널)`)
   check((await page.locator('.panel .badge-REAL_DATA, .panel .badge-DERIVED, .panel .badge-SIMULATION_ASSUMPTION').count()) >= 3, `${tag} S6: 실제 자료·계산값·게임 가정 배지`)
@@ -359,7 +361,8 @@ async function finaleChecks(page, tag, full, allocs) {
   await noHorizontalOverflow(page, `${tag} S6`)
   if (full) await shot(page, `${tag}-s6-three`)
   await page.locator('.finale-col').nth(0).hover()
-  check((await page.locator('.finale-col.is-dim').count()) === 2 && (await page.locator('.finale-table th.is-hover').count()) >= 1, `${tag} S6: hover한 열만 선명(표 열도 강조)`)
+  // hover한 열은 테두리로 강조하고, 다른 열은 흐리지 않는다(비교 대상을 가리지 않게, 2026-11-04)
+  check((await page.locator('.finale-col.is-hover').count()) === 1 && (await page.locator('.finale-col.is-dim').count()) === 0 && (await page.locator('.finale-table th.is-hover').count()) >= 1, `${tag} S6: hover한 열 강조(다른 열은 흐리지 않음, 표 열도 강조)`)
   if (full) {
     await page.locator('.panel').evaluate((el) => el.scrollTo(0, el.scrollHeight))
     await shot(page, `${tag}-s6-panel-end`)
@@ -473,7 +476,7 @@ async function missionRound(page, tag, full, m) {
   await confirm.click()
   await toSummary(page)
   const wr = await page.locator('.world-result').innerText()
-  check(wr.includes(title) && wr.includes('달성 · 가능한 배분 중 상위') && (await page.locator('.wr-row').count()) === 6, `${tag} S5 M${n}: 세계 위 결과 글(판정 · 6개 지표)`)
+  check(wr.includes(title) && wr.includes('목표 달성') && /가능한 배분 중 상위 \d+%/.test(wr) && (await page.locator('.wr-row').count()) === 6, `${tag} S5 M${n}: 세계 위 결과 글(판정 · 6개 지표)`)
   if (m === 'm2') check((await page.getByRole('button', { name: '다음 미션' }).count()) === 1, `${tag} S5 M2: [다음 미션]`)
   else check((await page.getByRole('button', { name: '세 개의 공주 보기' }).count()) === 1, `${tag} S5 M3: [세 개의 공주 보기]`)
   await openDetails(page)
@@ -773,7 +776,8 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   }
   await toSummary(page)
   const wr = await page.locator('.world-result').innerText()
-  check(/달성 · 가능한 배분 중 상위 \d+%/.test(wr) && (await page.locator('.wr-row').count()) === 6 && wr.includes('5일이 늘어난 효과도 섞여'), `${tag} S5 세계: 판정 · 6개 지표 · 15일 기준 문장`, wr.slice(0, 120))
+  // 판정 줄 = 「목표 달성/미달」, 순위는 미션 지표 줄 끝(2026-11-04)
+  check((await page.locator('.wr-verdict').innerText()) === '목표 달성' && /가능한 배분 중 상위 \d+%/.test(await page.locator('.wr-goal').innerText()) && (await page.locator('.wr-row').count()) === 6 && wr.includes('5일이 늘어난 효과도 섞여'), `${tag} S5 세계: 판정 · 6개 지표 · 15일 기준 문장`, wr.slice(0, 120))
   // 읽는 순서(설계안 6-20): 판정 → 미션 지표 한 줄(내 값 · 목표) → 얻은 것·잃은 것 → 6개 지표
   const readOrder = await page.evaluate(() => ['.wr-verdict', '.wr-goal', '.wr-change', '.wr-table'].map((q) => document.querySelector(q)?.getBoundingClientRect().top ?? -1))
   const goalLine = await page.locator('.wr-goal').innerText()
