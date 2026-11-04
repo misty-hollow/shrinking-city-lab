@@ -365,7 +365,7 @@ export const copy = {
     worse: '나빠짐',
     deltaOf: '기준선 대비',
     worst: '흰 점선 = 가장 불리한 읍·면',
-    cityCore: '흐린 종이 = 공주 시내(이번 모델 밖)',
+    cityCore: '회색 종이 = 공주 시내(이번 모델 밖)',
     landscape: '논·밭·숲·나무·지붕 색은 풍경 표현이에요. 자료가 아니에요.',
   },
 
@@ -494,7 +494,8 @@ export const copy = {
     finaleTabs: '보기 고르기 · 겹쳐 보기와 미션 배분',
     finaleLead: '세 개의 공주 · 같은 15일, 세 가지 목표',
     finaleBoard: '세 배분 나란히 보기',
-    finaleBoardClose: '세계로 돌아가기',
+    /** 나란히 보기 → 같은 세계의 겹쳐 보기·미션별 보기(처음 들어와도 「돌아가기」가 아니다) */
+    finaleBoardClose: '섬 위에서 보기',
     finaleTableTitle: '6개 지표 · 도로망 15분',
     /** S6 겹쳐 보기(설계안 6-19): 세 배분을 한 땅에. 새 판정이 아니라 「주 1일 이상 = 닿음」과 「기준 안 지소 없음」의 조합 */
     overlapTab: '겹쳐 보기',

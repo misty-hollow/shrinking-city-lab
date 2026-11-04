@@ -287,7 +287,7 @@ export function ReadingKey(p: KeyProps) {
           )}
           <li>
             <svg className="swatch" viewBox="0 0 22 16" aria-hidden="true">
-              <rect x="1" y="2" width="20" height="12" fill="#ECE6DA" opacity="0.55" />
+              <rect x="1" y="2" width="20" height="12" fill="#C4BEB2" opacity="0.72" />
             </svg>
             {copy.legend.cityCore}
           </li>
