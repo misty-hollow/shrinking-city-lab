@@ -284,6 +284,11 @@ const BANNED = ['최적', '최선', '추천', '정답', '가장 좋은 배분', 
 /** S6 세 개의 공주: 세 결과 · 15일 분해 · 금지어 없음 · hover · 크게 보기(키보드) · 돌아오기 */
 async function finaleChecks(page, tag, full, allocs) {
   await page.waitForSelector('#s6-title')
+  // 첫 화면 = 세 배분 나란히 보기(2026-11-04 사용자 결정, 설계안 6-28). 겹쳐 보기·미션별 보기는 [섬 위에서 보기]로 간다
+  await page.waitForSelector('.finale-board')
+  check((await page.locator('.finale-col').count()) === 3 && (await page.getByRole('tab').count()) === 0, `${tag} S6: 첫 화면은 세 배분 나란히 보기(지도 세 장)`)
+  await page.getByRole('button', { name: '섬 위에서 보기' }).click()
+  await page.waitForSelector('.wf-tabs')
   await page.waitForTimeout(600)
   await windowCheck(page, `${tag} S6 세계`)
   // 겹쳐 보기(설계안 6-19)부터: 탭 넷, 갈래 넷의 합 = 161곳 · 전체 주민, 보건지소별 진료일 = 세 배분, 무대 표시 = 갈래, ▲▼ 없음
@@ -386,7 +391,7 @@ async function finaleChecks(page, tag, full, allocs) {
   check(focused === 'finale-open-m2', `${tag} S6: 나란히 보기로 돌아오면 그 열로 포커스`, focused)
   await page.keyboard.press('Escape')
   await page.waitForSelector('.wf-top')
-  check((await page.locator('.finale-board').count()) === 0, `${tag} S6: Esc로 세계로 돌아가기`)
+  check((await page.locator('.finale-board').count()) === 0, `${tag} S6: Esc로 섬 위 보기로`)
   await page.getByRole('button', { name: '세 배분 나란히 보기' }).click()
   await page.locator('.finale-col').nth(2).click()
   await page.waitForSelector('.wf-top')
@@ -935,7 +940,6 @@ async function extras() {
     await sk.locator('.center-card').getByRole('button', { name: '건너뛰기' }).click()
   }
   await sk.waitForSelector('#s6-title')
-  await sk.getByRole('button', { name: '세 배분 나란히 보기' }).click()
   await sk.waitForSelector('.finale-board')
   const chips = await sk.locator('.finale-col .finale-chip').allInnerTexts()
   check(chips.length === 3 && chips.every((c) => c === '참고 배분'), '1280x800 건너뛰기: S6 세 열 모두 참고 배분 칩', chips.join(' | '))

@@ -302,7 +302,10 @@ describe('missions 1 → 2 → 3 → S6', () => {
     s = step(s, { type: 'nextMission' })
     s = playMission(s, A3)
     s = step(s, { type: 'nextMission' })
-    // 겹쳐 보기부터: 증감 ▲▼ 없이
+    // 세 배분 나란히 보기부터(2026-11-04, 설계안 6-28): 증감 ▲▼ 없이. 겹쳐 보기도 ▲▼ 없이
+    expect(s.finaleFocus).toBe(null)
+    expect(s.deltaMode).toBe(false)
+    s = step(s, { type: 'finaleFocus', m: 'overlap' })
     expect(s.finaleFocus).toBe('overlap')
     expect(s.deltaMode).toBe(false)
     s = step(s, { type: 'finaleFocus', m: 'm2' })

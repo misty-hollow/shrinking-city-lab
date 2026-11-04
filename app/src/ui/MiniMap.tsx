@@ -2,7 +2,7 @@
  * 위에서 본 작은 지도(설계안 5-7 S6, 6-13, 6-16). 3D 무대와 같은 기호를 위에서 본 것이다:
  * 바탕 = 무대의 땅 그림과 같은 해질녘 빛, 마을 = 같은 자리의 집 묶음(한 채 ≈ 주민 50명)과 그 발치의 빛
  * (없음 / 작은 빛 / 큰 빛 + 번짐 — 크기와 채움으로 읽혀 색만 쓰지 않는다), 보건지소 = 둥근 명판의 점 다섯(켜진 점 = 진료일),
- * 가장 불리한 읍·면 = 흰 점선, 공주 시내 = 흐린 종이. 서비스권 원·버퍼는 그리지 않는다(6-6).
+ * 가장 불리한 읍·면 = 흰 점선, 공주 시내 = 회색 종이. 서비스권 원·버퍼는 그리지 않는다(6-6).
  */
 
 import { memo, useId } from 'react'
@@ -100,7 +100,7 @@ export const MiniMap = memo(function MiniMap({ geometry, scenario, k, alloc, hil
         )}
         {/* 해질녘 액자 안에서 빛이 보이도록 땅을 한 단계 가라앉힌다 */}
         <path d={sh.outer} fill="#10151B" opacity="0.34" />
-        <path d={sh.city} fill="#ECE6DA" opacity="0.4" />
+        <path d={sh.city} fill="#C4BEB2" opacity="0.5" />
       </g>
       {emdPath.map((d, m) => (
         <path key={m} d={d} fill="none" stroke="#EFE6D4" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3 2.4" vectorEffect="non-scaling-stroke" />

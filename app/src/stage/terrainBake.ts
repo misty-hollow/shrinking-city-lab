@@ -4,7 +4,8 @@
  * - 빛은 한 번 계산해 정점 색에 굽는다: 낮은 해(서남서) 쪽 사면은 따뜻하게, 반대 사면과 능선 그늘은 푸르게.
  *   그늘은 높이 격자를 따라 해 쪽으로 광선을 걸어 부드럽게 구한다(그림자 맵 없음). 골짜기는 조금 어둡게(AO).
  * - 땅 그림: 논·밭(세이지·올리브 색 덩어리)·숲·물·마을 터·길. 풍경 표현이며 토지이용 자료가 아니다.
- *   공주 시내(모델 밖)는 반투명 트레이싱지 한 장으로 덮는다. 어둠은 '진료가 닿지 않음'에만 쓰므로 어둡게 칠하지 않는다.
+ *   공주 시내(모델 밖)는 차분한 회색 종이 한 장으로 덮는다(2026-11-04, 설계안 6-28). 플레이 대상보다 눈에 띄지 않게 밝기를 낮추되,
+ *   어둠은 '진료가 닿지 않음'에만 쓰므로 어둡게 칠하지는 않는다.
  * - 섬 가장자리의 계단 모양은 경계선 위로 끌어 붙여 부드럽게 한다.
  */
 
@@ -541,13 +542,13 @@ function buildLandTexture(hm: Heightmap, geo: Geometry, world: World, maxAnisotr
     ctx.stroke()
   }
   ctx.setLineDash([])
-  // 6) 공주 시내: 반투명 트레이싱지
+  // 6) 공주 시내: 차분한 회색 종이(지형 결을 덮어 평평하게, 테두리는 흐리게)
   ctx.save()
   ctx.beginPath()
   for (const p of geo.city_core.polygons) poly(p)
-  ctx.fillStyle = 'rgba(236,230,218,0.52)'
+  ctx.fillStyle = 'rgba(196,190,178,0.72)'
   ctx.fill('evenodd')
-  ctx.strokeStyle = 'rgba(244,239,230,0.85)'
+  ctx.strokeStyle = 'rgba(244,239,230,0.35)'
   ctx.lineWidth = 2.2
   ctx.stroke()
   ctx.restore()
