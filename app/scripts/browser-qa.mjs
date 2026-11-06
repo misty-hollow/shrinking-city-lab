@@ -833,7 +833,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   check(backS5 === 'details', `${tag} S5: 결과 자세히를 닫으면 포커스가 [결과 자세히] 단추로`, String(backS5))
   await page.getByRole('button', { name: '다음 미션' }).click()
   const m2At = await missionRound(page, tag, full, 'm2')
-  await page.getByRole('button', { name: '배분 다시 고치기' }).click()
+  await page.getByRole('button', { name: '배분 수정하기' }).click()
   await page.waitForSelector('.mission-card')
   const from = m2At.findIndex((v) => v >= 1)
   const to = m2At.findIndex((v, j) => v < 5 && j !== from)
