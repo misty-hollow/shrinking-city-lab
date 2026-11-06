@@ -1,6 +1,6 @@
 # Production 운영 (geoleobom.kr)
 
-기준일: 2026-10-14(최초 2026-09-29). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
+기준일: 2026-11-06(최초 2026-09-29). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
 공개 전 준비 기록은 `RELEASE_READINESS.md`에 있습니다(그 6절의 VPS 배포는 전환 기간에만 썼습니다).
 
 ## 1. 구조
@@ -62,19 +62,20 @@ git revert --no-edit HEAD && git push origin HEAD:gh-pages
 
 | 항목 | 값 |
 |---|---|
-| 앱 커밋(main) | `1b1d9248cc0cd5fa411559939baf749349f46969` (main CI success). 앱은 `eda952b`(PR #50)와 같고 그 뒤는 문서만 바뀌었다. `ff80bb5` 이후의 디자인·UX 점검 1차(PR #49, 설계안 6-27)와 S6 첫 화면 = 세 배분 나란히 보기 · 공주 시내 회색(PR #50, 6-28). 테스트 사이트(`scl-playtest` `9811857`)와 같은 앱. 사용자 승인(2026-11-04) |
-| `gh-pages` 커밋 | `ed04aed` (2026-11-04, `f7e5fec` 위 fast-forward) |
-| 직전 릴리스(되돌리기 대상) | 앱 `ff80bb5` = `gh-pages` `f7e5fec`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
-| 주 자산 | `assets/index-7tSEh0zE.js` |
-| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일). `ff80bb5` 대비 `app/public/data`·`pipeline` 변경 없음 |
-| 공개 | 2026-11-04 Pages build `built`. 도메인·HTTPS 설정 변경 없음 |
-| 공개 뒤 확인 | `f7e5fec` 대비 바뀐 파일은 `index.html`·`404.html`·주 JS·CSS뿐(자료·라이선스·`CNAME`·`.nojekyll` 바이트 동일). 커밋된 파일 = 빌드(`dist` 195개 바이트 대조), `404.html` = `index.html`. `build_release.sh` 안의 테스트 통과. 공개 전 로컬에서 같은 `dist`를 뿌리 경로로 띄워 브라우저 QA 714 PASS / 0 FAIL. 공개 뒤 smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404), 주 자산 `index-7tSEh0zE.js`. 실제 사이트 브라우저 QA(`QA_BASE_URL=https://geoleobom.kr/?kiosk=0`) **714 PASS / 0 FAIL**(S6 첫 화면 = 나란히 보기, 골든 값·판정 경계 포함, 개발 서버 전용 검사는 빠짐). S6 첫 화면 스크린샷 직접 확인 |
+| 앱 커밋(main) | `d2f349f7255a1f51060713993d1e7b97fe650014` (main CI success). PR #55 화면 문구 다듬기(설계안 5-12 끝 문단). `1b1d924` 대비 앱 변경은 `app/src/content/copy.ts`와 그 테스트뿐. 사용자 승인(2026-11-06) |
+| `gh-pages` 커밋 | `3605b42` (2026-11-06, `ed04aed` 위 fast-forward) |
+| 직전 릴리스(되돌리기 대상) | 앱 `1b1d924` = `gh-pages` `ed04aed`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
+| 주 자산 | `assets/index-Cz-Yg3e1.js` |
+| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일). `1b1d924` 대비 `app/public/data`·`pipeline` 변경 없음 |
+| 공개 | 2026-11-06 Pages build `built`. 도메인·HTTPS 설정 변경 없음 |
+| 공개 뒤 확인 | `ed04aed` 대비 바뀐 파일은 `index.html`·`404.html`·주 JS뿐(CSS·자료·라이선스·`CNAME`·`.nojekyll` 바이트 동일). `404.html` = `index.html`. `build_release.sh` 안의 테스트 통과. 공개 전 로컬에서 같은 `dist`를 뿌리 경로로 띄워 브라우저 QA 714 PASS / 0 FAIL. 공개 뒤 smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404), 주 자산 `index-Cz-Yg3e1.js`. 실제 사이트 브라우저 QA(`QA_BASE_URL=https://geoleobom.kr/?kiosk=0`, Edge 156) **714 PASS / 0 FAIL**(개발 서버 전용 검사는 빠짐). S5 결과 화면 스크린샷에서 새 문구(`배분 수정하기` 등) 직접 확인 |
 
 이전 릴리스 기록:
 
 | 날짜 | 앱 커밋 | `gh-pages` | 메모 |
 |---|---|---|---|
-| 2026-11-04 | `1b1d924` | `ed04aed` | 위 표 |
+| 2026-11-06 | `d2f349f` | `3605b42` | 위 표 |
+| 2026-11-04 | `1b1d924` | `ed04aed` | 디자인·UX 점검 1차(PR #49) · S6 나란히 보기 · 시내 회색(PR #50). 주 자산 `index-7tSEh0zE.js`, smoke 실패 0, 실제 사이트 QA 714/0 |
 | 2026-11-04 | `ff80bb5` | `f7e5fec` | P1~P3 · 조작 · S5·S6 · 논밭 · 「닿는 날」. 주 자산 `index-CdQcahOu.js`, smoke 실패 0, 실제 사이트 QA 711/0 |
 | 2026-10-14 | `41184f9` | `00e4b5f` | PR #25(땅 그림 밉맵을 2D 캔버스로, S1·S2 본문 17/26). 주 자산 `index-BfRjPd1l.js`, smoke 실패 0, 실제 사이트 QA 654/0 |
 | 2026-10-13 | `c9b2cda` | `b15defb` | PR #18~#21(기준 변경 소식이 말풍선·결과 판을 비켜 섬). 주 자산 `index-BcdBPrh8.js`, smoke 실패 0, 실제 사이트 QA 654/0 |
