@@ -81,13 +81,13 @@ describe('debrief for missions 2 and 3', () => {
   it('mission 2 compares with mission 1 at equal 15 days and points to mission 3', () => {
     debrief('m2', played.m1)
     const cmp = screen.getByRole('region', { name: '미션 1 배분과 비교 · 둘 다 15일' })
-    expect(cmp.textContent).toMatch(/미션 1 배분보다 좋아진 마을 \d+곳, 나빠진 마을 \d+곳이에요/)
+    expect(cmp.textContent).toMatch(/미션 1 배분보다 나아진 마을은 \d+곳, 불리해진 마을은 \d+곳이에요/)
     // 평균을 조금 포기하고 가장 불리한 읍·면을 지켰다: 평균 ▼, 가장 불리한 읍·면 ▲
     const rows = within(cmp).getAllByRole('row')
     const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name))!.textContent ?? ''
     expect(row('평균 진료일')).toContain('나빠짐')
     expect(row('가장 불리한 읍·면')).toContain('좋아짐')
-    expect(screen.getByText(/같은 15일로 "주 3일 이상 닿는 주민"을 높인 배분/)).toBeTruthy()
+    expect(screen.getByText(/같은 15일로 "주 3일 이상 닿는 주민"을 높이면 배분이/)).toBeTruthy()
     expect(screen.getByText('참고 배분 · 두꺼운 서비스형')).toBeTruthy()
     // 한계 문장 5번(시내·민간 시설 없음)
     expect(document.body.textContent).toContain('민간 의원, 다른 시군의 시설은 모델에 없어요')
@@ -193,13 +193,16 @@ describe('S6 세 개의 공주', () => {
     const unreachable = scenario.matrix.tenths.map((row, i) => (row.every((v) => v > 150) ? i : -1)).filter((i) => i >= 0)
     expect(unreachable.length).toBeGreaterThan(0)
     const pop = unreachable.reduce((s, i) => s + scenario.villages[i].pop, 0)
-    expect(lines[2]).toBe(`그중 ${unreachable.length}곳(${people(pop)})은 도로망 15분 안에 보건지소가 하나도 없어서, 어느 지소에 진료일을 두어도 닿지 않아요.`)
+    expect(lines[2]).toBe(`그중 ${unreachable.length}곳(${people(pop)})은 도로망 15분 안에 보건지소가 하나도 없어서 어느 지소에 진료일을 두어도 닿지 않아요.`)
     // 세 배분의 차이는 배분 때문에 닿지 않는 마을에서만 센다
     const { union, all } = zeroOverlap(results.map((r) => r.k15))
     const allocUnion = union.filter((i) => !unreachable.includes(i))
     const allocAll = all.filter((i) => !unreachable.includes(i))
     expect(allocUnion.length).toBeGreaterThan(allocAll.length)
-    expect(lines[3]).toContain(`세 배분 중 한 번이라도 ${allocUnion.length}곳이고, 그중 세 배분 모두에서 닿지 않는 곳은 ${allocAll.length}곳`)
+    expect(lines[3]).toBe(copy.finale.overlapLine(allocUnion.length, allocAll.length))
+    expect(lines[3]).toContain(`세 배분 중 하나에서라도 배분 때문에 닿지 않는 마을은 ${allocUnion.length}곳이에요.`)
+    if (allocAll.length > 0) expect(lines[3]).toContain(`그중 ${allocAll.length}곳은 세 배분 모두에서 닿지 않고`)
+    else expect(lines[3]).toContain('세 배분 모두에서 닿지 않는 곳은 없어서')
     // 평균 폭이 0.5일을 넘으면 "비슷하지만"이라고 하지 않는다.
     const means = results.map((r) => r.k15.meanDays)
     expect(lines[0].includes('비슷하지만')).toBe(Math.max(...means) - Math.min(...means) <= 0.5)
@@ -249,7 +252,7 @@ describe('S6 세 개의 공주', () => {
     expect(chips[0]).toBe('참고 배분')
     expect(chips[1]).toMatch(/^(달성|미달) · 상위 \d+%$/)
     expect(chips[2]).toBe('참고 배분')
-    expect(document.body.textContent).toContain('건너뛴 미션은 그 지표만 보면 가장 높은 배분 하나(참고 배분)로 채웠어요')
+    expect(document.body.textContent).toContain('건너뛴 미션 자리에는 그 미션 지표만 놓고 볼 때 가장 높은 배분 하나(참고 배분)를 넣었어요')
   })
 
   it('opens a column with the keyboard', () => {
@@ -423,7 +426,7 @@ describe('도입부·튜토리얼 설명은 데이터의 규칙과 맞는다(S1�
     const text = document.body.textContent ?? ''
     expect(scenario.rules.current_total_days).toBe(10)
     expect(text).toContain('읍·면 보건지소 10곳의 의과 진료일을 모두 더하면 지금 주 10일')
-    expect(text).toContain('의료진 수·진료 과목·시내 병원은 담지 않은 게임 단위')
+    expect(text).toContain('진료일은 게임에서 쓰는 단위라 의료진 수·진료 과목·시내 병원은 담지 않아요')
     expect(text).not.toContain('공주의 진료자원')
     expect(document.querySelector('.badge-REAL_DATA')).toBeTruthy()
     expect(document.querySelector('.badge-SIMULATION_ASSUMPTION')).toBeTruthy()
@@ -432,7 +435,7 @@ describe('도입부·튜토리얼 설명은 데이터의 규칙과 맞는다(S1�
   it('S2-1 states the calculation the game uses: clinic days within 15 minutes, capped at 5', () => {
     tutorial(1)
     const text = document.body.textContent ?? ''
-    expect(text).toContain('15분 안에 있는 보건지소들의 진료일을 더하면')
+    expect(text).toContain('15분 안에 있는 보건지소의 진료일을 모두 더하면')
     expect(text).toContain('최대 주 5일')
     expect(scenario.rules.resident_cap_days).toBe(5)
     expect(scenario.rules.mission_threshold_min).toBe(15)
@@ -458,7 +461,7 @@ describe('도입부·튜토리얼 설명은 데이터의 규칙과 맞는다(S1�
   })
 
   it('S2-3 result sentence uses 닿는 진료일 instead of the unexplained word 두께', () => {
-    expect(copy.tutorial.step3Result('신풍', 0, 29)).toBe('신풍에 하루를 놓았어요. 처음으로 닿은 마을은 없고, 의당 쪽 29개 마을은 닿는 진료일이 줄었어요.')
+    expect(copy.tutorial.step3Result('신풍', 0, 29)).toBe('신풍에 하루를 놓았어요. 새로 닿은 마을은 없고 의당 쪽 마을 29곳은 닿는 진료일이 줄었어요.')
     expect(copy.tutorial.step3Result('신풍', 3, 29)).not.toContain('두께')
   })
 })
