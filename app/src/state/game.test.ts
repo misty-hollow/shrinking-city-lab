@@ -344,7 +344,7 @@ describe('튜토리얼 2단계는 마지막으로 눌러 본 기준을 따른다
 
   it('the sentence names both thresholds in order (15 first, then the one tried)', () => {
     expect(copy.tutorial.step2Changed(15, '24,846명', 20, '34,146명')).toBe(
-      '같은 배분인데 주 1일 이상 닿는 주민이 15분 기준 24,846명에서 20분 기준 34,146명으로 바뀌었어요. 기준도 선택이에요.',
+      '배분은 그대로인데 주 1일 이상 닿는 주민이 15분 기준 24,846명에서 20분 기준 34,146명으로 바뀌었어요. 몇 분을 기준으로 삼을지도 하나의 선택이에요.',
     )
   })
 })

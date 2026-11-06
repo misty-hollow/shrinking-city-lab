@@ -355,7 +355,7 @@ async function finaleChecks(page, tag, full, allocs) {
   // 막대는 서→동(겹쳐 보기 표·말풍선과 같은 순서, 2026-11-04)
   const WE = [0, 9, 8, 2, 7, 1, 6, 5, 3, 4]
   check(same(nums, allocs.map((a) => WE.map((j) => a[j]))), `${tag} S6: 각 열 배분 = 그 미션 확정 배분(서→동)`, JSON.stringify(nums))
-  check(board.includes('세 배분 모두 같은 주 15일을 나눴지만') && board.includes('실제 10일 + 가정 5일 = 15일 기준'), `${tag} S6: 같은 15일 · 분해 문장(무대)`)
+  check(board.includes('세 배분 모두 같은 주 15일을 나눴어요') && board.includes('실제 10일 + 가정 5일 = 15일 기준'), `${tag} S6: 같은 15일 · 분해 문장(무대)`)
   check(panel.includes('주 15일 = 실제 10일 + 가정 5일') && panel.includes('지금 실제로 운영하는 주 10일과는 다른 가상 배분'), `${tag} S6: 15일 분해 · 현재 실제와 구분(패널)`)
   check((await page.locator('.panel .badge-REAL_DATA, .panel .badge-DERIVED, .panel .badge-SIMULATION_ASSUMPTION').count()) >= 3, `${tag} S6: 실제 자료·계산값·게임 가정 배지`)
   check(/진료가 닿지 않는 마을은 \d+ · \d+ · \d+곳이에요/.test(panel) && panel.includes('같은 15일이라도 어느 지표를 끝까지 높이느냐에 따라 배분이 달라져요'), `${tag} S6: 데이터 문장 · 마지막 문장`)
@@ -476,7 +476,7 @@ async function missionRound(page, tag, full, m) {
     `${tag} S4 M${n}: 앞 미션 비교(기준선·증감)`,
   )
   if (full) await shot(page, `${tag}-s4-m${n}-play`)
-  await page.getByRole('button', { name: '현재 실제와 비교로 돌아가기' }).click()
+  await page.getByRole('button', { name: '현재 실제(10일)와 비교로 돌아가기' }).click()
   await noHorizontalOverflow(page, `${tag} S4 M${n}`)
   await confirm.click()
   await toSummary(page)
@@ -488,7 +488,7 @@ async function missionRound(page, tag, full, m) {
   const deb = await page.locator('.panel').innerText()
   check(deb.includes(title) && deb.includes('달성 · 가능한 배분 중 상위'), `${tag} S5 M${n}: 판정`)
   check(deb.includes('5일이 늘어난 효과도 섞여') && deb.includes('실제 10일') && deb.includes('가정 5일'), `${tag} S5 M${n}: 15일 기준 문장·배지`)
-  check(deb.includes(`미션 ${n - 1} 배분과 비교 · 둘 다 15일`) && /좋아진 마을 \d+곳, 나빠진 마을 \d+곳/.test(deb), `${tag} S5 M${n}: 앞 미션과 15일 대 15일 비교`)
+  check(deb.includes(`미션 ${n - 1} 배분과 비교 · 둘 다 15일`) && /나아진 마을은 \d+곳, 불리해진 마을은 \d+곳/.test(deb), `${tag} S5 M${n}: 앞 미션과 15일 대 15일 비교`)
   check(deb.includes('다른 미션 결과 (15일)'), `${tag} S5 M${n}: 배분 지형도에 다른 미션 ●`)
   if (m === 'm2') check(deb.includes('참고 배분 · 두꺼운 서비스형') && deb.includes('민간 의원, 다른 시군의 시설은 모델에 없어요'), `${tag} S5 M2: 다른 목표(M3 참고)·한계 5번`)
   else check(!deb.includes('다른 목표였다면') && deb.includes('진료일은 게임용 단위예요'), `${tag} S5 M3: 다른 목표 없음·한계 3번`)
@@ -559,7 +559,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
 
   // S2 튜토리얼
   await page.waitForSelector('.marker.is-live')
-  check((await page.locator('.corner-card').innerText()).includes('불이 꺼진'), `${tag} S2-1: 범례 코치(집·창의 불)`)
+  check((await page.locator('.corner-card').innerText()).includes('불 꺼진 마을'), `${tag} S2-1: 범례 코치(집·창의 불)`)
   await settle(page)
   await windowCheck(page, `${tag} S2-1 현재 실제 15분`)
   await page.locator('.corner-card').getByRole('button', { name: '다음' }).click()
@@ -583,7 +583,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   await page.getByRole('button', { name: '의당 진료일 하루 빼기' }).click()
   await page.getByRole('button', { name: '신풍 진료일 하루 더하기' }).click()
   const res = await page.locator('.corner-card').innerText()
-  check(/신풍에 하루를 놓/.test(res) && /의당 쪽 \d+개 마을/.test(res), `${tag} S2-3: 결과 문장(실제 계산)`, res)
+  check(/신풍에 하루를 놓/.test(res) && /의당 쪽 마을 \d+곳/.test(res), `${tag} S2-3: 결과 문장(실제 계산)`, res)
   if (full) await shot(page, `${tag}-s2-moved`)
   await page.getByRole('button', { name: '미션 시작' }).click()
 
@@ -833,7 +833,7 @@ async function run(width, height, full, reducedMotion = 'no-preference') {
   check(backS5 === 'details', `${tag} S5: 결과 자세히를 닫으면 포커스가 [결과 자세히] 단추로`, String(backS5))
   await page.getByRole('button', { name: '다음 미션' }).click()
   const m2At = await missionRound(page, tag, full, 'm2')
-  await page.getByRole('button', { name: '다시 배분' }).click()
+  await page.getByRole('button', { name: '배분 다시 고치기' }).click()
   await page.waitForSelector('.mission-card')
   const from = m2At.findIndex((v) => v >= 1)
   const to = m2At.findIndex((v, j) => v < 5 && j !== from)
@@ -943,7 +943,7 @@ async function extras() {
   await sk.waitForSelector('.finale-board')
   const chips = await sk.locator('.finale-col .finale-chip').allInnerTexts()
   check(chips.length === 3 && chips.every((c) => c === '참고 배분'), '1280x800 건너뛰기: S6 세 열 모두 참고 배분 칩', chips.join(' | '))
-  check((await sk.locator('.panel').innerText()).includes('건너뛴 미션은 그 지표만 보면 가장 높은 배분 하나'), '1280x800 건너뛰기: 참고 배분 안내')
+  check((await sk.locator('.panel').innerText()).includes('건너뛴 미션 자리에는 그 미션 지표만 놓고 볼 때 가장 높은 배분 하나'), '1280x800 건너뛰기: 참고 배분 안내')
   check(same((await gameState(sk)).results, {}), '1280x800 건너뛰기: 보관된 미션 결과 없음')
   check(skErrors.length === 0, '1280x800 건너뛰기: 페이지 오류 없음', skErrors.join(' | '))
   await browser.close()
