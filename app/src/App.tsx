@@ -112,7 +112,7 @@ export function App() {
   if (width < 768) {
     return (
       <>
-        <MobileNotice key={lang} lang={lang} onLang={changeLang} onData={() => setDataOpenMobile(true)} />
+        <MobileNotice lang={lang} onLang={changeLang} onData={() => setDataOpenMobile(true)} />
         {dataOpenMobile && shown && <DataLimits manifest={shown.manifest} onClose={() => setDataOpenMobile(false)} />}
       </>
     )
@@ -196,6 +196,11 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
   )
   const reduce = useMemo(() => reducer(cfg), [cfg])
   const [s, dispatch] = useReducer(reduce, cfg, initialState)
+  // 언어를 바꿔 새로 그린 첫 시작 화면에서만 언어 단추로 포커스(처음으로·전시 복귀로 다시 열린 시작 화면은 제목). 자식(StartCard)의 마운트 효과가 먼저 읽는다
+  const focusLangOnce = useRef(focusLang)
+  useEffect(() => {
+    focusLangOnce.current = false
+  }, [])
   const reducedMotion = useReducedMotion()
   const stage = useRef<StageHandle>(null)
   const embers = useRef<EmberHandle>(null)
@@ -897,7 +902,7 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
       {/* 시작 */}
       {s.screen === 'start' && (
         <>
-          <StartCard onStart={() => dispatch({ type: 'start' })} onData={openData} focusLang={focusLang ? lang : null} />
+          <StartCard onStart={() => dispatch({ type: 'start' })} onData={openData} focusLang={focusLangOnce.current ? lang : null} />
           <div className="start-corner">
             <LangSwitch value={lang} onChange={onLang} />
             <SoundToggle />

@@ -4,13 +4,18 @@
  * 지금 화면 언어를 읽지 못해도 자기 언어를 찾을 수 있다. 지구 모양 표시는 "언어"라는 뜻을 글 없이 알린다.
  */
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
 import { LANG_NAMES, LANGS, type Lang } from '../content/i18n'
 
 export function LangSwitch({ value, onChange }: { value: Lang; onChange(l: Lang): void }) {
   const group = useRef<HTMLDivElement>(null)
+  // 라디오 묶음 관례: 묶음 안에 포커스가 있으면 고른 언어 단추로 포커스가 따라간다(방향키로 고를 때)
+  useEffect(() => {
+    const g = group.current
+    if (g && g.contains(document.activeElement)) g.querySelector<HTMLElement>(`[data-lang="${value}"]`)?.focus()
+  }, [value])
   const pick = (l: Lang) => {
     if (l !== value) onChange(l)
   }

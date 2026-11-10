@@ -20,6 +20,12 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
   const [status, setStatus] = useState('')
   const [canShareFiles, setCanShareFiles] = useState(false)
   const blob = useRef<Blob | null>(null)
+  const sayTimer = useRef(0)
+  const say = (text: string) => {
+    setStatus('')
+    window.clearTimeout(sayTimer.current)
+    sayTimer.current = window.setTimeout(() => setStatus(text), 60)
+  }
   const nameRef = useRef<HTMLInputElement>(null)
   const opener = useRef<Element | null>(null)
   const onCloseRef = useRef(onClose)
@@ -33,7 +39,7 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
     opener.current = document.activeElement
     nameRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.isComposing) {
         e.preventDefault()
         onCloseRef.current()
       }
@@ -41,6 +47,7 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
     window.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('keydown', onKey)
+      window.clearTimeout(sayTimer.current)
       if (opener.current instanceof HTMLElement) opener.current.focus()
     }
   }, [])
@@ -52,22 +59,29 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
     setBusy(true)
     const id = window.setTimeout(
       async () => {
-        const canvas = await renderResultImage({ ...inputRef.current, name, date })
-        if (!alive || !canvas) {
-          if (alive) setBusy(false)
-          return
-        }
-        const b = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'))
-        if (!alive) return
-        blob.current = b
-        made = b ? URL.createObjectURL(b) : null
-        setUrl(made)
-        setBusy(false)
-        if (b && typeof navigator.canShare === 'function') {
-          try {
-            setCanShareFiles(navigator.canShare({ files: [new File([b], imageFileName(date, name), { type: 'image/png' })] }))
-          } catch {
-            setCanShareFiles(false)
+        try {
+          const canvas = await renderResultImage({ ...inputRef.current, name, date })
+          if (!alive) return
+          if (!canvas) throw new Error('no 2d canvas')
+          const b = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'))
+          if (!alive) return
+          if (!b) throw new Error('no png')
+          blob.current = b
+          made = URL.createObjectURL(b)
+          setUrl(made)
+          setBusy(false)
+          if (typeof navigator.canShare === 'function') {
+            try {
+              setCanShareFiles(navigator.canShare({ files: [new File([b], imageFileName(date, name), { type: 'image/png' })] }))
+            } catch {
+              setCanShareFiles(false)
+            }
+          }
+        } catch {
+          // 그리기·PNG 만들기가 실패하면 「만들고 있어요」에 멈추지 않고 안내한다
+          if (alive) {
+            setBusy(false)
+            say(copy.share.failed)
           }
         }
       },
@@ -88,7 +102,7 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
     document.body.appendChild(a)
     a.click()
     a.remove()
-    setStatus(copy.share.saved)
+    say(copy.share.saved)
   }
 
   const copyImage = async () => {
@@ -96,9 +110,9 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
     try {
       if (!b || typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) throw new Error('no clipboard')
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })])
-      setStatus(copy.share.copied)
+      say(copy.share.copied)
     } catch {
-      setStatus(copy.share.failed)
+      say(copy.share.failed)
     }
   }
 
@@ -109,7 +123,7 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
       await navigator.share({ files: [new File([b], imageFileName(date, name), { type: 'image/png' })], title: copy.scenario })
     } catch (e) {
       // 사용자가 공유 창을 닫은 것은 실패가 아니다
-      if ((e as DOMException)?.name !== 'AbortError') setStatus(copy.share.failed)
+      if ((e as DOMException)?.name !== 'AbortError') say(copy.share.failed)
     }
   }
 
