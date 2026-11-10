@@ -87,8 +87,8 @@ export function DebriefPanel(p: Props) {
           {copy.world.debriefKpiTitle}
         </p>
         <div className="badges">
-          <Badge cls="REAL_DATA">실제 10일</Badge>
-          <Badge cls="SIMULATION_ASSUMPTION">가정 5일</Badge>
+          <Badge cls="REAL_DATA">{copy.badges.real10}</Badge>
+          <Badge cls="SIMULATION_ASSUMPTION">{copy.badges.assumed5}</Badge>
         </div>
         <p className="small" style={{ margin: 0 }}>
           {copy.debrief.mixedEffect}
@@ -177,7 +177,7 @@ export function DebriefPanel(p: Props) {
                 <th scope="row">{NAME[d.key]}</th>
                 <td>{fmt(d.key, d.base, p.base, p.scenario)}</td>
                 <td>{fmt(d.key, d.now, p.mine, p.scenario)}</td>
-                <td>{d.delta === null ? '' : <Delta change={d.change} text={diffText(d)} />}</td>
+                <td>{d.delta === null ? '' : <Delta change={d.change} text={diffText(d, true)} />}</td>
               </tr>
             ))}
           </tbody>
@@ -280,7 +280,7 @@ function CompareBlock(p: Props & { prev: { n: number; k15: Kpis } }) {
               <th scope="row">{NAME[d.key]}</th>
               <td>{fmt(d.key, d.base, prev, p.scenario)}</td>
               <td>{fmt(d.key, d.now, p.mine, p.scenario)}</td>
-              <td>{d.delta === null ? '' : <Delta change={d.change} text={diffText(d)} />}</td>
+              <td>{d.delta === null ? '' : <Delta change={d.change} text={diffText(d, true)} />}</td>
             </tr>
           ))}
         </tbody>

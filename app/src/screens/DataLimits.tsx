@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { LIMITS, copy } from '../content/copy'
+import { mtext } from '../content/manifestText'
 import type { Manifest } from '../data/types'
 import { Badge } from '../ui/common'
 
@@ -30,14 +31,16 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
   // 바깥(어두운 곳)을 눌러 닫기: 누르기와 떼기가 모두 바깥일 때만(종이 안에서 글자를 끌어 고르다 바깥에서 떼면 닫지 않는다)
   const downOnBackdrop = useRef(false)
   const s = manifest.sources
+  const it = copy.dataPage.items
+  const rp = copy.dataPage.repro
   const rows: { item: string; source: string; url?: string; date: string; cls: 'REAL_DATA' | 'DERIVED' }[] = [
-    { item: '법정리 인구, 읍·면 65세 이상', source: `${s.population.title} · ${s.population.license}`, url: s.population.page_url, date: s.population.reference_date, cls: 'REAL_DATA' },
-    { item: '보건지소 의과 순회진료 일정', source: `${s.schedule.publisher} · ${s.schedule.title}`, url: s.schedule.page_url, date: s.schedule.reference_date, cls: 'REAL_DATA' },
-    { item: '보건지소 10곳 위치', source: s.facilities.coordinates, date: s.facilities.reference_month, cls: 'REAL_DATA' },
-    { item: '도로망', source: `${s.road_network.publisher} · ${s.road_network.license}`, date: manifest.display_dates.road_network, cls: 'REAL_DATA' },
-    { item: '도로망 접근시간 161×10', source: `${s.routing.engine} ${s.routing.profile} · ${s.routing.conditions}`, date: manifest.display_dates.road_network, cls: 'DERIVED' },
-    { item: '읍·면 경계', source: s.boundaries.publisher, date: s.boundaries.reference_date, cls: 'REAL_DATA' },
-    { item: '지형', source: s.terrain.publisher, date: '—', cls: 'REAL_DATA' },
+    { item: it.population, source: `${mtext(s.population.title)} · ${mtext(s.population.license)}`, url: s.population.page_url, date: s.population.reference_date, cls: 'REAL_DATA' },
+    { item: it.schedule, source: `${mtext(s.schedule.publisher)} · ${mtext(s.schedule.title)}`, url: s.schedule.page_url, date: s.schedule.reference_date, cls: 'REAL_DATA' },
+    { item: it.facilities, source: mtext(s.facilities.coordinates), date: s.facilities.reference_month, cls: 'REAL_DATA' },
+    { item: it.roads, source: `${mtext(s.road_network.publisher)} · ${mtext(s.road_network.license)}`, date: manifest.display_dates.road_network, cls: 'REAL_DATA' },
+    { item: it.matrix, source: `${s.routing.engine} ${s.routing.profile} · ${mtext(s.routing.conditions)}`, date: manifest.display_dates.road_network, cls: 'DERIVED' },
+    { item: it.boundaries, source: mtext(s.boundaries.publisher), date: s.boundaries.reference_date, cls: 'REAL_DATA' },
+    { item: it.terrain, source: mtext(s.terrain.publisher), date: '—', cls: 'REAL_DATA' },
   ]
   const assumptions = manifest.classification.filter((c) => c.class === 'SIMULATION_ASSUMPTION')
   return (
@@ -98,7 +101,7 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
           </tbody>
         </table>
         <p className="small">
-          {s.schedule.conversion_rule}. {manifest.semantics.current_total}
+          {mtext(s.schedule.conversion_rule)}. {mtext(manifest.semantics.current_total)}
         </p>
         <p className="small notice">{copy.dataPage.visitNotice(s.schedule.reference_date)}</p>
         <p className="small">{copy.dataPage.populationCheck(s.population.computed_from.reference_date)}</p>
@@ -121,7 +124,7 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
         <ul>
           {assumptions.map((a) => (
             <li key={a.item}>
-              <Badge cls="SIMULATION_ASSUMPTION" /> {a.item}
+              <Badge cls="SIMULATION_ASSUMPTION" /> {mtext(a.item)}
             </li>
           ))}
         </ul>
@@ -137,29 +140,29 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
         <table>
           <tbody>
             <tr>
-              <th>판본</th>
+              <th>{rp.version}</th>
               <td className="mono">
                 {manifest.data_version} ({manifest.data_version_date})
               </td>
             </tr>
             <tr>
-              <th>경로 엔진</th>
+              <th>{rp.engine}</th>
               <td className="mono">
-                {s.routing.image} · {s.routing.profile_detail} · {s.routing.algorithm}
+                {s.routing.image} · {mtext(s.routing.profile_detail)} · {s.routing.algorithm}
               </td>
             </tr>
             <tr>
-              <th>이미지 digest</th>
+              <th>{rp.digest}</th>
               <td className="mono">{s.routing.digest}</td>
             </tr>
             <tr>
-              <th>OSM</th>
+              <th>{rp.osm}</th>
               <td className="mono">
-                최신 객체 {s.road_network.osm_latest_object_timestamp} · 추출 범위 {s.road_network.extract_bbox.join(', ')}
+                {rp.osmLine(s.road_network.osm_latest_object_timestamp, s.road_network.extract_bbox.join(', '))}
               </td>
             </tr>
             <tr>
-              <th>생성 코드</th>
+              <th>{rp.code}</th>
               <td className="mono">
                 {manifest.reproducibility.pipeline_version} · {manifest.reproducibility.code_sha256}
               </td>
@@ -169,14 +172,12 @@ export function DataLimits({ manifest, onClose }: { manifest: Manifest; onClose(
 
         <h3>{copy.dataPage.attributionTitle}</h3>
         <ul className="small">
-          <li>{s.facilities.attribution}</li>
-          <li>{s.road_network.license} — OpenStreetMap</li>
-          <li>{s.boundaries.license}</li>
-          <li>{s.terrain.license}</li>
-          <li>{s.population.attribution}</li>
-          <li>
-            {s.schedule.publisher} 「진료안내」 순회근무 현황({s.schedule.reference_date} 기준) — {s.schedule.usage_status}
-          </li>
+          <li>{mtext(s.facilities.attribution)}</li>
+          <li>{mtext(s.road_network.license)} — OpenStreetMap</li>
+          <li>{mtext(s.boundaries.license)}</li>
+          <li>{mtext(s.terrain.license)}</li>
+          <li>{mtext(s.population.attribution)}</li>
+          <li>{copy.dataPage.scheduleAttribution(mtext(s.schedule.publisher), s.schedule.reference_date, mtext(s.schedule.usage_status))}</li>
         </ul>
 
         <h3>{copy.dataPage.creditsTitle}</h3>

@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { copy } from '../content/copy'
 import type { MissionData, Scenario } from '../data/types'
 import { type KpiDelta, type MissionStatus, kpiDeltas, unreachableVillages } from '../engine/compare'
-import { allocDays, days1, minutes, missionDays, nearDays, pct, people, signed, weekDays } from '../engine/format'
+import { allocDays, days1, dec, minUnit, minutes, missionDays, nearDays, pct, people, signed, weekDays } from '../engine/format'
 import { type Kpis, type Model, type Threshold, villagesReachedBy } from '../engine/kpi'
 import type { Emphasis, StageEvent } from '../stage/StageController'
 import type { MissionId } from '../state/results'
@@ -180,7 +180,7 @@ export function KpiLedger({ k, base, T, scenario, onEmphasis, goal, event = null
   const deltas = settledBase ? kpiDeltas(settledK, settledBase) : null
   const d = (key: KpiDelta['key']) => {
     const v = deltas?.find((x) => x.key === key)
-    return v && v.delta !== null ? <Delta change={v.change} text={diffText(v)} /> : null
+    return v && v.delta !== null ? <Delta change={v.change} text={diffText(v, true)} /> : null
   }
   const e = copy.kpi.explain
   const worstName = scenario.emds[settledK.worstEmd].name
@@ -440,7 +440,9 @@ export function MissionCard(p: MissionCardProps) {
         </span>
         {c.name}
       </h2>
-      <div className="kpi-name">{c.kpiName} · 15분</div>
+      <div className="kpi-name">
+        {c.kpiName} · {minUnit('15')}
+      </div>
       <div className="mission-values">
         {/* key = 값: 바뀔 때마다 짧게 튄다. 판정값이라 보간하지 않고 정확한 값을 보인다(빛이 다 닿은 뒤). */}
         <span key={value} className="value num tick">
@@ -596,7 +598,7 @@ export function RegionCard(p: RegionCardProps) {
       </div>
       <div className="num">{copy.region.pop(people(e.pop))}</div>
       <div>
-        {copy.region.pop65(e.pop65_pct.toFixed(1))} <span className="badge badge-REAL_DATA">{copy.region.pop65Badge(p.populationDate)}</span>
+        {copy.region.pop65(dec(e.pop65_pct, 1))} <span className="badge badge-REAL_DATA">{copy.region.pop65Badge(p.populationDate)}</span>
       </div>
       <div className="num region-days">{copy.region.days(weekDays(p.k.emdDays[p.m]))}</div>
       {fj >= 0 && <div className="small">{copy.region.facility(p.scenario.facilities[fj].name, p.alloc[fj] <= 0 ? copy.facility.closed : allocDays(p.alloc[fj]))}</div>}
@@ -606,7 +608,7 @@ export function RegionCard(p: RegionCardProps) {
         <div className="small">{copy.region.zeroNone}</div>
       ) : (
         <>
-          <div className="num region-zero-summary">{copy.region.zeroSummary(zero.length, people(zeroPop), ((zeroPop / e.pop) * 100).toFixed(0))}</div>
+          <div className="num region-zero-summary">{copy.region.zeroSummary(zero.length, people(zeroPop), dec((zeroPop / e.pop) * 100, 0))}</div>
           {zeroUnreachable > 0 && <div className="small">{copy.region.unreachableNote(zeroUnreachable, p.t)}</div>}
           <details className="region-zero-list">
             <summary className="small">{copy.region.zeroList}</summary>

@@ -131,15 +131,15 @@ export function WorldDebrief(p: Props) {
             <tr key={d.key} className={`wr-row${d.key === goal ? ' is-goal' : ''}`}>
               <th scope="row">{KPI_NAME[d.key]}</th>
               <td className="num wr-mine">{fmtKpi(d.key, d.now, p.mine, p.scenario)}</td>
-              <td className="num">{d.delta !== null && <Delta change={d.change} text={diffText(d)} />}</td>
+              <td className="num">{d.delta !== null && <Delta change={d.change} text={diffText(d, true)} />}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div className="wr-basis">
         <span className="wr-tags">
-          <Badge cls="REAL_DATA">실제 10일</Badge>
-          <Badge cls="SIMULATION_ASSUMPTION">가정 5일</Badge>
+          <Badge cls="REAL_DATA">{copy.badges.real10}</Badge>
+          <Badge cls="SIMULATION_ASSUMPTION">{copy.badges.assumed5}</Badge>
         </span>
         <span>{copy.debrief.mixedEffect}</span>
       </div>

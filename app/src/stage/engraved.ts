@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 
+import { getLang } from '../content/lang'
 import type { Heightmap } from './terrain'
 
 const CW = 768
@@ -14,6 +15,12 @@ const PX_PER_KM = 122
 
 export const DISPLAY_FONT = "'Hahmlet Variable', 'Hahmlet', 'Nanum Myeongjo', 'Batang', serif"
 export const UI_FONT = "'Pretendard Variable', 'Pretendard', 'Malgun Gothic', system-ui, sans-serif"
+/** 베트남어 화면은 Inter(Pretendard에 베트남어 성조 글자가 없다, styles/app.css :lang(vi)와 같다) */
+export const UI_FONT_VI = "'Inter Variable', 'Pretendard Variable', 'Segoe UI', system-ui, sans-serif"
+
+export function uiFont(): string {
+  return getLang() === 'vi' ? UI_FONT_VI : UI_FONT
+}
 
 interface Item {
   mesh: THREE.Mesh
@@ -27,6 +34,23 @@ interface Item {
   uv: THREE.BufferAttribute
   flipped: boolean
 }
+
+/** 한글이 없는 이름(영어·베트남어 화면의 로마자 지명)은 자간을 좁히고, 판보다 길면 글자를 줄인다. 한글 이름은 그대로 그린다. */
+const LATIN_MAX_W = CW - 48
+
+function spacedWidth(ctx: CanvasRenderingContext2D, text: string, spacing: number): number {
+  const chars = [...text]
+  return chars.reduce((a, c) => a + ctx.measureText(c).width, 0) + spacing * (chars.length - 1)
+}
+
+/** 글꼴 크기(px)를 줄여 폭에 맞춘다. 맞으면 그대로 */
+function fitFont(ctx: CanvasRenderingContext2D, weight: number, px: number, family: string, text: string, spacing: number, maxW: number): void {
+  ctx.font = `${weight} ${px}px ${family}`
+  const w = spacedWidth(ctx, text, spacing)
+  if (w > maxW) ctx.font = `${weight} ${Math.floor((px * maxW) / w)}px ${family}`
+}
+
+const hasHangul = (s: string): boolean => /[가-힣]/.test(s)
 
 function spaced(ctx: CanvasRenderingContext2D, text: string, cx: number, y: number, spacing: number): void {
   const chars = [...text]
@@ -51,7 +75,7 @@ export class EngravedLabels {
     this.items.push(this.make(city.x, city.y, 'city'))
     // 글꼴이 늦게 오면 다시 그린다(처음에는 대체 글꼴).
     if (typeof document !== 'undefined' && document.fonts) {
-      Promise.all([document.fonts.load(`600 100px ${DISPLAY_FONT}`), document.fonts.load(`600 60px ${UI_FONT}`)])
+      Promise.all([document.fonts.load(`600 100px ${DISPLAY_FONT}`), document.fonts.load(`600 60px ${uiFont()}`)])
         .then(() => {
           this.fontsReady = true
           this.items.forEach((it, k) => {
@@ -137,10 +161,16 @@ export class EngravedLabels {
     ctx.fillStyle = city ? 'rgba(62,58,52,0.92)' : 'rgba(246,238,222,0.96)'
     ctx.font = city ? `650 64px ${DISPLAY_FONT}` : `600 104px ${DISPLAY_FONT}`
     if (city) ctx.shadowColor = 'rgba(255,255,255,0.5)'
-    spaced(ctx, name, CW / 2, city ? 136 : 118, city ? 8 : 30)
+    if (hasHangul(name)) spaced(ctx, name, CW / 2, city ? 136 : 118, city ? 8 : 30)
+    else {
+      const sp = city ? 2 : 6
+      fitFont(ctx, city ? 650 : 600, city ? 58 : 92, DISPLAY_FONT, name, sp, LATIN_MAX_W)
+      spaced(ctx, name, CW / 2, city ? 136 : 118, sp)
+    }
     if (sub || worstTag) {
-      ctx.font = `700 52px ${UI_FONT}`
+      ctx.font = `700 52px ${uiFont()}`
       const parts = [sub, worstTag].filter(Boolean).join(' · ')
+      if (!hasHangul(parts)) fitFont(ctx, 700, 52, uiFont(), parts, 3, LATIN_MAX_W)
       ctx.fillStyle = worstTag ? 'rgba(227,236,244,0.98)' : 'rgba(246,238,222,0.92)'
       spaced(ctx, parts, CW / 2, 196, 3)
       if (worstTag) {

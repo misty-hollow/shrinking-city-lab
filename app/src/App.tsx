@@ -3,11 +3,13 @@ import { Component, type ReactNode, useCallback, useEffect, useMemo, useReducer,
 import { briefingCues, lightCues } from './audio/cues'
 import { sound } from './audio/sound'
 import { copy } from './content/copy'
+import { type Lang, getLang, setLang } from './content/i18n'
+import { localizeData } from './content/places'
 import { loadAppData } from './data/load'
 import type { AppData } from './data/types'
 import { remaining } from './engine/allocation'
 import { lostVillages, overlapCategories } from './engine/compare'
-import { allocDays, days1, missionDays, people, weekDays } from './engine/format'
+import { allocDays, dayCount, days1, missionDays, people, weekDays } from './engine/format'
 import { type Kpis, type Threshold, buildModel, computeKpis, emdShareAtLeast } from './engine/kpi'
 import { BRIEF_EMBER_MS, BRIEF_STEP_MS, BRIEF_WAIT_MS, BriefingCard, IntroCard, MobileNotice, StartCard, TutorialCard } from './screens/Cards'
 import { DataLimits } from './screens/DataLimits'
@@ -44,6 +46,8 @@ import {
 } from './state/results'
 import { feedbackKey, feedbackStale } from './ui/feedback'
 import { Hand } from './ui/Hand'
+import { LangSwitch } from './ui/LangSwitch'
+import { ShareDialog } from './ui/ShareDialog'
 import { useReturnFocus } from './ui/focusReturn'
 import { DataChip, type EmberHandle, EmberLayer, type KeyPanel, ReadingKey, SoundToggle, type Toast, Toasts, useAudioUnlock } from './ui/Hud'
 import { ClinicMarkers, type Pop, type VillagePin, VillagePins } from './ui/Markers'
@@ -86,17 +90,30 @@ export function App() {
   const [data, setData] = useState<AppData | null>(null)
   const [error, setError] = useState(false)
   const [dataOpenMobile, setDataOpenMobile] = useState(false)
+  // 화면 언어(content/i18n.ts). 처음 값은 main.tsx가 정해 둔다. 바꾸면 게임 화면을 그 언어로 새로 그린다(시작 화면에서만 고른다).
+  const [lang, setLangState] = useState<Lang>(getLang)
+  const langFocus = useRef(false)
+  const changeLang = useCallback((l: Lang) => {
+    setLang(l, true)
+    langFocus.current = true
+    setLangState(l)
+  }, [])
+  // 새로 그린 시작 화면이 포커스를 가져간 뒤에는 다시 언어 단추로 가지 않는다(처음으로 돌아올 때는 제목)
+  useEffect(() => {
+    langFocus.current = false
+  }, [lang])
   const { w: width, h: height } = useWindowSize()
   useEffect(() => {
     loadAppData()
       .then(setData)
       .catch(() => setError(true))
   }, [])
+  const shown = useMemo(() => (data ? localizeData(data, lang) : null), [data, lang])
   if (width < 768) {
     return (
       <>
-        <MobileNotice onData={() => setDataOpenMobile(true)} />
-        {dataOpenMobile && data && <DataLimits manifest={data.manifest} onClose={() => setDataOpenMobile(false)} />}
+        <MobileNotice key={lang} lang={lang} onLang={changeLang} onData={() => setDataOpenMobile(true)} />
+        {dataOpenMobile && shown && <DataLimits manifest={shown.manifest} onClose={() => setDataOpenMobile(false)} />}
       </>
     )
   }
@@ -106,7 +123,7 @@ export function App() {
         {copy.loadError}
       </div>
     )
-  if (!data)
+  if (!shown)
     return (
       <div className="loading" role="status">
         {copy.loading}
@@ -114,7 +131,7 @@ export function App() {
     )
   return (
     <CrashBoundary>
-      <Game data={data} width={width} height={height} />
+      <Game key={lang} data={shown} width={width} height={height} lang={lang} onLang={changeLang} focusLang={langFocus.current} />
     </CrashBoundary>
   )
 }
@@ -160,7 +177,8 @@ function rectCenter(el: Element | null): { x: number; y: number } | null {
 
 type Op = { j: number; dir: 1 | -1 }
 
-function Game({ data, width, height }: { data: AppData; width: number; height: number }) {
+/** focusLang = 언어 단추로 바꿔 새로 그린 시작 화면: 제목 대신 고른 언어 단추에 포커스(키보드로 계속 고를 수 있게) */
+function Game({ data, width, height, lang, onLang, focusLang = false }: { data: AppData; width: number; height: number; lang: Lang; onLang(l: Lang): void; focusLang?: boolean }) {
   const { scenario, landscape, manifest } = data
   const model = useMemo(() => buildModel(scenario), [scenario])
   // 디오라마 세계(집·나무·지소 터)는 한 번만 만든다. 3D 무대와 S6 지도가 같은 집 묶음을 쓴다.
@@ -204,6 +222,9 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   const [denied, setDenied] = useState<{ j: number; key: number } | null>(null)
   const [pops, setPops] = useState<Pop[]>([])
   const [details, setDetails] = useState(false)
+  /** 결과 이미지 대화상자(S6). 열려 있는 동안은 자료와 한계처럼 지도 키·Esc를 받지 않는다 */
+  const [shareOpen, setShareOpen] = useState(false)
+  const modalOpen = s.dataOpen || shareOpen
   const [topView, setTopView] = useState(false)
   // 왼쪽 아래 판: 읽는 법 · 조작법(설계안 6-22). ? 키로 열었으면(helpByKey) 조작법 제목으로 포커스를 옮긴다(단추로 열면 단추에 머문다)
   const [keyPanel, setKeyPanel] = useState<KeyPanel>(null)
@@ -399,12 +420,12 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       let big: string
       let tone: Pop['tone']
       if (plan.dir > 0) {
-        text = newly > 0 ? copy.toast.gain(fac, newly, people(newlyPop)) : up > 0 ? copy.toast.thicker(fac, up) : copy.toast.none(fac, '+1일')
-        big = newly > 0 ? `+${people(newlyPop)}` : up > 0 ? '+1일' : '±0'
+        text = newly > 0 ? copy.toast.gain(fac, newly, people(newlyPop)) : up > 0 ? copy.toast.thicker(fac, up) : copy.toast.none(fac, dayCount('+1'))
+        big = newly > 0 ? `+${people(newlyPop)}` : up > 0 ? dayCount('+1') : '±0'
         tone = up > 0 ? 'gain' : 'same'
       } else {
-        text = lost > 0 ? copy.toast.loss(fac, lost, people(lostPop)) : down > 0 ? copy.toast.thinner(fac, down) : copy.toast.none(fac, '−1일')
-        big = lost > 0 ? `−${people(lostPop)}` : down > 0 ? '−1일' : '±0'
+        text = lost > 0 ? copy.toast.loss(fac, lost, people(lostPop)) : down > 0 ? copy.toast.thinner(fac, down) : copy.toast.none(fac, dayCount('−1'))
+        big = lost > 0 ? `−${people(lostPop)}` : down > 0 ? dayCount('−1') : '±0'
         tone = down > 0 ? 'loss' : 'same'
       }
       const id = plan.seq
@@ -519,7 +540,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || s.dataOpen) return
+      if (e.key !== 'Escape' || modalOpen) return
       if (keyPanel) {
         setKeyPanel(null)
         return
@@ -541,7 +562,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [s.dataOpen, s.screen, s.finaleFocus, details, phase, finaleReturn, keyPanel])
+  }, [modalOpen, s.screen, s.finaleFocus, details, phase, finaleReturn, keyPanel])
 
   // 튜토리얼 단계가 바뀌면 앞 단계의 알림을 지운다(화면이 바뀔 때는 아래에서 지운다).
   useEffect(() => {
@@ -584,7 +605,10 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       const hgt = (g.rows - 1) * g.cell_km
       setHillshade(url ? { url, x0: g.x0, y1: g.y0 + hgt, width: w, height: hgt } : buildHillshade(data.geometry, data.terrain))
     }
-    if (s.screen !== 'finale') setFinaleReturn(null)
+    if (s.screen !== 'finale') {
+      setFinaleReturn(null)
+      setShareOpen(false)
+    }
   }, [s.screen])
   useEffect(() => {
     if (s.screen !== 'finale' || s.finaleFocus !== 'overlap') {
@@ -613,7 +637,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
   // W A S D처럼 입력창·Ctrl·Alt·⌘ 조합·자료와 한계 대화상자·감상 시간에는 받지 않고, 말풍선·탭의 키 처리가 먼저 쓴 키도 건드리지 않는다
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || s.dataOpen || appreciating) return
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || modalOpen || appreciating) return
       const t = e.target as HTMLElement | null
       if (t?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return
       if (e.code === 'KeyR' && !e.shiftKey && !e.repeat) {
@@ -627,7 +651,7 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [s.dataOpen, appreciating, topView, cornerShown, keyPanel])
+  }, [modalOpen, appreciating, topView, cornerShown, keyPanel])
   useReturnFocus(keyPanel === 'controls', 'help')
 
   // --- 무대 상태 ---------------------------------------------------------------------------
@@ -695,13 +719,13 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       else reason = 'none'
     }
     const isPop = mission.kpi === 'cov3_pop'
-    const fmt = (v: number) => (isPop ? people(v) : `${days1(v)}일`)
+    const fmt = (v: number) => (isPop ? people(v) : dayCount(days1(v)))
     const missionLine =
       s.screen === 'play'
         ? (after: readonly number[]) => {
             const v1 = judge(model, landscape, s.mission, after).status.value
             const v0 = judged.status.value
-            return `${copy.missions[s.mission].kpiName} ${fmt(v0)} → ${fmt(v1)}${s.T !== 15 ? ' · 15분 판정' : ''}`
+            return `${copy.missions[s.mission].kpiName} ${fmt(v0)} → ${fmt(v1)}${s.T !== 15 ? copy.world.judgedAt15Tail : ''}`
           }
         : undefined
     return buildPreview({ model, T: s.T, alloc: s.alloc, k, j, dir, fac: scenario.facilities[j].short, allowed, reason, missionLine, text: copy.world.preview })
@@ -747,10 +771,10 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       preview: previewInfo && !previewInfo.blocked && previewInfo.villages.length ? { villages: previewInfo.villages, sign: previewInfo.dir } : null,
       appreciate: appreciating,
       // W A S D 지도 이동(설계안 6-21): 자료와 한계 대화상자, 결산의 감상 시간(카메라가 스스로 돈다)에는 받지 않는다
-      keyPan: !s.dataOpen && !appreciating,
+      keyPan: !modalOpen && !appreciating,
       overlap: stageOverlap,
     }),
-    [stageMode, shown, s.T, s.deltaMode, s.screen, s.dataOpen, panelHoverEmd, s.regionEmd, lostPick, lost, emphasis, lightEvent, interactive, reducedMotion, celebrate, previewInfo, stageHover, appreciating, stageOverlap, overlap],
+    [stageMode, shown, s.T, s.deltaMode, s.screen, s.dataOpen, modalOpen, panelHoverEmd, s.regionEmd, lostPick, lost, emphasis, lightEvent, interactive, reducedMotion, celebrate, previewInfo, stageHover, appreciating, stageOverlap, overlap],
   )
 
   const onStageHover = useCallback(
@@ -873,8 +897,9 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
       {/* 시작 */}
       {s.screen === 'start' && (
         <>
-          <StartCard onStart={() => dispatch({ type: 'start' })} onData={openData} />
+          <StartCard onStart={() => dispatch({ type: 'start' })} onData={openData} focusLang={focusLang ? lang : null} />
           <div className="start-corner">
+            <LangSwitch value={lang} onChange={onLang} />
             <SoundToggle />
           </div>
           <ul className="start-legend" aria-hidden="true">
@@ -1162,6 +1187,13 @@ function Game({ data, width, height }: { data: AppData; width: number; height: n
             dispatch({ type: 'finaleFocus', m })
           }}
           returnFocus={finaleReturn === 'overlap' ? null : finaleReturn}
+          onShare={() => setShareOpen(true)}
+        />
+      )}
+      {shareOpen && finale && s.screen === 'finale' && (
+        <ShareDialog
+          input={{ results: finale, scenario, geometry: data.geometry, model, manifest, hillshade, world }}
+          onClose={() => setShareOpen(false)}
         />
       )}
 

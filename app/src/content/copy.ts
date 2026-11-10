@@ -6,12 +6,22 @@
  * 금지어 검사: src/content/forbidden.test.ts
  */
 
-export const copy = {
+export const ko = {
   product: 'Shrinking City Lab',
   /** 작품 제목(2026-10-18 사용자 결정, 설계안 2-1 B). 무엇을 하는지는 부제가 말한다 */
   scenario: '닿는 날',
   subtitle: '공주시 보건지소 진료일 배분 시뮬레이션',
   dataAndLimits: '자료와 한계',
+  /** 브라우저 탭 제목과 검색 설명(index.html과 같은 글) */
+  docTitle: '닿는 날 — 공주시 보건지소 진료일 배분 시뮬레이션',
+  docDescription: '실제 공주시 자료로 만든 교육용 시뮬레이션. 보건지소 10곳에 주당 진료일을 나누고 어느 마을에 진료가 닿는지 봅니다.',
+  /** 언어 고르기(시작 화면 오른쪽 위·모바일 안내)의 이름. 언어 이름은 늘 그 언어로 적는다(i18n.ts LANG_NAMES) */
+  language: '언어',
+  /** 15일의 두 몫(결산·S6의 작은 배지) */
+  badges: {
+    real10: '실제 10일',
+    assumed5: '가정 5일',
+  },
 
   stage: {
     start: '시작',
@@ -261,6 +271,11 @@ export const copy = {
     legendDensity: (n: string) => `가능한 배분 ${n}개의 분포 (15일, 칸이 진할수록 많음)`,
     legendOthers: '다른 미션 결과 (15일)',
     otherPoint: (n: number) => `미션 ${n}`,
+    /** 우열 없는 배분 범례 뒤의 개수 */
+    frontCount: (n: number) => `(${n}개)`,
+    /** 우열 없는 배분 점의 툴팁 끝 */
+    tipCov3: (pop: string) => ` · 주 3일 이상 ${pop}`,
+    tableAlloc: '배분',
     tableView: '표로 보기',
     otherGoal: '다른 목표였다면',
     otherGoalLine: (kpi: string) =>
@@ -453,6 +468,8 @@ export const copy = {
     detailsTitle: '지표 자세히',
     detailsClose: '지표 자세히 닫기',
     finishHint: (n: number) => `남은 ${n}일을 모두 놓으면 확정할 수 있어요`,
+    /** 미리보기 미션 지표 줄 끝(기준을 10·20분으로 바꿔 둔 채 놓을 때) */
+    judgedAt15Tail: ' · 15분 판정',
     appreciateSkip: '누르면 결과를 봐요',
     lostPin: (name: string, pop: string) => `${name} ${pop} · 닿지 않게 됨`,
     lostMore: (n: number) => `외 ${n}곳`,
@@ -569,6 +586,39 @@ export const copy = {
     cityCore: '공주 시내 · 범위 밖',
   },
 
+  /**
+   * 결과 이미지(S6): 세 미션의 배분과 결과를 한 장으로. 브라우저 안에서 그려 저장·복사·공유하고 어디에도 보내지 않는다.
+   * 이미지 안의 문장은 S6의 문장(finale.*)을 그대로 다시 쓴다. 여기에는 이미지에만 있는 말만 둔다.
+   */
+  share: {
+    open: '결과 이미지로 저장',
+    title: '결과 이미지',
+    lead: '세 미션의 배분과 결과를 한 장에 담았어요. 과제로 내거나 친구의 결과와 나란히 놓고 비교해 보세요.',
+    nameLabel: '이름 또는 모둠(선택)',
+    namePlaceholder: '예: 2학년 3반 4모둠',
+    nameNote: '적은 이름은 이미지에만 들어가요. 어디로도 보내지 않아요.',
+    save: 'PNG로 저장',
+    copy: '이미지 복사',
+    share: '공유',
+    close: '닫기',
+    preparing: '이미지를 만들고 있어요',
+    saved: '이미지를 저장했어요.',
+    copied: '이미지를 복사했어요. 붙여 넣을 곳에서 Ctrl V를 눌러 주세요.',
+    failed: '이 브라우저에서는 할 수 없어요. PNG로 저장해 주세요.',
+    previewAlt: '결과 이미지 미리보기',
+    /** 파일 이름 앞부분(뒤에 날짜가 붙는다) */
+    fileName: '닿는날_결과',
+    /** 이미지 오른쪽 위: 이름이 없으면 날짜만 */
+    played: (date: string) => `${date} 플레이`,
+    /** 미션 열의 배분 줄 머리 */
+    allocHead: '보건지소별 진료일 · 서쪽에서 동쪽',
+    zeroHead: '닿지 않는 마을',
+    /** 이미지의 읽는 법: 지도 위 보건지소 명판 */
+    legendPlate: '명판의 켜진 점 하나 = 진료일 하루',
+    /** 이미지 아래 출처 한 줄 앞 */
+    madeWith: '실제 공주시 자료로 만든 교육용 게임',
+  },
+
   noWebgl: '이 브라우저에서는 3D 지도를 그릴 수 없어요. 아래 지소 카드와 지표로 계속 플레이할 수 있어요.',
   loading: '공주 지형 모형을 준비하고 있어요',
   loadError: '자료를 불러오지 못했어요. 페이지를 새로고침해 주세요.',
@@ -584,6 +634,26 @@ export const copy = {
     what: '실제 공주시 자료를 단순하게 다듬어 만든 교육용 시뮬레이션이에요. 공공서비스를 나눌 때 어느 지역이 얻고 어느 지역이 잃는지 직접 나눠 보며 살펴봐요.',
     whatNot: '실제 공주시 행정 평가, 최적 정책 추천 도구, 의료정책 의사결정 시스템이 아니에요.',
     sourcesTitle: '자료 출처와 기준일',
+    /** 출처 표의 항목 이름 */
+    items: {
+      population: '법정리 인구, 읍·면 65세 이상',
+      schedule: '보건지소 의과 순회진료 일정',
+      facilities: '보건지소 10곳 위치',
+      roads: '도로망',
+      matrix: '도로망 접근시간 161×10',
+      boundaries: '읍·면 경계',
+      terrain: '지형',
+    },
+    /** 자료 판본 표 */
+    repro: {
+      version: '판본',
+      engine: '경로 엔진',
+      digest: '이미지 digest',
+      osm: 'OSM',
+      code: '생성 코드',
+      osmLine: (ts: string, bbox: string) => `최신 객체 ${ts} · 추출 범위 ${bbox}`,
+    },
+    scheduleAttribution: (publisher: string, date: string, status: string) => `${publisher} 「진료안내」 순회근무 현황(${date} 기준) — ${status}`,
     colItem: '항목',
     colSource: '출처',
     colDate: '기준일',
@@ -602,7 +672,7 @@ export const copy = {
     reproTitle: '자료 판본',
     creditsTitle: '만든 곳',
     credits: '공주대학교 캡스톤 디자인 프로젝트 · 2026',
-    fonts: '글꼴: Pretendard(OFL-1.1) · Hahmlet(OFL-1.1). 효과음은 브라우저에서 합성한 소리예요.',
+    fonts: '글꼴: Pretendard(OFL-1.1) · Hahmlet(OFL-1.1) · Inter(OFL-1.1, 베트남어 화면). 효과음은 브라우저에서 합성한 소리예요.',
     displayTitle: '화면 표현',
     display: [
       '집 한 채는 주민 약 50명을 뜻하는 기호예요. 실제 건물의 위치나 수가 아니에요.',
@@ -625,8 +695,21 @@ export const copy = {
   },
 } as const
 
+/** 한국어 문구의 모양(글자 값은 넓힌다). 영어·베트남어 문구도 이 모양을 그대로 따른다(content/en.ts · vi.ts). */
+export type Copy = Widen<typeof ko>
+
+type Widen<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends (...args: infer A) => infer R
+      ? (...args: A) => Widen<R>
+      : T extends object
+        ? { readonly [K in keyof T]: Widen<T[K]> }
+        : T
+
 /** 4-9절 한계 9문장. 순서가 곧 번호다. */
-export const LIMITS = [
+export const LIMITS_KO = [
   '교육용 단순화 모델이에요. 실제 정책 권고가 아니에요.',
   '시간은 도로망 자동차 접근시간이에요. 실제 개인의 이동시간·교통혼잡·대기시간은 반영하지 않아요.',
   '진료일은 게임용 단위예요. 진료 과목·의료진·장비 같은 실제 의료서비스 전체를 나타내지 않아요.',
@@ -643,9 +726,22 @@ export const LIMITS = [
  * 금지어 검사는 이 문장들만 예외로 본다.
  */
 export const APPROVED_NEGATIONS = [
-  copy.start.notPolicy,
-  copy.briefing.assumption,
-  copy.dataPage.whatNot,
-  LIMITS[1],
-  LIMITS[8],
+  ko.start.notPolicy,
+  ko.briefing.assumption,
+  ko.dataPage.whatNot,
+  LIMITS_KO[1],
+  LIMITS_KO[8],
 ] as const
+
+/**
+ * 지금 화면 언어의 문구. 언어를 바꾸면(content/i18n.ts의 setLang) 이 바인딩이 그 언어의 문구로 바뀐다.
+ * 화면은 그릴 때마다 `copy.…`를 읽으므로 모듈 맨 위에서 값을 붙잡아 두지 않는다.
+ */
+export let copy: Copy = ko
+export let LIMITS: readonly string[] = LIMITS_KO
+
+/** i18n.ts만 부른다 */
+export function applyCopy(next: Copy, limits: readonly string[]): void {
+  copy = next
+  LIMITS = limits
+}

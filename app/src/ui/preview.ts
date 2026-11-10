@@ -7,7 +7,7 @@
  */
 
 import { tierChangedVillages } from '../engine/compare'
-import { allocDays, people } from '../engine/format'
+import { allocShort, dayCount, people } from '../engine/format'
 import { type Kpis, type Model, type Threshold, computeKpis, tierOf } from '../engine/kpi'
 
 export interface PreviewInfo {
@@ -96,13 +96,13 @@ export function buildPreview(p: PreviewInput): PreviewInfo {
     big = `${sign}${people(thickPop)}`
     line = dir > 0 ? text.thicker(thickN) : text.thinner(thickN)
   } else if (daysN > 0) {
-    big = `${sign}1일`
+    big = dayCount(`${sign}1`)
     line = dir > 0 ? text.more(daysN) : text.less(daysN)
   } else {
     big = '±0'
     line = text.same
   }
-  const daysLine = text.days(p.fac, p.alloc[j] <= 0 ? '0일' : allocDays(p.alloc[j]).replace('주 ', ''), after[j] <= 0 ? '0일' : allocDays(after[j]).replace('주 ', ''))
+  const daysLine = text.days(p.fac, allocShort(p.alloc[j]), allocShort(after[j]))
   const m = p.missionLine?.(after)
   return { j, dir, blocked: null, villages, big, line, detail: m ? `${daysLine} · ${m}` : daysLine, tone: daysN === 0 ? 'same' : dir > 0 ? 'gain' : 'loss' }
 }

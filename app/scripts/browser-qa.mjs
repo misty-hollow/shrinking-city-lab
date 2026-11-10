@@ -25,7 +25,7 @@
  * 실행
  *   1. cd app && npx vite --port 5199 --strictPort --host 127.0.0.1
  *   2. npm i --no-save playwright-core@1.63.0     (프로젝트 의존성에 넣지 않는다)
- *   3. npm run qa:browser                          (QA_BASE_URL, QA_BROWSER_CHANNEL 환경변수)
+ *   3. npm run qa:browser                          (QA_BASE_URL, QA_BROWSER_CHANNEL, QA_STAGES 환경변수)
  *   결과: qa-shots/*.png, qa-shots/report.json { meta: 커밋·주소·브라우저·시각, results } (.gitignore)
  *   종료 코드: FAIL이 하나라도 있으면 1. 예외로 멈춘 묶음은 FAIL「실행 중단」과 fail-<묶음>.png를 남기고 다음 묶음을 돈다.
  *   화면 크기마다 새 브라우저·새 컨텍스트라 localStorage는 실제 프로필과 섞이지 않는다.
@@ -38,6 +38,8 @@ import { layoutGeometry } from './qa-geometry.mjs'
 
 const BASE = process.env.QA_BASE_URL ?? 'http://127.0.0.1:5199/?kiosk=0'
 const CHANNEL = process.env.QA_BROWSER_CHANNEL ?? 'msedge'
+/** 고치는 동안 몇 묶음만 돌릴 때(쉼표로 묶음 이름 앞부분, 예: `QA_STAGES=lang-en`). 비우면 모두 돈다 — 보고용 실행은 늘 모두 */
+const ONLY = process.env.QA_STAGES ? process.env.QA_STAGES.split(',') : null
 const OUT = new URL('../qa-shots/', import.meta.url)
 mkdirSync(OUT, { recursive: true })
 
@@ -945,12 +947,361 @@ async function extras() {
   check(chips.length === 3 && chips.every((c) => c === '참고 배분'), '1280x800 건너뛰기: S6 세 열 모두 참고 배분 칩', chips.join(' | '))
   check((await sk.locator('.panel').innerText()).includes('건너뛴 미션 자리에는 그 미션 지표만 놓고 볼 때 가장 높은 배분 하나'), '1280x800 건너뛰기: 참고 배분 안내')
   check(same((await gameState(sk)).results, {}), '1280x800 건너뛰기: 보관된 미션 결과 없음')
+  // 결과 이미지(한국어): S6 나란히 보기의 단추 → 미리보기(2400 px 폭 PNG) → Esc로 닫으면 연 단추로
+  const shareKo = sk.getByRole('button', { name: '결과 이미지로 저장' })
+  await shareKo.click()
+  await sk.waitForSelector('.share-preview img')
+  await sk.waitForSelector('.share-preview:not(.is-busy) img')
+  const skw = await sk.locator('.share-preview img').evaluate((img) => [img.naturalWidth, img.naturalHeight])
+  check(skw[0] === 2400 && skw[1] > 1300, '1280x800 결과 이미지: 미리보기 PNG(2400 px 폭)', skw.join('×'))
+  check((await sk.locator('.share-sheet').innerText()).includes('어디로도 보내지 않아요'), '1280x800 결과 이미지: 이름은 이미지에만 들어간다는 안내')
+  await shot(sk, '1280x800-share')
+  await sk.keyboard.press('Escape')
+  check((await sk.locator('.share-page').count()) === 0 && (await shareKo.evaluate((b) => b === document.activeElement)), '1280x800 결과 이미지: Esc로 닫고 연 단추로 포커스')
   check(skErrors.length === 0, '1280x800 건너뛰기: 페이지 오류 없음', skErrors.join(' | '))
+  await browser.close()
+}
+
+// --- 언어(한국어 · English · Tiếng Việt)와 결과 이미지 ---------------------------------------------------
+// 영어·베트남어로 한 판: 시작 화면의 언어 단추로 바꾸고 → 소개 → 튜토리얼(기준 바꾸기·하루 옮기기) → 미션 1(키보드로 목표 경계 배분)
+// → 결산(세계 위 결과 글·결과 자세히) → 미션 2·3 건너뛰기 → S6 나란히 보기 → 결과 이미지(미리보기·PNG 내려받기·Esc) → 섬 위에서 보기
+// → 자료와 한계 → 처음으로. 화면마다: 한글이 남지 않았는지(언어 단추와 출처 원문 이름 빼고), 판 밖으로 넘친 글·잘린 글, DOM 기하.
+// 표기: 영어 40,204 people · 베트남어 40.204 người(소수점 쉼표). 고른 언어는 새로고침 뒤에도 남고, 한국어로 돌아올 수 있다.
+
+const LANG = {
+  en: {
+    name: 'English', title: 'Days Within Reach', start: 'Start', next: 'Next', startMission: 'Start mission', begin: 'Start placing days',
+    confirm: 'Confirm this allocation', skipMission: 'Skip this mission', nextMission: 'Next mission',
+    details: 'Result details · allocation landscape', detailsClose: 'Close result details', island: 'View on the island',
+    share: 'Save results as an image', data: 'Data & limits', home: 'Back to start', pop: '40,204 people',
+    remove: 'Remove a clinic day from Uidang', add: 'Add a clinic day to Sinpung', min10: '10 min', min15: '15 min',
+    verdict: /Goal (met|not met)/, file: /^days-within-reach_results_\d{4}-\d{2}-\d{2}_Group_4\.png$/, group: 'Group 4',
+    mean: /\d\.\d days\/wk/, limit: 'It does not mean 5 days should actually be added',
+  },
+  vi: {
+    name: 'Tiếng Việt', title: 'Ngày khám trong tầm với', start: 'Bắt đầu', next: 'Tiếp', startMission: 'Bắt đầu nhiệm vụ', begin: 'Bắt đầu chia',
+    confirm: 'Chốt phân bổ này', skipMission: 'Bỏ qua nhiệm vụ này', nextMission: 'Nhiệm vụ tiếp theo',
+    details: 'Chi tiết kết quả · biểu đồ các phân bổ', detailsClose: 'Đóng chi tiết kết quả', island: 'Xem trên hòn đảo',
+    share: 'Lưu kết quả thành ảnh', data: 'Dữ liệu và giới hạn', home: 'Về màn hình đầu', pop: '40.204 người',
+    remove: 'Bớt một ngày khám ở Uidang', add: 'Thêm một ngày khám cho Sinpung', min10: '10 phút', min15: '15 phút',
+    verdict: /(Đạt|Chưa đạt) mục tiêu/, file: /^ngay-kham-trong-tam-voi_ket-qua_\d{4}-\d{2}-\d{2}_Nhóm_4\.png$/, group: 'Nhóm 4',
+    mean: /\d,\d ngày\/tuần/, limit: 'không có nghĩa là thực tế phải tăng thêm 5 ngày',
+  },
+}
+
+/** 화면에 남은 한글(글자·aria-label·title·placeholder·alt·새긴 지명). 언어 단추의 「한국어」는 뺀다. dataPage = 출처 원문 이름(「…」·괄호 안)은 허용 */
+async function noHangul(page, label, dataPage = false) {
+  const left = await page.evaluate((dp) => {
+    const H = /[가-힣]/
+    const strip = (t) => (dp ? t.replace(/「[^」]*」/g, '').replace(/\([^()]*[가-힣][^()]*\)/g, '') : t)
+    const skip = (el) => !!el.closest('.lang-switch, [hidden]')
+    const out = []
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+    while (w.nextNode()) {
+      const n = w.currentNode
+      if (!n.parentElement || skip(n.parentElement)) continue
+      if (H.test(strip(n.textContent))) out.push(n.textContent.trim().slice(0, 50))
+    }
+    for (const el of document.querySelectorAll('[aria-label],[title],[placeholder],[alt],[data-emd-values]')) {
+      if (skip(el)) continue
+      for (const a of ['aria-label', 'title', 'placeholder', 'alt', 'data-emd-values']) {
+        const v = el.getAttribute(a)
+        if (v && H.test(strip(v))) out.push(`@${a} ${v.slice(0, 50)}`)
+      }
+    }
+    return out
+  }, dataPage)
+  check(left.length === 0, `${label}: 한글이 남지 않음`, left.slice(0, 4).join(' | '))
+}
+
+/** 판 안의 글이 판 밖으로 나가거나(가로) 말줄임·숨김으로 잘리지 않는지 */
+async function fitsCheck(page, label) {
+  const bad = await page.evaluate(() => {
+    const out = []
+    const roots = document.querySelectorAll(
+      '.finale-board, .finale-col, .panel, .share-sheet, .center-card, .corner-card, .hud-panel, .hud-left, .kpi-list, .world-result, .wf-top, .wf-table, .wf-end, .data-sheet, .hand, .corner-tools, .corner-bl, .finish, .start-corner, .key-panel, .mk-preview, .toasts, .mobile',
+    )
+    const vis = (el) => {
+      const r = el.getBoundingClientRect()
+      if (r.width < 2 || r.height < 2) return null
+      const cs = getComputedStyle(el)
+      if (cs.visibility === 'hidden' || el.closest('.sr-only')) return null
+      // 닫힌 <details>의 내용은 그려지지 않는다(요약 줄만 보인다)
+      const d = el.closest('details:not([open])')
+      if (d && !el.closest('summary') && el !== d) return null
+      return r
+    }
+    const nameOf = (el) => (typeof el.className === 'string' ? el.className : (el.className?.baseVal ?? '')).split(' ')[0] || el.tagName
+    for (const root of roots) {
+      const R = vis(root)
+      if (!R) continue
+      for (const el of root.querySelectorAll('*')) {
+        // SVG 안쪽 도형(잘라 내는 바탕 그림·clipPath)은 그 SVG 상자만 본다
+        if (el.closest('svg') && el.tagName.toLowerCase() !== 'svg') continue
+        // 왼쪽 아래 단추에서 위로 펼치는 판(읽는 법·조작법)은 그 판 자체를 따로 잰다(.key-panel)
+        if (root.classList.contains('corner-bl') && el.closest('.key-panel, .reading-key ul')) continue
+        const r = vis(el)
+        if (!r) continue
+        const name = `${nameOf(root)} > ${nameOf(el)}`
+        if (r.right > R.right + 1.5 || r.left < R.left - 1.5) out.push(`넘침 ${name} ${Math.round(r.left)}..${Math.round(r.right)} / ${Math.round(R.left)}..${Math.round(R.right)}`)
+        const cs = getComputedStyle(el)
+        if ((cs.textOverflow === 'ellipsis' || cs.overflowX === 'hidden' || cs.overflowX === 'clip') && el.scrollWidth > el.clientWidth + 1 && el.textContent.trim())
+          out.push(`잘림 ${name} "${el.textContent.trim().slice(0, 30)}"`)
+      }
+    }
+    // 글끼리 겹침: 판 안의 글 줄(텍스트 노드의 실제 줄 상자)이 서로 겹치지 않는다
+    const sticky = (el, root) => {
+      for (let e = el; e && e !== root; e = e.parentElement) if (['sticky', 'fixed'].includes(getComputedStyle(e).position)) return true
+      return false
+    }
+    const boxes = []
+    const seen = new Set()
+    const modal = document.querySelector('.share-page, .data-page')
+    for (const root of roots) {
+      const RV = vis(root)
+      if (!RV) continue
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+      while (w.nextNode()) {
+        const n = w.currentNode
+        if (!n.textContent.trim() || !n.parentElement || !vis(n.parentElement) || seen.has(n)) continue
+        // 대화상자(결과 이미지·자료와 한계)가 열려 있으면 그 뒤(어두운 막 아래)의 글은 세지 않는다
+        if (modal && !modal.contains(n)) continue
+        seen.add(n)
+        const range = document.createRange()
+        range.selectNodeContents(n)
+        // 판의 보이는 창 밖(스크롤로 가려진 곳)과 스크롤 위에 떠 있는 머리(sticky)는 겹침으로 세지 않는다
+        if (sticky(n.parentElement, root)) continue
+        for (const r of range.getClientRects())
+          if (r.width > 1 && r.height > 1 && r.bottom > RV.top + 1 && r.top < RV.bottom - 1) boxes.push({ r, t: n.textContent.trim().slice(0, 24), el: n.parentElement, root })
+      }
+    }
+    // 판 안에서도, 서로 다른 판 사이에서도(손 ↔ 왼쪽 아래 자료 줄 같은)
+    for (let a = 0; a < boxes.length; a++)
+      for (let b = a + 1; b < boxes.length; b++) {
+        const A = boxes[a].r
+        const B = boxes[b].r
+        const ox = Math.min(A.right, B.right) - Math.max(A.left, B.left)
+        const oy = Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top)
+        const cover = (x) => !!x.el.closest('.key-panel, .reading-key ul')
+        if (cover(boxes[a]) !== cover(boxes[b])) continue
+        if (ox > 2 && oy > 4 && boxes[a].el !== boxes[b].el) out.push(`겹침 ${nameOf(boxes[a].root)}·${nameOf(boxes[b].root)} "${boxes[a].t}" ↔ "${boxes[b].t}"`)
+      }
+    return [...new Set(out)]
+  })
+  check(bad.length === 0, `${label}: 판 밖으로 넘치거나 잘리거나 서로 겹친 글 없음`, bad.slice(0, 4).join(' | '))
+}
+
+async function langScreen(page, label, opts = {}) {
+  await noHangul(page, label, opts.dataPage)
+  await fitsCheck(page, label)
+  if (opts.geometry !== false) await layoutGeometry(page, label, check, { overview: !!opts.overview })
+}
+
+async function langRun(lang, width, height, full) {
+  const L = LANG[lang]
+  const browser = await chromium.launch({ channel: CHANNEL, headless: true, args: ['--use-angle=d3d11', '--enable-webgl'] })
+  const ctx = await browser.newContext({ viewport: { width, height }, acceptDownloads: true })
+  const page = await ctx.newPage()
+  current = page
+  const errors = []
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  page.on('pageerror', (e) => errors.push(String(e)))
+  const tag = `${width}x${height} ${lang}`
+  const pre = `${width}x${height}-${lang}`
+  await page.goto(BASE)
+  await page.waitForSelector('.center-card h1')
+  check((await page.locator('#s0-title').innerText()) === '닿는 날' && (await page.evaluate(() => document.documentElement.lang)) === 'ko', `${tag} 언어: 처음은 한국어`)
+  // 시작 화면 오른쪽 위 언어 단추(그 언어 이름으로 적힌 단추)
+  await page.getByRole('radio', { name: L.name }).click()
+  await page.waitForFunction((t) => document.querySelector('#s0-title')?.textContent === t, L.title, { timeout: 15000 })
+  await page.waitForTimeout(1200)
+  const docLang = await page.evaluate(() => [document.documentElement.lang, document.title])
+  check(docLang[0] === lang && docLang[1].startsWith(L.title), `${tag} 언어: 문서 언어·탭 제목`, docLang.join(' | '))
+  check(
+    (await page.getByRole('radio', { name: L.name }).getAttribute('aria-checked')) === 'true' &&
+      (await page.evaluate(() => document.activeElement?.getAttribute('data-lang'))) === lang,
+    `${tag} 언어: 고른 단추가 눌린 상태, 포커스는 언어 단추에`,
+  )
+  check((await page.locator('canvas').count()) === 1, `${tag} S0: 무대 다시 그림(canvas 하나)`)
+  await shot(page, `${pre}-s0-start`)
+  await langScreen(page, `${tag} S0`, { overview: true })
+  // 시작 화면 글(제목·질문·단계)은 판(data-occlude)이 아니라서 따로 본다: 말풍선을 덮지 않는다
+  const heroHit = await page.evaluate(() => {
+    const out = []
+    const texts = [...document.querySelectorAll('.center-card.hero h1, .center-card.hero p, .center-card.hero li, .center-card.hero .actions, .start-corner, .start-legend li')]
+    for (const t of texts) {
+      // 문단의 빈 오른쪽이 아니라 실제로 글자가 있는 줄 상자
+      const range = document.createRange()
+      range.selectNodeContents(t)
+      for (const a of range.getClientRects()) {
+        if (a.width < 1) continue
+        for (const m of document.querySelectorAll('.stage-anchors .anchor:not([style*="hidden"]) .mk-head')) {
+          const b = m.getBoundingClientRect()
+          if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) out.push(`${t.tagName}「${t.textContent.slice(0, 16)}」 ↔ ${m.textContent.slice(0, 10)}`)
+        }
+      }
+    }
+    return [...new Set(out)]
+  })
+  check(heroHit.length === 0, `${tag} S0: 제목·안내 글이 말풍선을 덮지 않음`, heroHit.slice(0, 3).join(' | '))
+  // 고른 언어는 이 브라우저에 남는다
+  await page.reload()
+  await page.waitForSelector('.center-card h1')
+  check((await page.locator('#s0-title').innerText()) === L.title, `${tag} 언어: 새로고침 뒤에도 그 언어`)
+
+  await page.getByRole('button', { name: L.start, exact: true }).click()
+  for (let k = 0; k < 3; k++) {
+    await page.waitForSelector('.corner-card')
+    const text = await page.locator('.corner-card').innerText()
+    if (k === 0) check(text.includes(L.pop) && text.includes('2026-08-31'), `${tag} S1-1: 인구 표기(그 언어의 숫자 구분)·기준일`, text.replace(/\n/g, ' ').slice(0, 140))
+    await shot(page, `${pre}-s1-intro-${k + 1}`)
+    await langScreen(page, `${tag} S1-${k + 1}`)
+    await page.locator('.corner-card').getByRole('button', { name: L.next, exact: true }).click()
+  }
+  // 튜토리얼
+  await page.waitForSelector('.marker.is-live')
+  await settle(page)
+  await langScreen(page, `${tag} S2-1`)
+  await page.locator('.corner-card').getByRole('button', { name: L.next, exact: true }).click()
+  await page.getByRole('radio', { name: L.min10 }).click()
+  await settle(page)
+  // 소식이 들어오는 움직임(약 0.26초)이 끝난 자리에서 잰다(한국어 판의 창 검사와 같은 0.45초)
+  await page.waitForTimeout(450)
+  if (full) await shot(page, `${pre}-s2-threshold-10`)
+  await langScreen(page, `${tag} S2-2 10분`)
+  await page.getByRole('radio', { name: L.min15 }).click()
+  await settle(page)
+  await page.locator('.corner-card').getByRole('button', { name: L.next, exact: true }).click()
+  await page.getByRole('button', { name: L.remove }).click()
+  await page.getByRole('button', { name: L.add }).click()
+  await settle(page)
+  if (full) await shot(page, `${pre}-s2-moved`)
+  await langScreen(page, `${tag} S2-3`)
+  await page.getByRole('button', { name: L.startMission }).click()
+  // 미션 1
+  await page.waitForSelector('#s3-title')
+  if (full) await shot(page, `${pre}-s3-briefing`)
+  await langScreen(page, `${tag} S3`, { geometry: false })
+  await page.getByRole('button', { name: L.begin }).click()
+  await page.waitForSelector('.mission-card')
+  await page.waitForTimeout(250)
+  await setAlloc(page, new Array(10).fill(0), boundary('boundary_m1_at'))
+  await page.mouse.move(8, height / 2)
+  await panelTop(page)
+  await shot(page, `${pre}-s4-play`)
+  await langScreen(page, `${tag} S4`, { overview: true })
+  // 미리보기 판(말풍선을 가리키면)
+  await page.locator('.marker[data-j="3"] .mk-bubble').hover()
+  await page.waitForSelector('.marker[data-j="3"] .mk-preview')
+  if (full) await shot(page, `${pre}-s4-preview`)
+  await fitsCheck(page, `${tag} S4 미리보기`)
+  await page.mouse.move(8, height / 2)
+  // 조작법 판(?)
+  await page.keyboard.press('Shift+Slash')
+  await page.waitForTimeout(300)
+  if (full) await shot(page, `${pre}-s4-help`)
+  await langScreen(page, `${tag} S4 조작법`, { geometry: false })
+  await page.keyboard.press('Shift+Slash')
+  await page.getByRole('button', { name: L.confirm }).click()
+  await toSummary(page)
+  const wr = await page.locator('.world-result').innerText()
+  check(L.verdict.test(wr) && L.mean.test(wr), `${tag} S5: 판정·미션 지표(그 언어의 단위)`, wr.replace(/\n/g, ' ').slice(0, 140))
+  await shot(page, `${pre}-s5-world`)
+  await langScreen(page, `${tag} S5`)
+  await page.getByRole('button', { name: L.details }).click()
+  await page.waitForSelector('.panel .verdict')
+  if (full) await shot(page, `${pre}-s5-debrief`)
+  await langScreen(page, `${tag} S5 자세히`, { geometry: false })
+  await page.locator('.panel').evaluate((el) => el.scrollTo(0, el.scrollHeight))
+  if (full) await shot(page, `${pre}-s5-debrief-end`)
+  await page.locator('.panel').getByRole('button', { name: L.detailsClose }).click()
+  await page.waitForSelector('.world-result')
+  await page.getByRole('button', { name: L.nextMission }).click()
+  for (let n = 2; n <= 3; n++) {
+    await page.waitForSelector('#s3-title')
+    await page.locator('.center-card').getByRole('button', { name: L.skipMission }).click()
+  }
+  // S6 나란히 보기
+  await page.waitForSelector('.finale-board')
+  await page.waitForTimeout(900)
+  check((await page.locator('.finale-col').count()) === 3, `${tag} S6: 세 배분 나란히`)
+  await shot(page, `${pre}-s6-three`)
+  await langScreen(page, `${tag} S6 나란히`, { geometry: false })
+  await page.locator('.panel').evaluate((el) => el.scrollTo(0, el.scrollHeight))
+  if (full) await shot(page, `${pre}-s6-panel-end`)
+  // 결과 이미지
+  const shareBtn = page.getByRole('button', { name: L.share })
+  await shareBtn.click()
+  await page.waitForSelector('.share-preview img')
+  await page.locator('.share-name input').fill(L.group)
+  await page.waitForSelector('.share-preview:not(.is-busy) img')
+  await page.waitForTimeout(500)
+  const iw = await page.locator('.share-preview img').evaluate((img) => [img.naturalWidth, img.naturalHeight])
+  check(iw[0] === 2400 && iw[1] > 1300 && iw[1] < 1700, `${tag} 결과 이미지: 2400 px 폭 PNG 미리보기`, iw.join('×'))
+  await shot(page, `${pre}-share`)
+  await langScreen(page, `${tag} 결과 이미지 대화상자`, { geometry: false })
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('.share-actions .btn-primary').click()])
+  const fname = dl.suggestedFilename()
+  const fpath = new URL(`${pre}-result.png`, OUT).pathname.replace(/^\/([A-Za-z]:)/, '$1')
+  await dl.saveAs(decodeURIComponent(fpath))
+  const head = readFileSync(decodeURIComponent(fpath)).subarray(0, 8).toString('hex')
+  check(L.file.test(fname) && head === '89504e470d0a1a0a', `${tag} 결과 이미지: PNG 내려받기(파일 이름에 날짜·모둠)`, fname)
+  check((await page.locator('.share-status').innerText()).trim().length > 0, `${tag} 결과 이미지: 저장 안내 한 줄(라이브 영역)`)
+  await page.keyboard.press('Escape')
+  check((await page.locator('.share-page').count()) === 0 && (await page.locator('.finale-board').count()) === 1, `${tag} 결과 이미지: Esc는 대화상자만 닫는다(나란히 보기 그대로)`)
+  check(await shareBtn.evaluate((b) => b === document.activeElement), `${tag} 결과 이미지: 닫으면 연 단추로 포커스`)
+  // 섬 위에서 보기(겹쳐 보기 → 미션 1)
+  await page.getByRole('button', { name: L.island }).click()
+  await page.waitForSelector('.wf-tabs')
+  await page.waitForTimeout(700)
+  await shot(page, `${pre}-s6-world`)
+  await langScreen(page, `${tag} S6 겹쳐 보기`, { overview: true })
+  await page.getByRole('tab').nth(1).click()
+  await page.waitForTimeout(700)
+  if (full) await shot(page, `${pre}-s6-focus`)
+  await langScreen(page, `${tag} S6 미션 1`)
+  // 자료와 한계
+  await page.getByRole('button', { name: L.data }).first().click()
+  await page.waitForSelector('#s8-title')
+  const s8 = await page.locator('.data-sheet').innerText()
+  check(s8.includes(L.limit) && s8.includes('2026-04-13') && s8.includes('행정안전부'), `${tag} S8: 한계 9번·기준일·출처 원문 이름`)
+  if (full) await shot(page, `${pre}-s8-data`)
+  await langScreen(page, `${tag} S8`, { dataPage: true })
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: L.home }).last().click()
+  await page.waitForSelector('#s0-title')
+  check((await page.locator('#s0-title').innerText()) === L.title, `${tag} 처음으로: 같은 언어`)
+  await page.getByRole('radio', { name: '한국어' }).click()
+  await page.waitForFunction(() => document.querySelector('#s0-title')?.textContent === '닿는 날', null, { timeout: 15000 })
+  check((await page.evaluate(() => document.documentElement.lang)) === 'ko', `${tag} 언어: 한국어로 돌아오기`)
+  check(errors.length === 0, `${tag} 콘솔·페이지 오류 없음`, errors.slice(0, 3).join(' | '))
+  await browser.close()
+}
+
+/** 모바일 안내(390)도 언어를 고를 수 있고, 자료와 한계도 그 언어 */
+async function langMobile() {
+  const browser = await chromium.launch({ channel: CHANNEL, headless: true })
+  const m = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  current = m
+  await m.goto(BASE)
+  await m.waitForSelector('.mobile')
+  await m.getByRole('radio', { name: 'Tiếng Việt' }).click()
+  await m.waitForFunction(() => document.documentElement.lang === 'vi')
+  check((await m.locator('.mobile').innerText()).includes('máy tính'), '390x844 vi: 모바일 안내가 베트남어')
+  await shot(m, '390x844-vi-mobile')
+  await noHangul(m, '390x844 vi 모바일 안내')
+  await fitsCheck(m, '390x844 vi 모바일 안내')
+  await m.getByRole('button', { name: 'Dữ liệu và giới hạn' }).click()
+  await m.waitForSelector('#s8-title', { timeout: 5000 })
+  await shot(m, '390x844-vi-data')
+  await noHangul(m, '390x844 vi 자료와 한계', true)
+  await layoutGeometry(m, '390x844 vi 자료와 한계', check)
   await browser.close()
 }
 
 /** 한 묶음이 예외로 멈춰도 그때까지의 결과와 멈춘 화면(fail-<묶음>.png)을 남기고 다음 묶음으로 간다. 종료 코드는 1 */
 async function stage(name, fn) {
+  if (ONLY && !ONLY.some((o) => name.startsWith(o))) return
   try {
     await fn()
   } catch (e) {
@@ -964,6 +1315,12 @@ await stage('1440x900', () => run(1440, 900, true))
 await stage('1024x768', () => run(1024, 768, false))
 await stage('1280x800-reduce', () => run(1280, 800, false, 'reduce'))
 await stage('extras', () => extras())
+await stage('lang-en-1440', () => langRun('en', 1440, 900, true))
+await stage('lang-vi-1440', () => langRun('vi', 1440, 900, true))
+await stage('lang-en-1024', () => langRun('en', 1024, 768, false))
+await stage('lang-vi-1280', () => langRun('vi', 1280, 800, false))
+await stage('lang-vi-1024', () => langRun('vi', 1024, 768, false))
+await stage('lang-mobile', () => langMobile())
 meta.finishedAt = new Date().toISOString()
 writeFileSync(new URL('report.json', OUT), JSON.stringify({ meta, results }, null, 1))
 for (const r of results) console.log(`${r.status} ${r.name}${r.detail ? `  — ${r.detail.slice(0, 160)}` : ''}`)

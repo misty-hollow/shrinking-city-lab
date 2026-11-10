@@ -132,8 +132,8 @@ export function WorldFinale(p: Props) {
   )
   const basis = (
     <div className="wf-basis">
-      <Badge cls="REAL_DATA">실제 10일</Badge>
-      <Badge cls="SIMULATION_ASSUMPTION">가정 5일</Badge>
+      <Badge cls="REAL_DATA">{copy.badges.real10}</Badge>
+      <Badge cls="SIMULATION_ASSUMPTION">{copy.badges.assumed5}</Badge>
       <span>{copy.finale.basis}</span>
     </div>
   )
@@ -272,7 +272,7 @@ export function WorldFinale(p: Props) {
       )}
       <div className="wf-end" data-occlude>
         <p className="wf-closing">
-          {copy.finale.closing.split(/(?<=요\.) /).map((line, i) => (
+          {copy.finale.closing.split(/(?<=\.) /).map((line, i) => (
             <span key={line}>
               {i > 0 && <br />}
               {line}
