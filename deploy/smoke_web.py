@@ -8,7 +8,7 @@
   2. HTML이 가리키는 모든 자산(./assets/·/assets/)이 200, 비어 있지 않음, JS는 javascript·CSS는 css 형식
   3. 앱 자료 6개(data/*.json·terrain.bin)가 200이고 **바이트가 data.lock.json의 sha256과 같다**(SPA 물러섬이
      index.html을 대신 돌려주면 여기서 잡힌다)
-  4. 라이선스 고지(licenses/THIRD_PARTY_NOTICES.txt·글꼴 OFL 2개) 200
+  4. 라이선스 고지(licenses/THIRD_PARTY_NOTICES.txt·글꼴 OFL 3개) 200
   5. 깊은 주소(--probe-path, 예: 옛 걸어봄 공유 주소)도 같은 HTML이고, 그 HTML의 자산이 **뿌리 기준(/assets/)**이라
      그 주소에서도 열린다
   6. --expect-previous-asset: 전환 직전 HTML의 자산이 여전히 200(Caddy의 previous 물러섬)
@@ -29,7 +29,12 @@ import urllib.request
 from pathlib import Path
 
 APP_DATA = ("scenario.json", "geometry.json", "landscape.json", "golden.json", "manifest.json", "terrain.bin")
-LICENSES = ("licenses/THIRD_PARTY_NOTICES.txt", "licenses/Pretendard-OFL.txt", "licenses/Hahmlet-OFL.txt")
+LICENSES = (
+    "licenses/THIRD_PARTY_NOTICES.txt",
+    "licenses/Pretendard-OFL.txt",
+    "licenses/Hahmlet-OFL.txt",
+    "licenses/Inter-OFL.txt",
+)
 
 
 def fetch(url: str, accept: str = "*/*") -> tuple[int, str, bytes]:

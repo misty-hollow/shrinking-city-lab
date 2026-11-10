@@ -9,7 +9,7 @@ import { useState } from 'react'
 
 import { copy } from '../content/copy'
 import type { LandscapeCombo, Scenario } from '../data/types'
-import { days1, people } from '../engine/format'
+import { days1, int, people, weekDays } from '../engine/format'
 
 /** 어두운 Sheet 위(UI_DESIGN_SYSTEM §5): 밀도는 무채 4단, 표지는 크림 + 판 색 테두리. 호박빛(데이터의 빛)은 쓰지 않는다 */
 const RAMP = ['#33353B', '#484B53', '#63676F', '#858990']
@@ -47,7 +47,7 @@ export function Landscape({ combo, mine, current, scenario, others = [] }: Props
   const xticks = Array.from({ length: Math.floor(xMax) + 1 }, (_, k) => k)
   const yticks = Array.from({ length: Math.floor(yMax) + 1 }, (_, k) => k)
   const pointTip = (name: string, p: Pt, extra = '') =>
-    `${name} · 평균 진료일 주 ${days1(p.mean)}일 · 가장 불리한 읍·면 주 ${days1(p.worst)}일${extra}`
+    `${name} · ${copy.kpi.meanDays} ${weekDays(p.mean)} · ${copy.kpi.worst} ${weekDays(p.worst)}${extra}`
   return (
     <div className="landscape">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${copy.debrief.landscape}. ${copy.debrief.landscapeSentence}`}>
@@ -83,7 +83,7 @@ export function Landscape({ combo, mine, current, scenario, others = [] }: Props
           <g
             key={`f${k}`}
             onMouseEnter={() =>
-              setTip(pointTip(copy.debrief.legendFront, { mean: f.mean_days, worst: f.worst_emd_days }, ` · 주 3일 이상 ${people(f.cov3_pop)}`))
+              setTip(pointTip(copy.debrief.legendFront, { mean: f.mean_days, worst: f.worst_emd_days }, copy.debrief.tipCov3(people(f.cov3_pop))))
             }
             onMouseLeave={() => setTip(null)}
           >
@@ -175,7 +175,7 @@ export function Landscape({ combo, mine, current, scenario, others = [] }: Props
           <svg width="16" height="16" aria-hidden="true">
             <circle cx="8" cy="8" r="5" fill={GROUND} stroke={INK} strokeWidth="1.8" />
           </svg>
-          {copy.debrief.legendFront} ({combo.front.length}개)
+          {copy.debrief.legendFront} {copy.debrief.frontCount(combo.front.length)}
         </span>
         {others.length > 0 && (
           <span>
@@ -191,7 +191,7 @@ export function Landscape({ combo, mine, current, scenario, others = [] }: Props
               <rect key={c} x={k * 10} y="0" width="9" height="10" fill={c} />
             ))}
           </svg>
-          {copy.debrief.legendDensity(combo.n_alloc.toLocaleString('ko-KR'))}
+          {copy.debrief.legendDensity(int(combo.n_alloc))}
         </span>
       </div>
       <details>
@@ -199,9 +199,9 @@ export function Landscape({ combo, mine, current, scenario, others = [] }: Props
         <table className="kpi-table">
           <thead>
             <tr>
-              <th>배분</th>
-              <th>평균 진료일</th>
-              <th>가장 불리한 읍·면</th>
+              <th>{copy.debrief.tableAlloc}</th>
+              <th>{copy.kpi.meanDays}</th>
+              <th>{copy.kpi.worst}</th>
             </tr>
           </thead>
           <tbody>

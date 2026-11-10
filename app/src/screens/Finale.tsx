@@ -103,6 +103,8 @@ interface BoardProps {
   onOpen(m: MissionId): void
   /** 돌아왔을 때 포커스를 줄 열 */
   returnFocus: MissionId | null
+  /** 결과 이미지 대화상자 열기 */
+  onShare?(): void
 }
 
 export function FinaleBoard(p: BoardProps) {
@@ -114,6 +116,15 @@ export function FinaleBoard(p: BoardProps) {
   }, [])
   return (
     <section className="finale-board" aria-labelledby="s6-title">
+      {p.onShare && (
+        <button type="button" className="btn btn-small finale-share" onClick={p.onShare}>
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M10 3v9M6.2 8.4 10 12.2l3.8-3.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 13.5V16h12v-2.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {copy.share.open}
+        </button>
+      )}
       <header className="finale-head">
         <h1 id="s6-title" tabIndex={-1} ref={h}>
           {copy.finale.title}
@@ -339,8 +350,8 @@ export function FinalePanel(p: PanelProps) {
     <>
       <section className="block" aria-label={copy.finale.basis}>
         <div className="badges">
-          <Badge cls="REAL_DATA">실제 10일</Badge>
-          <Badge cls="SIMULATION_ASSUMPTION">가정 5일</Badge>
+          <Badge cls="REAL_DATA">{copy.badges.real10}</Badge>
+          <Badge cls="SIMULATION_ASSUMPTION">{copy.badges.assumed5}</Badge>
         </div>
         <p style={{ margin: '0 0 4px', fontWeight: 700 }}>{copy.finale.basis}</p>
         <p className="small" style={{ margin: 0 }}>

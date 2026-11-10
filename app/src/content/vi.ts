@@ -1,0 +1,665 @@
+/**
+ * Văn bản tiếng Việt trên màn hình. Cùng cấu trúc với bản tiếng Hàn (copy.ts `ko`); trình kiểm tra kiểu bắt buộc đủ mọi khóa.
+ *
+ * Giọng văn: điềm đạm, ấm áp, dễ hiểu. Câu ngắn, xưng "bạn", không dùng dấu chấm than.
+ * Viết cho người chơi lần đầu (học sinh, sinh viên, cư dân người Việt ở Gongju), không dịch từng chữ.
+ * - 보건지소 = "trạm y tế" (giới thiệu: trạm y tế công, mỗi xã một trạm). 진료일 = "ngày khám".
+ * - 읍·면 = "xã" (phần giới thiệu giải thích: 1 eup và 9 myeon, trong game gọi chung là xã). 마을(법정리) = "làng".
+ * - 닿다 = "tới được" / "trong tầm"; không tới được = "ngoài tầm". Người dân: "tiếp cận".
+ * - Thời gian luôn là "thời gian tiếp cận theo đường bộ" / "{n} phút đường bộ", không gọi là thời gian di chuyển.
+ * - Địa danh giữ nguyên dạng La-tinh hóa tiếng Hàn, không dịch (content/places.ts).
+ * - Số thập phân dùng dấu phẩy (2,4), hàng nghìn dùng dấu chấm (40.204) — engine/format.ts lo phần này.
+ * - Không xếp hạng, không chấm điểm, không "tối ưu", "tốt nhất", "khuyến nghị" (forbidden.test.ts), trừ các câu phủ định cố định.
+ */
+
+import type { Copy } from './copy'
+
+export const vi: Copy = {
+  product: 'Shrinking City Lab',
+  scenario: 'Ngày khám trong tầm với',
+  subtitle: 'Mô phỏng chia ngày khám cho các trạm y tế công ở Gongju',
+  dataAndLimits: 'Dữ liệu và giới hạn',
+  docTitle: 'Ngày khám trong tầm với — mô phỏng chia ngày khám cho các trạm y tế công ở Gongju',
+  docDescription:
+    'Mô phỏng giáo dục dựng từ dữ liệu thật của thành phố Gongju, Hàn Quốc. Chia số ngày khám mỗi tuần cho 10 trạm y tế và xem ngày khám tới được những làng nào.',
+  language: 'Ngôn ngữ',
+  badges: {
+    real10: '10 ngày thật',
+    assumed5: '5 ngày giả định',
+  },
+
+  stage: {
+    start: 'Bắt đầu',
+    intro: 'Giới thiệu',
+    tutorial: 'Hướng dẫn',
+    mission: (k: number) => `Nhiệm vụ ${k}/3`,
+    finale: 'Ba Gongju',
+  },
+
+  threshold: {
+    label: 'Mốc “trong tầm”',
+    help: 'Thời gian tiếp cận đường bộ · không tính kẹt xe, chờ đợi',
+    option: (t: number) => `${t} phút`,
+    locked: 'Kết quả đã chốt tính theo mốc 15 phút',
+  },
+
+  baseline: {
+    label: 'Mốc so sánh',
+    current: (date: string) => `Thực tế hiện nay (${date.slice(0, 7)}, 10 ngày)`,
+    last: (k: number) => `Phân bổ vừa chốt (Nhiệm vụ ${k})`,
+  },
+
+  start: {
+    headline: '10 trạm y tế, hiện mở khám tổng cộng 10 ngày mỗi tuần. Nếu có thêm 5 ngày, bạn sẽ đặt ở đâu?',
+    fact: ['10 trạm y tế, hiện mở khám tổng cộng ', '10 ngày mỗi tuần.'],
+    question: ['Nếu có thêm 5 ngày,', 'bạn sẽ đặt ở đâu?'],
+    sub: 'Trò chơi giáo dục dựng từ dữ liệu thật của Gongju, Hàn Quốc · khoảng 5 phút',
+    begin: 'Bắt đầu',
+    stepsLabel: 'Các bước',
+    steps: [
+      'Xem 10 ngày khám mỗi tuần hiện nay tới được những làng nào',
+      'Chia 10 ngày thật + 5 ngày giả định theo ba mục tiêu khác nhau',
+      'Đặt ba phương án cạnh nhau, xem làng nào được lợi, làng nào chịu thiệt',
+    ],
+    notPolicy: 'Trò chơi này không đánh giá công tác hành chính thực tế của Gongju và không khuyến nghị chính sách nào.',
+  },
+
+  intro: {
+    next: 'Tiếp',
+    skip: 'Bỏ qua',
+    card1: (pop: string, p: string) =>
+      `Gongju là một thành phố ở Hàn Quốc. Khoảng ${pop} sống tại 10 xã vùng nông thôn của thành phố (1 eup và 9 myeon, trong trò chơi gọi chung là xã). ${p}% trong số đó từ 65 tuổi trở lên.`,
+    card1Small: (date: string) => `Đăng ký cư trú ${date} · Dữ liệu thật`,
+    card1Scope: 'Khu trung tâm thành phố Gongju (các phường, dong) không nằm trong trò chơi này.',
+    card2: (open: number, list: string) =>
+      `Mỗi xã có một trạm y tế công do thành phố vận hành. Hiện có ${open} trạm mở khám bệnh thông thường: ${list}.`,
+    card2Note: 'Trạm mở cách tuần được tính là 0,5 ngày mỗi tuần. Mỗi ô sáng trong bong bóng thoại là một ngày khám.',
+    card2Small: (date: string) => `Lịch bác sĩ đến khám ${date} · Dữ liệu thật`,
+    card3: 'Cộng số ngày khám bệnh của cả 10 trạm y tế, hiện nay được 10 ngày mỗi tuần. Một ngày khám là một ngày một trạm mở khám bệnh thông thường.',
+    card3Note: 'Ngày khám là đơn vị của trò chơi. Nó không thể hiện số bác sĩ, chuyên khoa hay các bệnh viện ở trung tâm thành phố.',
+    card3SmallReal: (date: string) => `10 ngày · Dữ liệu thật · ${date}`,
+    card3SmallAssumption: 'Đơn vị ngày khám · Giả định của trò chơi',
+  },
+
+  tutorial: {
+    title: 'Hướng dẫn · Gongju hôm nay',
+    step1:
+      'Cộng ngày khám của mọi trạm nằm trong 15 phút đường bộ từ một làng, ta được số ngày khám tới được làng đó (tối đa 5 ngày mỗi tuần). Càng nhiều ngày khám tới được, càng nhiều cửa sổ sáng đèn. Những làng tối đèn vẫn có người sinh sống.',
+    mapControls: 'Kéo hoặc W A S D để di chuyển · Kéo chuột phải để xoay · Cuộn để phóng to · R về góc nhìn đầu · ? xem cách điều khiển',
+    step2: 'Ở góc trên bên phải, hãy bấm thử 10, 15 hoặc 20 phút. Mốc thời gian được coi là “trong tầm” sẽ thay đổi.',
+    step2Changed: (fromT: number, from: string, toT: number, to: string) =>
+      `Phân bổ không đổi, nhưng số dân tiếp cận ≥1 ngày khám/tuần đổi từ ${from} (${fromT} phút) thành ${to} (${toT} phút). Chọn mốc bao nhiêu phút cũng là một lựa chọn.`,
+    step2Return: 'Đặt lại 15 phút để đi tiếp.',
+    step3:
+      'Bấm dấu − ở cuối bong bóng của trạm Uidang. Một ngày khám sẽ chuyển xuống bàn tay bên dưới. Sau đó bấm vào bong bóng của một trạm khác để đặt ngày đó vào.',
+    step3Pool: (k: number) => `Ngày khám có thể chuyển: ${k}`,
+    step3Result: (fac: string, gained: number, thinner: number) =>
+      gained > 0
+        ? `Đặt một ngày ở ${fac}, có thêm ${gained} làng vào trong tầm khám. Đổi lại, ${thinner} làng gần Uidang có ít ngày khám hơn.`
+        : `Bạn đã đặt một ngày ở ${fac}. Không có làng nào mới vào trong tầm, còn ${thinner} làng gần Uidang có ít ngày khám hơn.`,
+    step3Next: 'Trong các nhiệm vụ, bạn sẽ chia 15 ngày: 10 ngày thật cộng 5 ngày giả định. Mỗi nhiệm vụ có một mục tiêu riêng.',
+    next: 'Tiếp',
+    skip: 'Bỏ qua',
+    startMission: 'Bắt đầu nhiệm vụ',
+  },
+
+  missions: {
+    m1: {
+      title: 'Nhiệm vụ 1 · Nâng mức trung bình',
+      name: 'Nâng mức trung bình',
+      goal: (target: string) =>
+        `Hãy nâng số ngày khám trung bình mà mỗi người dân tiếp cận được trong 15 phút đường bộ lên ${target} trở lên.`,
+      kpiName: 'Số ngày khám trung bình',
+      reference: 'Phân bổ tham khảo · thiên về trung bình',
+      referenceNote: 'Nếu chỉ xét “số ngày khám trung bình”, đây là một trong những phân bổ cao nhất.',
+    },
+    m2: {
+      title: 'Nhiệm vụ 2 · Nâng xã thiệt thòi nhất',
+      name: 'Nâng xã thiệt thòi nhất',
+      goal: (target: string) => `Hãy nâng số ngày khám trung bình của xã thiệt thòi nhất lên ${target} trở lên.`,
+      kpiName: 'Xã thiệt thòi nhất',
+      reference: 'Phân bổ tham khảo · thiên về xã thiệt thòi nhất',
+      referenceNote: 'Nếu chỉ xét “xã thiệt thòi nhất”, đây là một trong những phân bổ cao nhất.',
+    },
+    m3: {
+      title: 'Nhiệm vụ 3 · Phủ dày hơn',
+      name: 'Phủ dày hơn',
+      goal: (target: string) =>
+        `Hãy tăng số người dân tiếp cận được từ 3 ngày khám mỗi tuần trở lên, trong 15 phút đường bộ, lên ${target} trở lên.`,
+      kpiName: 'Dân tiếp cận ≥3 ngày/tuần',
+      reference: 'Phân bổ tham khảo · thiên về độ dày',
+      referenceNote: 'Nếu chỉ xét “dân tiếp cận ≥3 ngày/tuần”, đây là một trong những phân bổ cao nhất.',
+    },
+  },
+
+  briefing: {
+    resource: 'Ngày khám cần chia: 15 ngày mỗi tuần = 10 ngày thật + 5 ngày giả định',
+    fresh: 'Mọi trạm bắt đầu từ 0 ngày. Bạn chia lại cả 15 ngày từ đầu.',
+    realBadge: (date: string) => `Dữ liệu thật · lịch khám ${date}`,
+    assumptionBadge: 'Giả định của trò chơi · nếu có thêm 5 ngày',
+    assumption:
+      'Nhiệm vụ này là một thử nghiệm chính sách giả định. Ta giả định có thêm 5 ngày ngoài 10 ngày hiện nay. Điều đó không có nghĩa là thực tế phải tăng thêm 5 ngày.',
+    judged: 'Xét theo mốc 15 phút đường bộ',
+    kept: 'Các phân bổ bạn đã chốt sẽ được đặt cạnh nhau ở phần cuối, “Ba Gongju”.',
+    begin: 'Bắt đầu chia',
+    skip: 'Bỏ qua nhiệm vụ này',
+  },
+
+  pool: {
+    title: 'Ngày khám chưa chia',
+    remaining: (k: string, b: number) => `Ngày khám còn lại ${k} / ${b}`,
+    caption: '10 ngày thật + 5 ngày giả định',
+    captionTutorial: '10 ngày thật hiện nay',
+    empty: 'Đã đặt hết. Bạn có thể chốt luôn hoặc tiếp tục đổi chỗ.',
+    fillFirst: 'Đặt hết số ngày khám còn lại thì mới chốt được.',
+  },
+
+  facility: {
+    closed: 'Không khám',
+    reach: (t: number, k: number, pop: string) => `Trong ${t} phút: ${k} làng · ${pop}`,
+    dec: (name: string) => `Bớt một ngày khám ở ${name}`,
+    inc: (name: string) => `Thêm một ngày khám cho ${name}`,
+    keysHint: 'Chọn một bong bóng rồi nhấn + − hoặc → ← để đặt hay bớt một ngày. Nhấn ↑ ↓ để sang trạm bên cạnh.',
+    listLabel: '10 trạm y tế',
+    dockOrder: 'Từ tây sang đông',
+  },
+
+  missionCard: {
+    targetLabel: (v: string) => `Mục tiêu ${v}`,
+    achieved: (k: number) => `Đạt mục tiêu · thuộc nhóm ${k}% cao nhất trong các phân bổ có thể`,
+    notYet: (k: number) => `Thuộc nhóm ${k}% cao nhất trong các phân bổ có thể`,
+    remainingDays: (v: string) => `Còn ${v} ngày/tuần nữa tới mục tiêu`,
+    remainingPop: (v: string) => `Còn ${v} nữa tới mục tiêu`,
+    judgedAt15: 'Nhiệm vụ được xét theo mốc 15 phút',
+    confirm: 'Chốt phân bổ này',
+    goalTag: 'Chỉ số nhiệm vụ',
+    emdStrip: (target: string) => `Số ngày khám trung bình của 10 xã · vạch ngang = mục tiêu ${target}`,
+    belowTarget: (k: number) => (k > 0 ? `${k} xã dưới mục tiêu` : 'Mọi xã đều đạt mục tiêu'),
+    gapLine: (v: string) => `Chênh lệch giữa các xã ${v} ngày/tuần`,
+    thickness: (target: string) => `Độ dày ngày khám tính theo số dân · vạch dọc = mục tiêu ${target}`,
+    thickParts: ['≥3 ngày/tuần', '1–2 ngày/tuần', 'Ngoài tầm'],
+    compareLast: (k: number) => `So với phân bổ vừa chốt (Nhiệm vụ ${k})`,
+    compareLastOff: 'Quay lại so với thực tế hiện nay (10 ngày)',
+  },
+
+  kpi: {
+    meanDays: 'Số ngày khám trung bình',
+    meanDaysSub: (t: number) => `Trong ${t} phút · bình quân theo dân · tối đa 5 ngày`,
+    cov1: 'Dân tiếp cận ≥1 ngày/tuần',
+    cov1Sub: (k: string) => `Ngoài tầm: ${k}`,
+    cov3: 'Dân tiếp cận ≥3 ngày/tuần',
+    worst: 'Xã thiệt thòi nhất',
+    gap: 'Chênh lệch giữa các xã',
+    gapValue: (v: string) => `Chênh ${v} ngày/tuần`,
+    gapSub: (hi: string, hv: string, lo: string, lv: string) => `Cao nhất ${hi} ${hv} · thấp nhất ${lo} ${lv}`,
+    p90: 'Thời gian tiếp cận 90%',
+    p90Sub: '9 trên 10 người dân tới được một trạm có ngày khám trong khoảng thời gian đường bộ này',
+    bands: ['Dưới 10 phút', '10–15 phút', '15–20 phút', 'Trên 20 phút'],
+    none: 'Không có trạm mở khám',
+    info: 'Giải thích',
+    better: 'Tốt hơn',
+    worse: 'Kém hơn',
+    same: 'Như cũ',
+    legendBase: (base: string) => `So với ${base}`,
+    legendCurrent: 'thực tế hiện nay (10 ngày)',
+    legendLast: (k: number) => `phân bổ Nhiệm vụ ${k}`,
+    explain: {
+      meanDays: (t: number) =>
+        `Với mỗi làng, cộng ngày khám của các trạm trong vòng ${t} phút đường bộ (tối đa 5 ngày). Sau đó lấy bình quân theo số dân, nên làng đông dân có trọng số lớn hơn. Đơn vị ngày khám và mức trần 5 ngày là giả định của trò chơi.`,
+      cov1: (t: number) => `Số người dân sống ở những làng có ít nhất 1 ngày khám mỗi tuần tới được trong ${t} phút đường bộ.`,
+      cov3: (t: number) => `Số người dân sống ở những làng có ít nhất 3 ngày khám mỗi tuần tới được trong ${t} phút đường bộ.`,
+      worst: 'Tính số ngày khám trung bình của từng xã, đây là xã có giá trị thấp nhất. Nếu bằng nhau, trò chơi chọn xã có nhiều người ngoài tầm hơn.',
+      gap: 'Hiệu số giữa xã có trung bình cao nhất và xã thấp nhất. Càng nhỏ thì ngày khám tới được các xã càng đều.',
+      p90: 'Với mỗi làng, lấy thời gian tiếp cận đường bộ từ điểm đại diện của làng tới trạm gần nhất có ít nhất một ngày khám. Mọi người trong một làng được tính cùng một thời gian. Xếp toàn bộ người dân từ ngắn đến dài, đây là thời gian ở mốc 90%. Không tính kẹt xe, đèn tín hiệu và thời gian chờ.',
+    },
+  },
+
+  emdList: {
+    title: 'Ngày khám theo xã',
+    sortLow: 'Thấp trước',
+    sortName: 'Theo tên',
+    zeroVillages: (k: number) => `${k} làng 0 ngày`,
+  },
+
+  controls: {
+    deltaOn: 'Đang hiện thay đổi',
+    deltaOff: 'Đang ẩn thay đổi',
+  },
+
+  region: {
+    close: 'Đóng',
+    pop: (v: string) => `Dân số ${v}`,
+    pop65: (p: string) => `Từ 65 tuổi ${p}%`,
+    pop65Badge: (date: string) => `Dữ liệu thật · ${date}`,
+    days: (v: string) => `Trung bình của xã ${v}`,
+    zeroTitle: 'Làng ngoài tầm khám',
+    zeroNone: 'Không có làng nào ngoài tầm',
+    zeroSummary: (k: number, pop: string, p: string) => `${k} làng · ${pop} · ${p}% dân của xã`,
+    unreachableNote: (k: number, t: number) => `Trong đó ${k} làng không có trạm nào trong ${t} phút đường bộ, nên phân bổ nào cũng không tới được`,
+    zeroList: 'Danh sách làng',
+    unreachable: (t: number) => `Không có trạm trong ${t} phút`,
+    facility: (name: string, days: string) => `Trạm của xã này: ${name} · ${days}`,
+  },
+
+  debrief: {
+    achieved: (k: number) => `Đạt · thuộc nhóm ${k}% cao nhất trong các phân bổ có thể`,
+    missed: (k: number) => `Chưa đạt · thuộc nhóm ${k}% cao nhất trong các phân bổ có thể`,
+    mixedEffect:
+      'Kết quả này dùng 15 ngày: 10 ngày thật cộng 5 ngày giả định. Vì vậy phần chênh so với thực tế hiện nay (10 ngày) có lẫn cả tác động của 5 ngày tăng thêm.',
+    gained: 'Cái được',
+    gainedNone: 'Không có chỉ số nào tốt hơn mốc so sánh',
+    lost: 'Cái mất',
+    lostTitle: (k: number, pop: string) => `${k} làng trở thành ngoài tầm · ${pop}`,
+    thinnerTitle: (k: number, pop: string) => `${k} làng giảm từ 1 ngày trở lên · ${pop}`,
+    lostNone: 'Không có làng nào thiệt hơn mốc so sánh',
+    more: (k: number) => `Xem thêm ${k} làng`,
+    less: 'Thu gọn',
+    lostRest: (k: number) => `và ${k} làng khác`,
+    lostAll: 'Xem tên tất cả các làng',
+    table: '6 chỉ số',
+    colKpi: 'Chỉ số',
+    colBase: 'Thực tế hiện nay (10 ngày)',
+    colMine: 'Phân bổ của bạn (15 ngày)',
+    colDiff: 'Chênh lệch',
+    landscape: 'Biểu đồ các phân bổ',
+    landscapeSentence: 'Càng lên trên và sang phải thì cả hai chỉ số càng cao. Nhưng điểm xa nhất bên phải và điểm cao nhất là hai phân bổ khác nhau.',
+    landscapeX: 'Số ngày khám trung bình (mỗi tuần)',
+    landscapeY: 'Xã thiệt thòi nhất (mỗi tuần)',
+    legendMine: 'Phân bổ của bạn (15 ngày)',
+    legendCurrent: 'Thực tế hiện nay (10 ngày)',
+    legendFront: 'Phân bổ không bị phân bổ nào vượt cả hai chỉ số',
+    legendDensity: (k: string) => `Mật độ của ${k} phân bổ có thể (15 ngày, ô càng đậm càng nhiều)`,
+    legendOthers: 'Kết quả nhiệm vụ khác (15 ngày)',
+    otherPoint: (k: number) => `Nhiệm vụ ${k}`,
+    frontCount: (k: number) => `(${k})`,
+    tipCov3: (pop: string) => ` · tiếp cận ≥3 ngày/tuần ${pop}`,
+    tableAlloc: 'Phân bổ',
+    tableView: 'Xem dạng bảng',
+    otherGoal: 'Nếu mục tiêu khác đi',
+    otherGoalLine: (kpi: string) =>
+      `Cũng 15 ngày, nhưng nếu nâng “${kpi}” thì phân bổ sẽ khác như thế này. Những tháp màu xám trên bản đồ là phân bổ đó. Bạn hãy tự thử ở nhiệm vụ tiếp theo.`,
+    ghostShow: 'Xem phân bổ tham khảo',
+    ghostHide: 'Ẩn phân bổ tham khảo',
+    compareTitle: (k: number) => `So với Nhiệm vụ ${k} · cả hai đều 15 ngày`,
+    compareLine: (k: number, better: number, worse: number) =>
+      `Cùng 15 ngày nhưng chia khác đi. So với Nhiệm vụ ${k}, có ${better} làng được lợi hơn và ${worse} làng chịu thiệt hơn.`,
+    compareColPrev: (k: number) => `Nhiệm vụ ${k}`,
+    compareColMine: 'Phân bổ lần này',
+    compareBetter: 'Xã được lợi hơn',
+    compareWorse: 'Xã chịu thiệt hơn',
+    compareNone: 'Không có',
+    compareStage: (k: number) => `So với Nhiệm vụ ${k} trên bản đồ`,
+    compareStageOff: 'Tắt so sánh trên bản đồ',
+    limitTitle: 'Giới hạn của mô hình',
+    next: 'Nhiệm vụ tiếp theo',
+    toFinale: 'Xem Ba Gongju',
+    again: 'Sửa phân bổ',
+    home: 'Về màn hình đầu',
+  },
+
+  finale: {
+    title: 'Ba Gongju',
+    col: (k: number) => `Nhiệm vụ ${k}`,
+    goalLegend: 'Ô có viền = chỉ số mà nhiệm vụ đó nhắm tới',
+    changeHead: 'So với thực tế hiện nay (10 ngày) · đã gồm 5 ngày tăng thêm',
+    changeCell: (pop: string, k: number) => `${pop} (${k} làng)`,
+    lead: 'Cả ba phương án đều chia cùng 15 ngày mỗi tuần. Tùy vào việc coi trọng điều gì, nơi được lợi và nơi chịu thiệt cũng khác nhau.',
+    leadSameAlloc: 'Bạn đã chốt cùng một phân bổ ở cả ba nhiệm vụ. Mục tiêu khác nhau, nhưng phân bổ giống nhau nên mỗi làng nhận số ngày khám như nhau.',
+    leadSameOutcome: 'Ba phân bổ khác nhau, nhưng mỗi làng nhận số ngày khám như nhau.',
+    basis: 'Cả ba đều dùng 10 ngày thật + 5 ngày giả định = 15 ngày · thử nghiệm chính sách giả định',
+    notCurrent: 'Đây là các phân bổ giả định, khác với 10 ngày mỗi tuần đang thực sự vận hành. Mọi so sánh đều theo mốc 15 phút đường bộ.',
+    reference: 'Phân bổ tham khảo',
+    referenceNote: 'Ở nhiệm vụ bạn bỏ qua, trò chơi đặt vào một trong những phân bổ cao nhất nếu chỉ xét chỉ số của nhiệm vụ đó (phân bổ tham khảo).',
+    achieved: (k: number) => `Đạt · nhóm ${k}% cao nhất`,
+    missed: (k: number) => `Chưa đạt · nhóm ${k}% cao nhất`,
+    goalTag: 'Mục tiêu của nhiệm vụ này',
+    goalShort: 'Mục tiêu',
+    factMean: 'Ngày khám trung bình',
+    factWorst: 'Xã thiệt thòi nhất',
+    factCov3: 'Dân tiếp cận ≥3 ngày/tuần',
+    factZero: (k: number, pop: string) => `${k} làng ngoài tầm · ${pop}`,
+    factP90: (v: string) => `Thời gian tiếp cận 90% ${v}`,
+    thinEmds: (list: string) => `Xã dưới 1 ngày/tuần: ${list}`,
+    thickEmds: (list: string) => `Xã từ 3 ngày/tuần: ${list}`,
+    noneEmds: 'không có',
+    allocStrip: 'Ngày khám theo trạm',
+    open: (title: string) => `Phóng to phân bổ “${title}” trên bản đồ`,
+    openHint: 'Bấm để phóng to trên bản đồ',
+    back: 'Quay lại ba phương án',
+    focusTitle: (title: string) => `${title} · 15 ngày mỗi tuần`,
+    base: 'Thay đổi trên bản đồ so với',
+    baseCurrent: 'Thực tế hiện nay (10 ngày)',
+    baseMission: (k: number) => `Nhiệm vụ ${k} (15 ngày)`,
+    mapLabel: (title: string, zero: number, worst: string) =>
+      `Bản đồ nhìn từ trên của phân bổ “${title}”. ${zero} làng ngoài tầm, xã thiệt thòi nhất là ${worst}.`,
+    tableTitle: '6 chỉ số · 15 phút đường bộ',
+    allocTitle: 'Ngày khám theo trạm',
+    allocTotal: 'Tổng',
+    allocTotalValue: '15 ngày mỗi tuần = 10 ngày thật + 5 ngày giả định',
+    emdTitle: 'Ngày khám trung bình theo xã',
+    emdLegend: 'Thay đổi = so với phân bổ ở cột bên trái · ô viền chấm = xã thiệt thòi nhất của phân bổ đó',
+    meanLine: (a: string, b: string, c: string, similar: boolean) =>
+      similar
+        ? `Số ngày khám trung bình khá gần nhau (${a} · ${b} · ${c}), nhưng những làng bị bỏ lại thì khác nhau.`
+        : `Số ngày khám trung bình lần lượt là ${a} · ${b} · ${c}.`,
+    zeroLine: (a: number, b: number, c: number) => `Số làng ngoài tầm khám: ${a} · ${b} · ${c}.`,
+    unreachableLine: (k: number, pop: string, t: number) =>
+      `Trong đó ${k} làng (${pop}) không có trạm y tế nào trong ${t} phút đường bộ, nên đặt ngày khám ở trạm nào cũng không tới được.`,
+    overlapLine: (union: number, all: number) =>
+      all > 0
+        ? `Có ${union} làng ngoài tầm vì cách phân bổ ở ít nhất một trong ba phương án. Trong đó ${all} làng ngoài tầm ở cả ba, số còn lại tùy vào phân bổ.`
+        : `Có ${union} làng ngoài tầm vì cách phân bổ ở ít nhất một trong ba phương án. Không làng nào ngoài tầm ở cả ba, nên tất cả đều tùy vào phân bổ.`,
+    sameZero: 'Những làng ngoài tầm do cách phân bổ là giống nhau ở cả ba phương án.',
+    noAllocZero: 'Ở cả ba phương án, không có làng nào ngoài tầm do cách phân bổ.',
+    sameAllocLine: 'Bạn đã chốt cùng một phân bổ ở cả ba nhiệm vụ, nên kết quả của ba phương án giống nhau.',
+    noZero: 'Ở cả ba phương án, không có làng nào ngoài tầm.',
+    zeroTitle: 'Làng còn 0 ngày do cách phân bổ',
+    zeroNone: 'Không có',
+    unreachableTitle: (t: number) => `Làng không phân bổ nào tới được · không có trạm y tế trong ${t} phút đường bộ`,
+    closing:
+      'Cùng 15 ngày, nhưng phân bổ thay đổi tùy bạn đẩy chỉ số nào lên đến cùng. Nếu chỉ nhìn mức trung bình, ta có thể không thấy những làng nào bị bỏ lại ngoài tầm khám.',
+    home: 'Về màn hình đầu',
+  },
+
+  legend: {
+    title: 'Cách đọc',
+    collapse: 'Đóng cách đọc',
+    expand: 'Cách đọc',
+    villageFull: 'Làng sáng hết cửa sổ = 3–5 ngày/tuần',
+    villageHalf: 'Mỗi bức tường sáng một cửa sổ = 1–2 ngày/tuần',
+    villageEmpty: 'Làng tối cửa sổ = ngoài tầm khám · vẫn có người ở',
+    villageNeutral: 'Một ngôi nhà ≈ 50 người dân',
+    house: 'Một ngôi nhà ≈ 50 người dân · không phải số lượng hay vị trí nhà thật',
+    tower: 'Một ô sáng trong bong bóng = một ngày khám (đèn trên tháp cũng vậy) · cách tuần = nửa ô',
+    route: 'Ánh sáng trên đường = đường bộ tới được (hiện khi trỏ chuột) · không phải nhân viên y tế hay xe thật đang di chuyển',
+    ghost: 'Tháp mờ bên cạnh = phân bổ đang so sánh',
+    better: 'Tốt hơn',
+    worse: 'Kém hơn',
+    deltaOf: 'So với mốc so sánh',
+    worst: 'Đường chấm trắng = xã thiệt thòi nhất',
+    cityCore: 'Vùng giấy xám = trung tâm thành phố Gongju (ngoài mô hình)',
+    landscape: 'Màu ruộng lúa, ruộng màu, rừng, cây và mái nhà chỉ là cảnh vật, không phải dữ liệu.',
+  },
+
+  help: {
+    open: 'Điều khiển',
+    close: 'Đóng điều khiển',
+    title: 'Cách điều khiển',
+    mapTitle: 'Bản đồ',
+    map: [
+      ['Kéo chuột trái · W A S D', 'Di chuyển bản đồ'],
+      ['Kéo chuột phải', 'Xoay · nghiêng'],
+      ['Con lăn chuột', 'Phóng to · thu nhỏ'],
+      ['R', 'Về góc nhìn ban đầu'],
+    ],
+    allocTitle: 'Ngày khám',
+    alloc: [
+      ['Bấm vào bong bóng', 'Đặt một ngày'],
+      ['− · bấm chuột phải', 'Bớt một ngày'],
+      ['Tab rồi + − hoặc → ←', 'Đặt · bớt bằng bàn phím'],
+      ['↑ ↓', 'Sang trạm bên cạnh'],
+      ['Ctrl Z', 'Hoàn tác'],
+    ],
+    otherTitle: 'Khác',
+    other: [
+      ['Esc', 'Hủy xem trước · đóng bảng'],
+      ['?', 'Mở · đóng cách điều khiển'],
+    ],
+  },
+
+  world: {
+    markersLabel: '10 trạm y tế · từ tây sang đông',
+    markerAria: (name: string, emd: string, days: string) => `${name}, ${emd}, ${days}.`,
+    handLabel: (left: number, budget: number) => `Ngày khám còn lại ${left} / ${budget}`,
+    handCount: (k: number) => `×${k}`,
+    handCaption: 'Ngày còn lại',
+    handTutorial: 'Ngày cần chuyển',
+    handTutorialEmpty: 'Lấy một ngày từ Uidang',
+    handTutorialDone: 'Đã chuyển một ngày',
+    handEmpty: 'Đã đặt hết',
+    handReal: (k: number) => `Thật ${k}`,
+    handAssumed: (k: number) => `Giả định ${k}`,
+    preview: {
+      blockedEmpty: 'Trong tay không còn ngày khám nào. Hãy bấm dấu − ở bong bóng của trạm khác để lấy một ngày.',
+      blockedMax: 'Mỗi trạm tối đa 5 ngày mỗi tuần',
+      blockedNone: 'Không còn ngày để bớt',
+      blockedTutorial: 'Trong phần hướng dẫn, hãy lấy một ngày từ Uidang rồi đặt vào trạm khác',
+      newly: (k: number) => `${k} làng mới vào trong tầm`,
+      thicker: (k: number) => `${k} làng lên mức ≥3 ngày/tuần`,
+      more: (k: number) => `${k} làng có thêm ngày khám`,
+      lost: (k: number) => `${k} làng trở thành ngoài tầm`,
+      thinner: (k: number) => `${k} làng xuống dưới 3 ngày/tuần`,
+      less: (k: number) => `${k} làng bớt ngày khám`,
+      same: 'Không làng nào thay đổi',
+      days: (fac: string, a: string, b: string) => `${fac}: ${a} → ${b} mỗi tuần`,
+      headInc: (fac: string) => `Nếu thêm 1 ngày cho ${fac}`,
+      headDec: (fac: string) => `Nếu bớt 1 ngày ở ${fac}`,
+      hintInc: 'Bấm để đặt · Esc để hủy',
+      hintDec: 'Bấm để bớt · Esc để hủy',
+      hintUndo: 'Bấm để hoàn tác · Ctrl Z',
+      hud: (v: string) => `→ ${v}`,
+      hudLabel: 'Xem trước',
+    },
+    undo: 'Hoàn tác',
+    undoHint: 'Đảo lại thao tác vừa rồi',
+    topOn: 'Nhìn từ trên xuống',
+    topOff: 'Nhìn chéo',
+    details: 'Chi tiết chỉ số · 10 xã',
+    detailsTitle: 'Chi tiết chỉ số',
+    detailsClose: 'Đóng chi tiết chỉ số',
+    finishHint: (k: number) => `Đặt nốt ${k} ngày còn lại thì chốt được`,
+    judgedAt15Tail: ' · xét theo 15 phút',
+    appreciateSkip: 'Bấm để xem kết quả',
+    lostPin: (name: string, pop: string) => `${name} ${pop} · thành ngoài tầm`,
+    lostMore: (k: number) => `và ${k} làng khác`,
+    debriefDetails: 'Chi tiết kết quả · biểu đồ các phân bổ',
+    debriefDetailsClose: 'Đóng chi tiết kết quả',
+    debriefKpiTitle:
+      'Mục tiêu là ngưỡng của nhóm 10% cao nhất trong các phân bổ có thể, làm tròn xuống. Vì vậy có thể vượt mục tiêu mà vẫn nằm ngoài nhóm 10%.',
+    debriefKpis: '6 chỉ số · so với thực tế hiện nay (10 ngày)',
+    debriefCols: ['Chỉ số', 'Của bạn', 'Chênh lệch'],
+    goalTarget: (t: string) => `· mục tiêu ${t}`,
+    verdict: (achieved: boolean) => (achieved ? 'Đạt mục tiêu' : 'Chưa đạt mục tiêu'),
+    rank: (k: number) => `· nhóm ${k}% cao nhất trong các phân bổ có thể`,
+    changeTitle: 'So với thực tế hiện nay (10 ngày)',
+    betterLabel: 'Người dân được lợi',
+    worseLabel: 'Người dân chịu thiệt',
+    sideTotal: (pop: string, k: number) => `${pop} · ${k} làng`,
+    sideVillages: (k: number) => `${k} làng`,
+    sideNone: 'Không có',
+    betterParts: (newly: number, more: number) =>
+      [newly > 0 ? `${newly} làng mới vào trong tầm` : '', more > 0 ? `${more} làng tăng ≥1 ngày` : ''].filter(Boolean).join(' · '),
+    worseParts: (lost: number, thinner: number) =>
+      [lost > 0 ? `${lost} làng thành ngoài tầm` : '', thinner > 0 ? `${thinner} làng giảm ≥1 ngày` : ''].filter(Boolean).join(' · '),
+    sideWhere: (list: string) => `Chủ yếu ở ${list}`,
+    lostLabel: 'Làng trở thành ngoài tầm',
+    lostDetail: (list: string, more: number) => (more > 0 ? `${list} và ${more} làng khác` : list),
+    lostOnMap: 'Dấu đỏ trên bản đồ',
+    mapKey: (glyphs: boolean, lost: boolean) =>
+      [glyphs ? '▲ ▼ trên bản đồ = làng tăng hoặc giảm từ 1 ngày trở lên' : '', lost ? 'Dấu đỏ = làng lớn trở thành ngoài tầm (tối đa 3)' : '']
+        .filter(Boolean)
+        .join(' · '),
+    mapGlyphs: '▲ ▼ trên bản đồ = làng tăng hoặc giảm từ 1 ngày trở lên',
+    prevLine: (k: number, better: number, worse: number) =>
+      `So với phân bổ Nhiệm vụ ${k}, cũng chia 15 ngày, có ${better} làng được lợi từ một ngày trở lên và ${worse} làng chịu thiệt. Cả hai đều 15 ngày nên phần chênh này không lẫn tác động của 5 ngày tăng thêm.`,
+    finaleTabs: 'Chọn cách xem · chồng ba phương án và từng nhiệm vụ',
+    finaleLead: 'Ba Gongju · cùng 15 ngày, ba mục tiêu',
+    finaleBoard: 'Xem ba phương án cạnh nhau',
+    finaleBoardClose: 'Xem trên hòn đảo',
+    finaleTableTitle: '6 chỉ số · 15 phút đường bộ',
+    overlapTab: 'Xem chồng',
+    overlapTabSub: 'Ba phương án trên một bản đồ',
+    overlapBasis: '15 phút đường bộ · từ 1 ngày/tuần = trong tầm. Đây là kết quả tính bằng mô hình, khác với việc người dân có thực sự đi khám hay không.',
+    overlapCats: [
+      { title: 'Trong tầm ở cả ba', sub: 'Nhà sáng đèn · ánh cửa sổ = mức thấp nhất trong ba' },
+      { title: 'Tùy vào phân bổ', sub: 'Ba ô = Nhiệm vụ 1·2·3, ô sáng = trong tầm ở phân bổ đó' },
+      { title: 'Ngoài tầm ở cả ba', sub: 'Nhà tối đèn · đặt ngày khám ở trạm trong mốc 15 phút thì có thể tới được' },
+      { title: 'Không có trạm trong 15 phút', sub: 'Nhà tối đèn · không liên quan đến phân bổ' },
+    ],
+    overlapCount: (k: number) => `${k} làng`,
+    overlapCatsAria: 'Nhóm làng · bấm để làm nổi các làng đó trên bản đồ',
+    overlapHint: 'Bấm vào một nhóm để các làng đó hiện màu xanh ngọc trên bản đồ',
+    overlapTotal: (k: number, pop: string) => `Tổng ${k} làng · ${pop}`,
+    overlapAria: 'Chồng ba phân bổ · nhóm làng và ngày khám theo trạm',
+    overlapFacilities: 'Ngày khám theo trạm',
+    overlapKpis: 'Bảng 6 chỉ số',
+  },
+
+  hud: {
+    kpiTitle: '6 chỉ số',
+    emdOpen: 'Chi tiết chỉ số',
+    emdClose: 'Đóng chi tiết chỉ số',
+    goalReached: 'Đạt mục tiêu',
+  },
+
+  toast: {
+    gain: (fac: string, k: number, pop: string) => `${fac} +1 ngày · ${k} làng mới vào trong tầm · ${pop}`,
+    thicker: (fac: string, k: number) => `${fac} +1 ngày · ${k} làng có thêm ngày khám`,
+    loss: (fac: string, k: number, pop: string) => `${fac} −1 ngày · ${k} làng thành ngoài tầm · ${pop}`,
+    thinner: (fac: string, k: number) => `${fac} −1 ngày · ${k} làng bớt ngày khám`,
+    none: (fac: string, delta: string) => `${fac} ${delta} · không làng nào thay đổi`,
+    tGain: (from: number, to: number, k: number, pop: string) => `Mốc ${from} → ${to} phút · ${k} làng mới vào trong tầm · ${pop}`,
+    tLoss: (from: number, to: number, k: number, pop: string) => `Mốc ${from} → ${to} phút · ${k} làng thành ngoài tầm · ${pop}`,
+    tSame: (from: number, to: number) => `Mốc ${from} → ${to} phút · các làng trong tầm vẫn như cũ`,
+  },
+
+  share: {
+    open: 'Lưu kết quả thành ảnh',
+    title: 'Ảnh kết quả',
+    lead: 'Phân bổ và kết quả của ba nhiệm vụ gói gọn trong một ảnh. Bạn có thể nộp làm bài tập, hoặc đặt cạnh kết quả của bạn bè để so sánh.',
+    nameLabel: 'Tên hoặc nhóm (không bắt buộc)',
+    namePlaceholder: 'Ví dụ: Nhóm 4, lớp 11A',
+    nameNote: 'Tên chỉ được ghi vào ảnh, không gửi đi đâu cả.',
+    save: 'Lưu PNG',
+    copy: 'Sao chép ảnh',
+    share: 'Chia sẻ',
+    close: 'Đóng',
+    preparing: 'Đang tạo ảnh',
+    saved: 'Đã lưu ảnh.',
+    copied: 'Đã sao chép ảnh. Hãy nhấn Ctrl V ở nơi bạn muốn dán.',
+    failed: 'Trình duyệt này không làm được việc đó. Bạn hãy lưu thành PNG nhé.',
+    previewAlt: 'Xem trước ảnh kết quả',
+    fileName: 'ngay-kham-trong-tam-voi_ket-qua',
+    played: (date: string) => `Chơi ngày ${date}`,
+    allocHead: 'Ngày khám theo trạm · từ tây sang đông',
+    zeroHead: 'Làng ngoài tầm',
+    legendPlate: 'Một chấm sáng trên biển trạm = một ngày khám',
+    madeWith: 'Trò chơi giáo dục dựng từ dữ liệu thật của Gongju, Hàn Quốc',
+  },
+
+  sound: {
+    label: 'Âm thanh',
+    on: 'Bật âm thanh',
+    off: 'Tắt âm thanh',
+  },
+
+  panelLabel: 'Bảng phân bổ',
+
+  camera: {
+    group: 'Góc nhìn',
+    overview: 'Toàn cảnh',
+    north: 'Hướng bắc lên trên',
+    top: 'Nhìn từ trên xuống',
+  },
+
+  dataChip: (pop: string, sched: string, road: string) => `Dân số ${pop} · lịch khám ${sched} · đường bộ ${road}`,
+
+  live: (fac: string, days: string, mean: string, zero: string) => `${fac} ${days}. Số ngày khám trung bình ${mean}. Người dân ngoài tầm ${zero}.`,
+  liveThreshold: (t: number, mean: string, zero: string) => `Mốc ${t} phút. Số ngày khám trung bình ${mean}. Người dân ngoài tầm ${zero}.`,
+
+  village: {
+    tooltipPop: (emd: string, pop: string) => `${emd} · dân số ${pop}`,
+    tooltipDays: (v: string) => `Ngày khám tới được: ${v}`,
+    tooltipOverlap: (a: string, b: string, c: string) => `Nhiệm vụ 1 ${a} · Nhiệm vụ 2 ${b} · Nhiệm vụ 3 ${c}`,
+    tooltipNone: (t: number) => `Không có trạm nào trong ${t} phút đường bộ`,
+    worstTag: 'thiệt thòi nhất',
+    emdThickShare: (p: number) => `≥3 ngày ${p}%`,
+    cityCore: 'Trung tâm Gongju · ngoài mô hình',
+  },
+
+  noWebgl: 'Trình duyệt này không vẽ được bản đồ 3D. Bạn vẫn chơi tiếp được bằng các thẻ trạm y tế và chỉ số bên dưới.',
+  loading: 'Đang chuẩn bị mô hình địa hình Gongju',
+  loadError: 'Chưa tải được dữ liệu. Bạn hãy tải lại trang.',
+  crashed: 'Có lỗi khi vẽ màn hình. Bạn hãy tải lại trang.',
+  mobile: {
+    body: 'Trò chơi này dành cho màn hình máy tính để bàn hoặc máy tính xách tay.',
+  },
+
+  dataPage: {
+    title: 'Dữ liệu và giới hạn',
+    close: 'Đóng',
+    whatTitle: 'Trò chơi này làm gì và không làm gì',
+    what: 'Đây là một mô phỏng giáo dục, đơn giản hóa từ dữ liệu thật của thành phố Gongju, Hàn Quốc. Bạn tự tay chia ngày khám để xem khi một dịch vụ công được chia ra, nơi nào được lợi và nơi nào chịu thiệt.',
+    whatNot: 'Đây không phải là đánh giá công tác hành chính thực tế của Gongju, không phải công cụ khuyến nghị chính sách tối ưu, cũng không phải hệ thống ra quyết định về chính sách y tế.',
+    sourcesTitle: 'Nguồn dữ liệu và ngày chốt số liệu',
+    items: {
+      population: 'Dân số từng làng; người từ 65 tuổi theo xã',
+      schedule: 'Lịch bác sĩ đến khám ở các trạm y tế',
+      facilities: 'Vị trí của 10 trạm y tế',
+      roads: 'Mạng lưới đường bộ',
+      matrix: 'Thời gian tiếp cận đường bộ 161 × 10',
+      boundaries: 'Ranh giới các xã',
+      terrain: 'Địa hình',
+    },
+    repro: {
+      version: 'Phiên bản dữ liệu',
+      engine: 'Công cụ tìm đường',
+      digest: 'Mã băm ảnh (digest)',
+      osm: 'OSM',
+      code: 'Mã tạo dữ liệu',
+      osmLine: (ts: string, bbox: string) => `đối tượng mới nhất ${ts} · vùng trích xuất ${bbox}`,
+    },
+    scheduleAttribution: (publisher: string, date: string, status: string) =>
+      `${publisher}, lịch khám lưu động trên trang “Hướng dẫn khám bệnh” (ngày ${date}) — ${status}`,
+    colItem: 'Hạng mục',
+    colSource: 'Nguồn',
+    colDate: 'Ngày chốt',
+    colClass: 'Loại',
+    methodTitle: 'Cách tính',
+    method: [
+      'Với mỗi làng (đơn vị “ri” pháp định), chúng tôi tính sẵn thời gian tiếp cận ngắn nhất bằng ô tô theo mạng lưới đường bộ, từ điểm đại diện của làng tới từng trạm trong 10 trạm. Không tính kẹt xe, đèn tín hiệu, đỗ xe và thời gian chờ.',
+      'Điểm xuất phát là con đường thông thường gần điểm đại diện nhất mà xe có thể đi thẳng vào, không phải đường cao tốc, đường nhánh lên cao tốc, đường chỉ dành cho ô tô hay hầm. Sau khi xuất phát, tuyến đường có thể đi qua đường cao tốc.',
+      'Với mỗi làng, cộng số ngày khám mỗi tuần của các trạm nằm trong mốc thời gian (10, 15 hoặc 20 phút). Số ngày khám tới được một người dân chỉ tính tối đa 5 ngày mỗi tuần.',
+      'Số ngày khám trung bình là trung bình giá trị của các làng, có tính trọng số theo số dân. Giá trị của từng xã cũng tính cùng cách, chỉ với các làng trong xã đó.',
+      'Thời gian tiếp cận 90% dùng thời gian tiếp cận đường bộ từ điểm đại diện của làng tới trạm gần nhất có ít nhất một ngày khám. Mọi người trong một làng được tính cùng một thời gian. Xếp toàn bộ người dân từ ngắn đến dài, thời gian ở mốc 90% chính là giá trị này.',
+      'Mục tiêu của mỗi nhiệm vụ là ngưỡng của nhóm 10% cao nhất trong mọi phân bổ có thể (15 ngày, 15 phút), làm tròn xuống tới 0,1 ngày hoặc 100 người. Vì vậy có thể hơn 10% số phân bổ vượt mục tiêu. Đây không phải con số do ai đó tự đặt ra.',
+    ],
+    assumptionsTitle: 'Giả định của trò chơi',
+    limitsTitle: 'Giới hạn',
+    reproTitle: 'Phiên bản dữ liệu',
+    creditsTitle: 'Đơn vị thực hiện',
+    credits: 'Dự án thiết kế tốt nghiệp (capstone) · Đại học Quốc gia Kongju · 2026',
+    fonts: 'Phông chữ: Inter (OFL-1.1, cho giao diện tiếng Việt) · Pretendard (OFL-1.1) · Hahmlet (OFL-1.1). Hiệu ứng âm thanh được tạo ngay trong trình duyệt.',
+    displayTitle: 'Cách thể hiện trên màn hình',
+    display: [
+      'Một ngôi nhà là ký hiệu cho khoảng 50 người dân, không phải vị trí hay số lượng nhà thật.',
+      'Ánh sáng chạy dọc theo đường thể hiện sự thay đổi khả năng tiếp cận bằng đường bộ, không phải nhân viên y tế hay xe thật đang di chuyển.',
+      'Ánh sáng tới các làng theo thứ tự thời gian tiếp cận đường bộ. Các con số tăng dần theo ánh sáng, nhưng phép tính đã xong ngay lúc bạn thao tác.',
+      'Màu ruộng lúa, ruộng màu, rừng, cây và mái nhà là cảnh vật vẽ từ độ cao và độ dốc, không phải dữ liệu sử dụng đất.',
+      'Âm thanh chỉ là hiệu ứng hỗ trợ thao tác. Không bật âm thanh vẫn xem được mọi thông tin trên màn hình.',
+    ],
+    attributionTitle: 'Ghi nguồn dữ liệu',
+    visitNotice: (date: string) =>
+      `Lịch khám được lấy từ trang hướng dẫn khám bệnh của Trung tâm Y tế công cộng Gongju, cập nhật ngày ${date}. Lịch có thể thay đổi bất cứ lúc nào, vì vậy hãy hỏi trạm y tế hoặc trung tâm y tế trước khi đến.`,
+    populationCheck: (date: string) =>
+      `Số liệu dân số được tính từ tệp thống kê dân số của thành phố Gongju (ngày ${date}). Mọi giá trị đều khớp với dữ liệu công khai của Bộ Nội vụ và An toàn Hàn Quốc cùng ngày.`,
+  },
+
+  classes: {
+    REAL_DATA: 'Dữ liệu thật',
+    DERIVED: 'Giá trị tính toán',
+    SIMULATION_ASSUMPTION: 'Giả định của trò chơi',
+  },
+}
+
+export const LIMITS_VI: readonly string[] = [
+  'Đây là mô hình giáo dục đã được đơn giản hóa, không phải lời khuyên chính sách thực tế.',
+  'Thời gian là thời gian tiếp cận bằng ô tô theo mạng lưới đường bộ. Mô hình không phản ánh thời gian di chuyển thực tế của từng người, tình trạng kẹt xe hay thời gian chờ.',
+  'Ngày khám là đơn vị của trò chơi. Nó không thể hiện toàn bộ dịch vụ y tế thực tế như chuyên khoa, nhân lực hay trang thiết bị.',
+  'Toàn bộ người dân của một làng được coi như sống tại một điểm đại diện.',
+  'Mô hình không có trung tâm y tế và bệnh viện ở khu trung tâm Gongju (các phường, dong), các phòng khám tư nhân, cũng như cơ sở y tế của các thành phố, huyện khác.',
+  'Số người từ 65 tuổi của từng làng là ước tính chia theo tỷ lệ của xã, nên không hiển thị trên màn hình.',
+  'Vận hành thực tế còn có những ràng buộc về nhân lực, chuyên khoa và hành chính mà mô hình này không thể hiện.',
+  'Mô hình không cho biết đặt ngày khám ở đâu thì có vận hành được trên thực tế hay không.',
+  'Trong 15 ngày khám của các nhiệm vụ, có 5 ngày là giả định “nếu có thêm”. Điều đó không có nghĩa là thực tế phải tăng thêm 5 ngày.',
+]

@@ -69,6 +69,11 @@
   color-scheme: dark;
 }
 
+/* 베트남어: Pretendard에는 성조 글자(ệ ờ ữ …)가 없어 한 낱말 안에서 글꼴이 섞인다. Pretendard 라틴 글자의 바탕인 Inter로 쓴다 */
+:root:lang(vi) {
+  --font: 'Inter Variable', 'Pretendard Variable', 'Pretendard', -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+
 @media (max-width: 1439px) {
   :root {
     --left-w: 292px;
@@ -1987,7 +1992,8 @@ input {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, …): 긴 글(영어·베트남어 칩·지소 이름)이 열을 넓혀 셋째 열이 판 밖으로 밀리지 않게. 한국어는 그대로 같은 폭 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -2576,5 +2582,219 @@ input {
 
   .toast {
     animation: none;
+  }
+}
+
+/* --- 결과 이미지(S6 나란히 보기 오른쪽 위 단추 → 대화상자) ---------------------------------------
+   단추는 제목 줄 높이(32~60px)에만 놓인다. 제목 「세 개의 공주」가 짧아 머리 글의 자리는 그대로다 */
+
+.finale-share {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  z-index: 1;
+}
+
+.finale-share svg {
+  width: 16px;
+  height: 16px;
+}
+
+.share-page {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(21, 22, 26, 0.72);
+  animation: fade-in 160ms ease-out;
+}
+
+.share-sheet {
+  width: min(1120px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 24px 28px 28px;
+  box-sizing: border-box;
+  background: var(--sheet-bg);
+  border: 1px solid var(--rule-2);
+  border-radius: 6px;
+}
+
+.share-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.share-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.share-lead {
+  margin: 6px 0 16px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 72ch;
+}
+
+.share-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+}
+
+.share-preview {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+  background: var(--night);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: opacity 160ms ease-out;
+}
+
+.share-preview.is-busy img {
+  opacity: 0.55;
+}
+
+.share-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.share-wait {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.share-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.share-name {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.share-name input {
+  height: 36px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--edge-2);
+  border-radius: 4px;
+  background: var(--night);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.share-name input::placeholder {
+  color: var(--text-3);
+}
+
+.share-name input:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 1px;
+}
+
+.share-name small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-3);
+  line-height: 1.45;
+}
+
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-actions .btn {
+  height: 40px;
+  width: 100%;
+}
+
+.share-status {
+  min-height: 1.5em;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .share-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-page {
+    animation: none;
+  }
+}
+
+/* --- 영어·베트남어 화면(언어 지원, 2026-11-10). 한국어 화면은 받지 않는다 ----------------------------------------- */
+
+/* S6 나란히 보기 열: 보건지소 이름(Tancheon·Gyeryong)이 탑 폭보다 길어 세로로 세운다 */
+:root:not(:lang(ko)) .alloc-strip small {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 패널의 세 열 표: 값 안에서 줄을 바꿀 수 있게(숫자와 단위 사이), 행 이름 칸은 넉넉히 */
+:root:not(:lang(ko)) .finale-table .nowrap {
+  white-space: normal;
+}
+
+:root:not(:lang(ko)) .finale-table tbody th {
+  width: 28%;
+}
+
+/* 세 열 표 머리의 「Reference allocation」 칩은 좁은 열에서 줄을 바꾼다 */
+:root:not(:lang(ko)) .finale-table thead .finale-chip {
+  white-space: normal;
+}
+
+/* S6 열의 세 지표: 이름 옆에 값이 들어가지 않으면 값은 다음 줄 오른쪽으로(이름·값을 세 줄로 쪼개지 않는다) */
+:root:not(:lang(ko)) .finale-fact {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+:root:not(:lang(ko)) .finale-fact dt {
+  flex: 0 1 auto;
+  max-width: none;
+}
+
+:root:not(:lang(ko)) .finale-fact dd {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* 좁은 화면에서는 한국어처럼 이름 위 · 값 아래로 쌓고 가운데에 맞춘다 */
+@media (max-width: 1279px) {
+  :root:not(:lang(ko)) .finale-fact dd {
+    margin-left: 0;
   }
 }

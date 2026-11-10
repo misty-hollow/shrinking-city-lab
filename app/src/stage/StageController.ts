@@ -681,6 +681,7 @@ export class StageController {
       else mat?.dispose()
     })
     this.renderer.dispose()
+    this.renderer.forceContextLoss()
     el.remove()
     this.labels.replaceChildren()
   }

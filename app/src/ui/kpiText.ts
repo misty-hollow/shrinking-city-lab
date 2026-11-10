@@ -3,21 +3,35 @@
  */
 
 import { copy } from '../content/copy'
+import { getLang } from '../content/lang'
 import type { Scenario } from '../data/types'
 import type { KpiDelta, KpiKey } from '../engine/compare'
-import { days1, minutes, people, signed, weekDays } from '../engine/format'
+import { dayCount, days1, minUnit, minutes, people, popUnit, signed, weekDays } from '../engine/format'
 import type { Kpis } from '../engine/kpi'
 import type { MissionId } from '../state/results'
 
 export const KPI_KEYS: readonly KpiKey[] = ['meanDays', 'cov1Pop', 'cov3Pop', 'worstEmdDays', 'gapDays', 'p90Tenths']
 
-export const KPI_NAME: Record<KpiKey, string> = {
-  meanDays: copy.kpi.meanDays,
-  cov1Pop: copy.kpi.cov1,
-  cov3Pop: copy.kpi.cov3,
-  worstEmdDays: copy.kpi.worst,
-  gapDays: copy.kpi.gap,
-  p90Tenths: copy.kpi.p90,
+/** 화면 언어를 따라가도록 읽을 때마다 문구에서 가져온다 */
+export const KPI_NAME: Readonly<Record<KpiKey, string>> = {
+  get meanDays() {
+    return copy.kpi.meanDays
+  },
+  get cov1Pop() {
+    return copy.kpi.cov1
+  },
+  get cov3Pop() {
+    return copy.kpi.cov3
+  },
+  get worstEmdDays() {
+    return copy.kpi.worst
+  },
+  get gapDays() {
+    return copy.kpi.gap
+  },
+  get p90Tenths() {
+    return copy.kpi.p90
+  },
 }
 
 /** 미션마다 목표가 되는 KPI */
@@ -32,14 +46,17 @@ export function fmtKpi(key: KpiKey, v: number | null, k?: Kpis, scenario?: Scena
   return weekDays(v)
 }
 
-/** 차이 표기: `+0.7일` `−5,752명` `+1분`, 변화 없음은 단위 없이 `±0`(§4.3) */
-export function diffText(d: KpiDelta): string {
+/**
+ * 차이 표기: `+0.7일` `−5,752명` `+1분`, 변화 없음은 단위 없이 `±0`(§4.3).
+ * inTable = 값 바로 옆의 차이 칸(값에 단위가 이미 있다). 영어·베트남어는 단위가 길어(「+13,883 people」) 이 칸에서만 숫자로 적는다.
+ * 한국어는 언제나 단위를 붙인다(언어 지원 전과 같다).
+ */
+export function diffText(d: KpiDelta, inTable = false): string {
   if (d.shown === null) return ''
   const pop = d.key === 'cov1Pop' || d.key === 'cov3Pop'
   const time = d.key === 'p90Tenths'
   // 옆에 적힌 두 값(반올림한 값)의 차이를 적는다(kpiDeltas.shown)
   const s = pop || time ? signed(d.shown, 0) : signed(d.shown)
-  if (s === '±0') return s
-  const unit = pop ? '명' : time ? '분' : '일'
-  return s + unit
+  if (s === '±0' || (inTable && getLang() !== 'ko')) return s
+  return pop ? popUnit(s) : time ? minUnit(s) : dayCount(s)
 }

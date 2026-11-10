@@ -1,26 +1,25 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
+import type { Lang } from '../content/i18n'
 import type { Manifest, Scenario } from '../data/types'
-import { allocDays, people } from '../engine/format'
+import { allocDays, allocShort, dec, people, weekDaysPattern } from '../engine/format'
 import type { MissionId } from '../state/results'
 import { Badge } from '../ui/common'
+import { LangSwitch } from '../ui/LangSwitch'
 import { ArrowIcon } from '../ui/WorldHud'
-
-/** 새 화면이 열리면 제목에 포커스를 준다(키보드·스크린리더 사용자가 길을 잃지 않게). */
-function useFocusOnMount<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
-  useEffect(() => {
-    ref.current?.focus()
-  }, [])
-  return ref
-}
 
 // --- S0 시작 -------------------------------------------------------------------------
 
 /** 시작(UI_DESIGN_SYSTEM 01): 제목 「닿는 날」 → 부제 → 사실 한 줄과 질문 → Primary 하나. 숫자와 단위, 질문의 어절은 끊지 않는다. */
-export function StartCard({ onStart, onData }: { onStart(): void; onData(): void }) {
-  const h = useFocusOnMount<HTMLHeadingElement>()
+export function StartCard({ onStart, onData, focusLang = null }: { onStart(): void; onData(): void; focusLang?: Lang | null }) {
+  const h = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    const btn = focusLang ? document.querySelector<HTMLElement>(`.lang-switch [data-lang="${focusLang}"]`) : null
+    if (btn) btn.focus()
+    else h.current?.focus()
+    // 열릴 때 한 번만
+  }, [])
   const [factLead, factNum] = copy.start.fact
   const [q1, q2] = copy.start.question
   return (
@@ -70,7 +69,7 @@ export function StartCard({ onStart, onData }: { onStart(): void; onData(): void
 
 /** S1·S2 설명에서 "주 5일"·"주 0.5일"은 줄에서 끊지 않는다(UI_DESIGN_SYSTEM §4.2). 글은 그대로다. */
 function keepDays(text: string): ReactNode {
-  return text.split(/(주 \d+(?:\.\d+)?일)/).map((part, k) =>
+  return text.split(weekDaysPattern()).map((part, k) =>
     k % 2 ? (
       <span key={k} className="nowrap">
         {part}
@@ -99,7 +98,7 @@ export function IntroCard({ step, scenario, manifest, onNext, onSkip }: IntroPro
     .map((f, j) => ({ f, v: scenario.current_allocation[j] }))
     .filter((x) => x.v > 0)
     .sort((a, b) => b.v - a.v)
-  const list = open.map((x, k) => `${x.f.short} ${k === 0 ? allocDays(x.v) : allocDays(x.v).replace('주 ', '')}`).join(', ')
+  const list = open.map((x, k) => `${x.f.short} ${k === 0 ? allocDays(x.v) : allocShort(x.v)}`).join(', ')
   return (
     <section className="corner-card" aria-label={copy.stage.intro}>
       <div className="steps" aria-hidden="true">
@@ -110,7 +109,7 @@ export function IntroCard({ step, scenario, manifest, onNext, onSkip }: IntroPro
       {step === 0 && (
         <>
           <p tabIndex={-1} ref={h}>
-            {copy.intro.card1(people(scenario.totals.pop), scenario.totals.pop65_pct.toFixed(1))}
+            {copy.intro.card1(people(scenario.totals.pop), dec(scenario.totals.pop65_pct, 1))}
           </p>
           <div className="badges">
             <Badge cls="REAL_DATA">{copy.intro.card1Small(d.population)}</Badge>
@@ -299,9 +298,10 @@ export function BriefingCard({ mission, targetText, scheduleDate, reducedMotion,
 
 // --- <768 안내 ---------------------------------------------------------------------------
 
-export function MobileNotice({ onData }: { onData(): void }) {
+export function MobileNotice({ lang, onLang, onData }: { lang: Lang; onLang(l: Lang): void; onData(): void }) {
   return (
     <main className="mobile">
+      <LangSwitch value={lang} onChange={onLang} />
       <div className="small">
         {copy.scenario} · {copy.subtitle}
       </div>

@@ -1097,6 +1097,36 @@ body {
   right: 40px;
   top: 28px;
   z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 언어 고르기: 기준 시간 세그먼트(.t-group)와 같은 트랙 + 크림 칩, 앞에 지구 표시 하나 */
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+}
+
+.lang-globe {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.lang-group button {
+  padding: 0 11px;
+}
+
+.lang-group button:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 2px;
+}
+
+.mobile .lang-switch {
+  margin-bottom: 20px;
 }
 
 /* --- 아래 가운데: 손(게임의 자원 슬롯. 말만 3D 질감) ------------------------------------------ */
@@ -1666,6 +1696,11 @@ body {
   display: flex;
   flex-direction: column;
   animation: result-in 400ms ease-out both;
+}
+
+/* 판이 화면보다 길면 줄이지 않고 판 안에서 스크롤한다(줄어든 칸의 글이 아래 단추 밑으로 숨지 않게) */
+.world-result > * {
+  flex-shrink: 0;
 }
 
 .wr-eyebrow {
@@ -2652,5 +2687,178 @@ body {
   }
   100% {
     opacity: 0;
+  }
+}
+
+/* --- 영어·베트남어 화면(언어 지원, 2026-11-10) -----------------------------------------------------------
+   한국어보다 낱말이 길다(「Residents reached 1+ day/wk」, 「25,353 people」). 한국어 화면은 아래 규칙을 받지 않는다(:lang(ko) 밖에서만).
+   원칙: 글자를 줄이거나 말줄임으로 자르지 않고, 줄을 바꿔 판 안에 담는다. */
+
+/* 작은 6개 지표 표(왼쪽 위 HUD): 이름은 두 줄까지 접고, 증감 열은 글 폭만큼 */
+:root:not(:lang(ko)) .kpi-list .kpi {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  height: auto;
+  min-height: 28px;
+  padding: 4px 0;
+  box-sizing: border-box;
+}
+
+:root:not(:lang(ko)) .kpi-list .kpi-name {
+  white-space: normal;
+  line-height: 1.25;
+}
+
+/* S6 섬 위에서 보기의 표: 판 폭(480)을 넘기지 않고 칸 안에서 줄을 바꾼다 */
+:root:not(:lang(ko)) .wf-kpis th,
+:root:not(:lang(ko)) .wf-kpis td {
+  white-space: normal;
+  height: auto;
+  min-height: 34px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+/* S6 겹쳐 보기: 갈래 줄의 주민 수 칸은 글 폭만큼(「29,176 people」), 지소 이름 머리는 세로로 세운다 */
+:root:not(:lang(ko)) .wf-ov-cat {
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+}
+
+:root:not(:lang(ko)) .wf-ov-alloc thead th {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 0 0 4px;
+  line-height: 1;
+  text-align: left;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+@media (max-width: 1099px) {
+  /* 폭 250 HUD: 이름이 한 줄을 다 쓰고 그 아래에 값 · 증감(영어·베트남어의 값 「19,194 people (48%)」이 길다) */
+  :root:not(:lang(ko)) .kpi-list .kpi {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name name'
+      'value delta';
+    row-gap: 1px;
+    padding: 5px 0;
+  }
+
+  :root:not(:lang(ko)) .kpi-list .kpi-name {
+    grid-area: name;
+  }
+
+  :root:not(:lang(ko)) .kpi-list .kpi-value {
+    grid-area: value;
+  }
+
+  :root:not(:lang(ko)) .kpi-list .kpi > :nth-child(3) {
+    grid-area: delta;
+  }
+
+  /* 소개 카드: 글이 한국어보다 길어 판 오른쪽 끝이 섬 서쪽 말풍선(유구·신풍)에 닿는다. 판을 조금 좁혀 글 폭에 맞춘다 */
+  :root:not(:lang(ko)) .screen-intro .hud-left {
+    width: 352px;
+  }
+}
+
+/* 미션 카드: 큰 값 옆의 목표(「Mục tiêu 2,8 ngày/tuần」)가 판 폭을 넘으면 값 아래 줄로 */
+:root:not(:lang(ko)) .hud-left .mission-values {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+/* 시작 화면 제목: 「닿는 날」(세 글자)에 맞춘 72px 한 줄은 「Ngày khám trong tầm với」에서 섬 위로 넘친다.
+   영어·베트남어는 조금 작게, 판 폭 안에서 줄을 고르게 나눈다 */
+:root:not(:lang(ko)) .center-card.hero h1 {
+  font-size: 58px;
+  line-height: 64px;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+/* 왼쪽 아래 기준일 칩: 한 줄로 두면 손(아래 가운데) 밑까지 뻗는다. 칸(최대 50vw − 240px) 안에서 두 줄로 */
+:root:not(:lang(ko)) .corner-bl .data-chip {
+  min-width: 0;
+  white-space: normal;
+  line-height: 16px;
+  padding-bottom: 1px;
+}
+
+/* 왼쪽 아래 「자료와 한계」 링크: 좁은 칸에서 단추 이름이 길어지면(「Đóng điều khiển」) 두 줄로 */
+:root:not(:lang(ko)) .corner-bl .data-link {
+  white-space: normal;
+  line-height: 16px;
+}
+
+@media (max-width: 1099px) {
+  /* 쌓은 지표 행은 촘촘하게(왼쪽 HUD가 왼쪽 아래 단추 줄까지 내려오지 않게) */
+  :root:not(:lang(ko)) .kpi-list .kpi {
+    padding: 3px 0;
+    row-gap: 0;
+  }
+
+  :root:not(:lang(ko)) .kpi-list .kpi-name {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  :root:not(:lang(ko)) .kpi-list .kpi-value {
+    font-size: 13px;
+    line-height: 18px;
+  }
+}
+
+@media (max-width: 1279px) {
+  /* 시작 화면(영어·베트남어): 글이 한국어보다 길어 1024×768에서 위아래로 넘친다. 한 단계씩 작게, 사이를 좁게 */
+  :root:not(:lang(ko)) .center-card.hero h1 {
+    font-size: 46px;
+    line-height: 52px;
+  }
+
+  :root:not(:lang(ko)) .center-card.hero .hero-subtitle {
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  :root:not(:lang(ko)) .center-card.hero .hero-lead {
+    margin-top: 24px;
+    font-size: 21px;
+    line-height: 28px;
+  }
+
+  :root:not(:lang(ko)) .hero-fact {
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  :root:not(:lang(ko)) .center-card.hero .sub {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 19px;
+  }
+
+  :root:not(:lang(ko)) .center-card.hero .actions {
+    margin-top: 20px;
+  }
+
+  :root:not(:lang(ko)) .center-card.hero .hero-steps {
+    margin-top: 24px;
+  }
+
+  :root:not(:lang(ko)) .center-card.hero .hero-steps li {
+    padding: 8px 0;
+    font-size: 13px;
+  }
+
+  :root:not(:lang(ko)) .center-card.hero > .small {
+    margin-top: 14px !important;
+  }
+}
+
+@media (max-width: 1099px) {
+  /* 글 줄 끝이 섬 서쪽 말풍선(유구·신풍) 앞에서 멈추게 */
+  :root:not(:lang(ko)) .center-card.hero {
+    width: min(372px, 37vw);
   }
 }
