@@ -500,6 +500,7 @@ function allTexts(input: ResultImageInput): string[] {
     copy.briefing.realBadge(d.schedule),
     copy.briefing.assumptionBadge,
     copy.finale.basis,
+    copy.share.basis15,
     copy.finale.closing,
     copy.share.madeWith,
     copy.dataChip(d.population, d.schedule, d.road_network),
@@ -591,9 +592,10 @@ export async function renderResultImage(input: ResultImageInput): Promise<HTMLCa
   let bx = badge(ctx, M, y, copy.briefing.realBadge(d.schedule), false)
   bx = badge(ctx, bx + 8, y, copy.briefing.assumptionBadge, true)
   ctx.fillStyle = C.text3
-  setFont(ctx, 500, 12)
+  const basisLine = `${copy.finale.basis} · ${copy.share.basis15}`
+  fitText(ctx, basisLine, 500, 12, W - M - bx - 12)
   ctx.textBaseline = 'middle'
-  ctx.fillText(copy.finale.basis, bx + 12, y + 11)
+  ctx.fillText(basisLine, bx + 12, y + 11)
   ctx.textBaseline = 'alphabetic'
   y += 36
 

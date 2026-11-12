@@ -16,6 +16,11 @@ import type { Copy } from './copy'
 const n = (k: number | string, one: string, many: string): string => `${k} ${k === 1 || k === '1' ? one : many}`
 const villages = (k: number | string): string => n(k, 'village', 'villages')
 const districts = (k: number | string): string => n(k, 'district', 'districts')
+/** verb agreement after a count: `1 village is` / `3 villages are` */
+const one = (k: number | string): boolean => k === 1 || k === '1'
+const isAre = (k: number | string): string => (one(k) ? 'is' : 'are')
+const has = (k: number | string): string => (one(k) ? 'has' : 'have')
+const them = (k: number | string): string => (one(k) ? 'it' : 'them')
 
 export const en: Copy = {
   product: 'Shrinking City Lab',
@@ -43,7 +48,7 @@ export const en: Copy = {
     label: 'Reachable within',
     help: 'Road access time · no traffic or waiting',
     option: (t: number) => `${t} min`,
-    locked: 'Confirmed results use the 15 min cutoff',
+    locked: 'Confirmed results use the 15 min by road cutoff',
   },
 
   baseline: {
@@ -76,7 +81,7 @@ export const en: Copy = {
     card1Scope: 'Gongju’s city center (its urban dong areas) is not part of this game.',
     card2: (open: number, list: string) =>
       `Each district has one public health branch clinic, a small public clinic run by the city. Right now ${open} of them offer general medical care: ${list}.`,
-    card2Note: 'A clinic open every other week counts as 0.5 days a week. Each lit cell in a speech bubble is one clinic day.',
+    card2Note: 'A clinic day held every other week counts as 0.5 days a week. Each lit cell in a speech bubble is one clinic day.',
     card2Small: (date: string) => `Visiting doctor schedule ${date} · Real data`,
     card3: 'Add up the medical clinic days at all 10 branch clinics and you get 10 days a week today. One clinic day means one day a clinic is open for general care.',
     card3Note: 'A clinic day is the game’s unit. It doesn’t capture the number of doctors, specialties, or hospitals in the city center.',
@@ -89,7 +94,7 @@ export const en: Copy = {
     step1:
       'Add up the clinic days of every clinic within 15 minutes of a village by road: that is how many clinic days reach the village (up to 5 a week). The more days reach it, the more windows light up. People live in the dark villages too.',
     mapControls: 'Drag or W A S D to move · Right-drag to rotate · Wheel to zoom · R to reset · ? for controls',
-    step2: 'At the top right, click 10, 15 or 20 min. It changes how many minutes still count as “within reach.”',
+    step2: 'At the top right, click a different time: 10, 15 or 20 min. It changes how many minutes still count as “within reach.”',
     step2Changed: (fromT: number, from: string, toT: number, to: string) =>
       `The allocation is the same, but residents reached at least 1 day a week went from ${from} at ${fromT} min to ${to} at ${toT} min. Picking the cutoff is a choice too.`,
     step2Return: 'Set it back to 15 min to continue.',
@@ -98,8 +103,8 @@ export const en: Copy = {
     step3Pool: (k: number) => `Clinic days to move: ${k}`,
     step3Result: (fac: string, gained: number, thinner: number) =>
       gained > 0
-        ? `Placing a day at ${fac} reached ${villages(gained)} for the first time. In exchange, ${villages(thinner)} near Uidang now get fewer clinic days.`
-        : `You placed a day at ${fac}. No village is newly reached, and ${villages(thinner)} near Uidang now get fewer clinic days.`,
+        ? `Placing a day at ${fac} newly reached ${villages(gained)}. In exchange, ${villages(thinner)} near Uidang now ${one(thinner) ? 'gets' : 'get'} fewer clinic days.`
+        : `You placed a day at ${fac}. No village is newly reached, and ${villages(thinner)} near Uidang now ${one(thinner) ? 'gets' : 'get'} fewer clinic days.`,
     step3Next: 'In the missions you split 15 days: the real 10 plus 5 assumed days. Each mission has a different goal.',
     next: 'Next',
     skip: 'Skip',
@@ -110,7 +115,7 @@ export const en: Copy = {
     m1: {
       title: 'Mission 1 · Raise the average',
       name: 'Raise the average',
-      goal: (target: string) => `Raise the average clinic days that reach each resident within 15 minutes by road to ${target} or more.`,
+      goal: (target: string) => `Raise the number of clinic days that reach a resident within 15 minutes by road, averaged over all residents, to ${target} or more.`,
       kpiName: 'Average clinic days',
       reference: 'Reference allocation · average-focused',
       referenceNote: 'On “average clinic days” alone, this allocation is among the highest possible.',
@@ -195,7 +200,7 @@ export const en: Copy = {
     gapSub: (hi: string, hv: string, lo: string, lv: string) => `Highest ${hi} ${hv} · lowest ${lo} ${lv}`,
     p90: '90% access time',
     p90Sub: '9 in 10 residents can reach an open clinic within this time by road',
-    bands: ['Under 10 min', '10–15 min', '15–20 min', 'Over 20 min'],
+    bands: ['Within 10 min', '10–15 min', '15–20 min', 'Over 20 min'],
     none: 'No open clinic',
     info: 'About',
     better: 'Better',
@@ -211,7 +216,7 @@ export const en: Copy = {
       cov3: (t: number) => `Residents in villages reached by at least 3 clinic days a week within ${t} min by road.`,
       worst: 'The district with the lowest average clinic days. If two tie, the one with more residents not reached is shown.',
       gap: 'The difference between the highest and lowest district averages. The smaller it is, the more evenly care reaches.',
-      p90: 'For each village, take the road access time from its center point to the nearest clinic with at least one clinic day. Everyone in a village gets the same time. Line all residents up from shortest to longest: this is the time at the 90% mark. Traffic, lights and waiting are not included.',
+      p90: 'For each village, take the road access time from its representative point (the village’s mapped location) to the nearest clinic with at least one clinic day. Everyone in a village gets the same time. Line all residents up from shortest to longest: this is the time at the 90% mark. Traffic, lights and waiting are not included.',
     },
   },
 
@@ -236,7 +241,7 @@ export const en: Copy = {
     zeroTitle: 'Villages not reached',
     zeroNone: 'No village left unreached',
     zeroSummary: (k: number, pop: string, p: string) => `${villages(k)} · ${pop} · ${p}% of the district’s residents`,
-    unreachableNote: (k: number, t: number) => `${k} of them have no clinic within ${t} min by road, so no allocation can reach them`,
+    unreachableNote: (k: number, t: number) => `${k} of them ${has(k)} no clinic within ${t} min by road, so no allocation can reach ${them(k)}`,
     zeroList: 'Villages',
     unreachable: (t: number) => `No clinic within ${t} min`,
     facility: (name: string, days: string) => `This district’s clinic: ${name} · ${days}`,
@@ -268,7 +273,7 @@ export const en: Copy = {
     landscapeY: 'Worst-off district (per week)',
     legendMine: 'Your allocation (15 days)',
     legendCurrent: 'Today’s real 10 days',
-    legendFront: 'Allocations no other beats on both',
+    legendFront: 'Allocations where raising one metric means lowering another (average, worst-off, 3+ days/wk)',
     legendDensity: (k: string) => `Spread of ${k} possible allocations (15 days; darker = more)`,
     legendOthers: 'Other mission results (15 days)',
     otherPoint: (k: number) => `Mission ${k}`,
@@ -283,7 +288,7 @@ export const en: Copy = {
     ghostHide: 'Hide reference allocation',
     compareTitle: (k: number) => `Compared with Mission ${k} · both 15 days`,
     compareLine: (k: number, better: number, worse: number) =>
-      `The same 15 days, split differently. Compared with Mission ${k}, ${villages(better)} are better off and ${villages(worse)} are worse off.`,
+      `The same 15 days, split differently. Compared with Mission ${k}, ${villages(better)} ${isAre(better)} better off and ${villages(worse)} ${isAre(worse)} worse off.`,
     compareColPrev: (k: number) => `Mission ${k}`,
     compareColMine: 'This allocation',
     compareBetter: 'Districts better off',
@@ -320,11 +325,11 @@ export const en: Copy = {
     factCov3: 'Reached 3+ days/wk',
     factZero: (k: number, pop: string) => `${villages(k)} not reached · ${pop}`,
     factP90: (v: string) => `90% access time ${v}`,
-    thinEmds: (list: string) => `Districts under 1 day/wk: ${list}`,
-    thickEmds: (list: string) => `Districts at 3+ days/wk: ${list}`,
+    thinEmds: (list: string) => `Districts averaging under 1 day/wk: ${list}`,
+    thickEmds: (list: string) => `Districts averaging 3+ days/wk: ${list}`,
     noneEmds: 'none',
     allocStrip: 'Clinic days by clinic',
-    open: (title: string) => `Enlarge the ${title} allocation on the map`,
+    open: (title: string) => `Enlarge the “${title}” allocation on the map`,
     openHint: 'Click to enlarge on the map',
     back: 'Back to all three',
     focusTitle: (title: string) => `${title} · 15 days a week`,
@@ -332,7 +337,7 @@ export const en: Copy = {
     baseCurrent: 'Today’s real 10 days',
     baseMission: (k: number) => `Mission ${k} (15 days)`,
     mapLabel: (title: string, zero: number, worst: string) =>
-      `Top-down map of the ${title} allocation. ${villages(zero)} not reached; worst-off district ${worst}.`,
+      `Top-down map of the “${title}” allocation. ${villages(zero)} not reached; worst-off district ${worst}.`,
     tableTitle: 'Six metrics · 15 min by road',
     allocTitle: 'Clinic days by clinic',
     allocTotal: 'Total',
@@ -345,11 +350,11 @@ export const en: Copy = {
         : `Average clinic days are ${a} · ${b} · ${c}.`,
     zeroLine: (a: number, b: number, c: number) => `Villages not reached: ${a} · ${b} · ${c}.`,
     unreachableLine: (k: number, pop: string, t: number) =>
-      `${k} of them (${pop}) have no clinic at all within ${t} min by road, so no allocation can reach them.`,
+      `${k} of them (${pop}) ${has(k)} no clinic at all within ${t} min by road, so no allocation can reach ${them(k)}.`,
     overlapLine: (union: number, all: number) =>
       all > 0
-        ? `${villages(union)} go unreached because of the allocation in at least one of the three. ${all} of them are unreached in all three; the rest depend on the allocation.`
-        : `${villages(union)} go unreached because of the allocation in at least one of the three. None is unreached in all three, so each one depends on the allocation.`,
+        ? `${villages(union)} ${one(union) ? 'goes' : 'go'} unreached because of the allocation in at least one of the three. ${all} of them ${isAre(all)} unreached in all three; the rest depend on the allocation.`
+        : `${villages(union)} ${one(union) ? 'goes' : 'go'} unreached because of the allocation in at least one of the three. None is unreached in all three, so each one depends on the allocation.`,
     sameZero: 'The villages left unreached by the allocation are the same in all three.',
     noAllocZero: 'No village is left unreached because of the allocation, in any of the three.',
     sameAllocLine: 'You confirmed the same allocation in all three missions, so all three results are the same.',
@@ -426,11 +431,11 @@ export const en: Copy = {
       blockedNone: 'No day to remove',
       blockedTutorial: 'In the tutorial, take a day from Uidang and place it at another clinic',
       newly: (k: number) => `${villages(k)} newly reached`,
-      thicker: (k: number) => `${villages(k)} rise to 3+ days/wk`,
-      more: (k: number) => `${villages(k)} get more days`,
+      thicker: (k: number) => `${villages(k)} rising to 3+ days/wk`,
+      more: (k: number) => `${villages(k)} gaining days`,
       lost: (k: number) => `${villages(k)} no longer reached`,
-      thinner: (k: number) => `${villages(k)} drop below 3 days/wk`,
-      less: (k: number) => `${villages(k)} get fewer days`,
+      thinner: (k: number) => `${villages(k)} dropping below 3 days/wk`,
+      less: (k: number) => `${villages(k)} losing days`,
       same: 'No village changes',
       days: (fac: string, a: string, b: string) => `${fac}: ${a} → ${b} a week`,
       headInc: (fac: string) => `If you add 1 day to ${fac}`,
@@ -482,7 +487,7 @@ export const en: Copy = {
         .join(' · '),
     mapGlyphs: '▲ ▼ on the map = villages up or down a day or more',
     prevLine: (k: number, better: number, worse: number) =>
-      `Compared with your Mission ${k} allocation, ${villages(better)} are better off by a day or more and ${villages(worse)} are worse off. Both use 15 days, so this difference doesn’t include the 5 added days.`,
+      `Compared with your Mission ${k} allocation, ${villages(better)} ${isAre(better)} better off by a day or more and ${villages(worse)} ${isAre(worse)} worse off. Both use 15 days, so this difference doesn’t include the 5 added days.`,
     finaleTabs: 'Choose a view · overlay and each mission’s allocation',
     finaleLead: 'Three Gongjus · the same 15 days, three goals',
     finaleBoard: 'Side by side',
@@ -515,13 +520,13 @@ export const en: Copy = {
 
   toast: {
     gain: (fac: string, k: number, pop: string) => `${fac} +1 day · ${villages(k)} newly reached · ${pop}`,
-    thicker: (fac: string, k: number) => `${fac} +1 day · ${villages(k)} get more days`,
+    thicker: (fac: string, k: number) => `${fac} +1 day · ${villages(k)} with more days`,
     loss: (fac: string, k: number, pop: string) => `${fac} −1 day · ${villages(k)} no longer reached · ${pop}`,
-    thinner: (fac: string, k: number) => `${fac} −1 day · ${villages(k)} get fewer days`,
+    thinner: (fac: string, k: number) => `${fac} −1 day · ${villages(k)} with fewer days`,
     none: (fac: string, delta: string) => `${fac} ${delta} · no village changes`,
-    tGain: (from: number, to: number, k: number, pop: string) => `${from} → ${to} min · ${villages(k)} now in reach · ${pop}`,
-    tLoss: (from: number, to: number, k: number, pop: string) => `${from} → ${to} min · ${villages(k)} out of reach · ${pop}`,
-    tSame: (from: number, to: number) => `${from} → ${to} min · the same villages are in reach`,
+    tGain: (from: number, to: number, k: number, pop: string) => `${from} → ${to} min · ${villages(k)} newly reached · ${pop}`,
+    tLoss: (from: number, to: number, k: number, pop: string) => `${from} → ${to} min · ${villages(k)} no longer reached · ${pop}`,
+    tSame: (from: number, to: number) => `${from} → ${to} min · the same villages are reached`,
   },
 
   share: {
@@ -529,7 +534,7 @@ export const en: Copy = {
     title: 'Results image',
     lead: 'Your three missions’ allocations and results, in one image. Hand it in for an assignment, or set it beside a friend’s to compare.',
     nameLabel: 'Name or group (optional)',
-    namePlaceholder: 'e.g. Group 4, Class 2-3',
+    namePlaceholder: 'e.g. Group 4, Section 2',
     nameNote: 'The name only goes into the image. It isn’t sent anywhere.',
     save: 'Save as PNG',
     copy: 'Copy image',
@@ -546,6 +551,8 @@ export const en: Copy = {
     zeroHead: 'Villages not reached',
     legendPlate: 'One lit dot on a clinic plate = one clinic day',
     madeWith: 'An educational game built on real data from Gongju, South Korea',
+    basis15: 'All metrics use 15 min by road',
+    renderFailed: 'This browser can’t make the results image.',
   },
 
   sound: {
@@ -563,7 +570,7 @@ export const en: Copy = {
     top: 'View from above',
   },
 
-  dataChip: (pop: string, sched: string, road: string) => `Population ${pop} · schedule ${sched} · roads ${road}`,
+  dataChip: (pop: string, sched: string, road: string) => `Data as of: population ${pop} · schedule ${sched} · roads ${road}`,
 
   live: (fac: string, days: string, mean: string, zero: string) => `${fac} ${days}. Average clinic days ${mean}. Residents not reached ${zero}.`,
   liveThreshold: (t: number, mean: string, zero: string) => `Cutoff ${t} min. Average clinic days ${mean}. Residents not reached ${zero}.`,
@@ -598,7 +605,7 @@ export const en: Copy = {
       schedule: 'Branch clinic visiting doctor schedule',
       facilities: 'Locations of the 10 branch clinics',
       roads: 'Road network',
-      matrix: 'Road access times, 161 × 10',
+      matrix: 'Road access times, 161 villages × 10 clinics',
       boundaries: 'District boundaries',
       terrain: 'Terrain',
     },
@@ -618,11 +625,11 @@ export const en: Copy = {
     colClass: 'Type',
     methodTitle: 'How it’s calculated',
     method: [
-      'For each village (a legal “ri”), we calculated in advance the shortest car access time over the road network from its center point to each of the 10 clinics. Traffic, lights, parking and waiting are not included.',
-      'Each route starts from the nearest ordinary road you can drive onto directly from the village center point: never an expressway, ramp, car-only road or tunnel. After that, the route may use expressways.',
+      'For each village (a legal “ri”), we calculated in advance the shortest car access time over the road network from its representative point (the village’s mapped location) to each of the 10 clinics. Traffic, lights, parking and waiting are not included.',
+      'Each route starts from the nearest ordinary road you can drive onto directly from the village’s representative point: never an expressway, ramp, car-only road or tunnel. After that, the route may use expressways.',
       'For each village, we add up the weekly clinic days of the clinics within the cutoff (10, 15 or 20 min). Clinic days reaching one resident are capped at 5 a week.',
       'Average clinic days is the average of village values, weighted by the number of residents. District values use the same method on the villages in that district.',
-      '90% access time uses the road access time from each village’s center point to the nearest clinic with at least one clinic day. Everyone in a village gets the same time. Line residents up from shortest to longest: the time at the 90% mark is the value.',
+      '90% access time uses the road access time from each village’s representative point to the nearest clinic with at least one clinic day. Everyone in a village gets the same time. Line residents up from shortest to longest: the time at the 90% mark is the value.',
       'Each mission goal is the top-10% cutoff among all possible allocations (15 days, 15 min), rounded down to 0.1 days or 100 residents. So more than 10% of allocations can pass it. No one chose these numbers by hand.',
     ],
     assumptionsTitle: 'Game assumptions',
@@ -657,7 +664,7 @@ export const LIMITS_EN: readonly string[] = [
   'This is a simplified educational model. It is not real policy advice.',
   'Times are car access times over the road network. They do not reflect any individual’s real travel time, traffic congestion or waiting time.',
   'A clinic day is a game unit. It does not represent the full range of real medical services, such as specialties, staff or equipment.',
-  'Everyone in a village is treated as if they live at a single center point.',
+  'Everyone in a village is treated as if they live at one representative point.',
   'Health centers and hospitals in Gongju’s city center (dong areas), private clinics, and facilities in other cities and counties are not in the model.',
   'Village-level counts of residents 65+ are only estimates from district ratios, so they are not shown on screen.',
   'Real operations face staffing, specialty and administrative constraints that this model does not capture.',
