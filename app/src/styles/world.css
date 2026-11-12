@@ -2991,3 +2991,15 @@ body {
 .landscape-legend span svg {
   margin-top: 1px;
 }
+
+/* 결과 자세히(S5, 오른쪽 판 --sheet)가 열린 동안: 오른쪽 위 도구(기준 시간 · 위에서 보기 · 언어 · 소리)가 판 밑에 깔리지 않게
+   판 왼쪽으로 옮긴다. 지표 자세히(.has-details)와 같은 방식. 좁은 화면에서는 기준 시간 이름을 숨긴다 */
+.app.has-sheet .corner-tools {
+  right: calc(var(--sheet) + 40px);
+}
+
+@media (max-width: 1439px) {
+  .app.has-sheet .t-label {
+    display: none;
+  }
+}

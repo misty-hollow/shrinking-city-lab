@@ -15,9 +15,17 @@ const CODE: Record<Lang, string> = { ko: 'KO', en: 'EN', vi: 'VI' }
 
 export function LangSelect({ value, onChange, focus = false }: { value: Lang; onChange(l: Lang): void; focus?: boolean }) {
   const ref = useRef<HTMLSelectElement>(null)
-  // 언어를 바꿔 새로 그린 화면: 고르기로 포커스를 돌려준다(키보드로 고른 사람이 자리를 잃지 않게)
+  // 언어를 바꿔 새로 그린 화면: 고르기로 포커스를 돌려준다(키보드로 고른 사람이 자리를 잃지 않게).
+  // 소개·튜토리얼·브리핑 카드 등은 처음 그려질 때 제목으로 포커스를 가져가므로, 그 뒤(다음 프레임)에 한 번 더 돌려받는다
   useEffect(() => {
-    if (focus) ref.current?.focus()
+    if (!focus) return
+    ref.current?.focus()
+    const id = window.requestAnimationFrame(() => ref.current?.focus())
+    const late = window.setTimeout(() => ref.current?.focus(), 120)
+    return () => {
+      window.cancelAnimationFrame(id)
+      window.clearTimeout(late)
+    }
   }, [])
   return (
     <label className="lang-select" title={`${copy.language} · ${LANG_NAMES[value]}`}>

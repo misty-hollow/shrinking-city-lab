@@ -520,7 +520,8 @@ function Game({
     const t = copy.world.preview
     const why =
       s.screen === 'tutorial' ? t.blockedTutorial : dir < 0 ? t.blockedNone : remaining(s.alloc, s.budget) <= 0 ? t.blockedEmpty : t.blockedMax
-    setLive(`${scenario.facilities[j].short}: ${why}`)
+    // 튜토리얼을 마친 뒤(하루를 옮긴 뒤)에는 다시 하라는 안내를 읽어 주지 않는다
+    if (!(s.screen === 'tutorial' && s.tutorialPlaced !== null)) setLive(`${scenario.facilities[j].short}: ${why}`)
     const key = performance.now()
     setDenied({ j, key })
     window.setTimeout(() => setDenied((d) => (d && d.key === key ? null : d)), 320)
@@ -770,6 +771,8 @@ function Game({
     const { j, dir } = pvTarget
     const ok = allowedOps(s, cfg, j)
     const allowed = dir > 0 ? ok.inc : ok.dec
+    // 튜토리얼에서 하루를 이미 옮겼으면 더 할 일이 없다: 「의당에서 하루를 빼서…」 안내를 다시 띄우지 않는다(완료와 어긋나 보였다)
+    if (!allowed && s.screen === 'tutorial' && s.tutorialPlaced !== null) return null
     let reason: 'empty' | 'max' | 'none' | 'tutorial' | null = null
     if (!allowed) {
       if (s.screen === 'tutorial') reason = 'tutorial'
@@ -909,7 +912,7 @@ function Game({
   const anchorsHidden = s.screen === 'intro' && s.introStep === 0
 
   return (
-    <div className={`app screen-${s.screen}${appreciating ? ' is-appreciating' : ''}${details && interactive ? ' has-details' : ''}`} style={{ ['--sheet' as string]: `${sheetWidthFor(width)}px` }}>
+    <div className={`app screen-${s.screen}${appreciating ? ' is-appreciating' : ''}${details && interactive ? ' has-details' : ''}${s.screen === 'debrief' && details ? ' has-sheet' : ''}`} style={{ ['--sheet' as string]: `${sheetWidthFor(width)}px` }}>
       <Stage
         ref={stage}
         data={data}
