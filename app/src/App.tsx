@@ -1,4 +1,4 @@
-import { Component, type ReactNode, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { Component, type MutableRefObject, type ReactNode, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { briefingCues, lightCues } from './audio/cues'
 import { sound } from './audio/sound'
@@ -27,11 +27,13 @@ import { buildWorld } from './stage/world'
 import {
   type FinaleView,
   type GameConfig,
+  type GameState,
   allowedOps,
   canConfirm,
   canTutorialNext,
   initialState,
   reducer,
+  resumeState,
   thresholdLocked,
 } from './state/game'
 import {
@@ -46,6 +48,7 @@ import {
 } from './state/results'
 import { feedbackKey, feedbackStale } from './ui/feedback'
 import { Hand } from './ui/Hand'
+import { LangSelect } from './ui/LangSelect'
 import { LangSwitch } from './ui/LangSwitch'
 import { ShareDialog } from './ui/ShareDialog'
 import { useReturnFocus } from './ui/focusReturn'
@@ -90,8 +93,10 @@ export function App() {
   const [data, setData] = useState<AppData | null>(null)
   const [error, setError] = useState(false)
   const [dataOpenMobile, setDataOpenMobile] = useState(false)
-  // 화면 언어(content/i18n.ts). 처음 값은 main.tsx가 정해 둔다. 바꾸면 게임 화면을 그 언어로 새로 그린다(시작 화면에서만 고른다).
+  // 화면 언어(content/i18n.ts). 처음 값은 main.tsx가 정해 둔다. 바꾸면 게임 화면을 그 언어로 새로 그린다(새 지명으로 무대를 다시 만든다).
+  // 판 도중에도 바꿀 수 있다(설계안 6-30): 새로 그린 게임은 resume에 남긴 상태(배분·결과·화면·단계)에서 이어 간다.
   const [lang, setLangState] = useState<Lang>(getLang)
+  const resume = useRef<Resume | null>(null)
   const langFocus = useRef(false)
   const changeLang = useCallback((l: Lang) => {
     setLang(l, true)
@@ -131,7 +136,7 @@ export function App() {
     )
   return (
     <CrashBoundary>
-      <Game key={lang} data={shown} width={width} height={height} lang={lang} onLang={changeLang} focusLang={langFocus.current} />
+      <Game key={lang} data={shown} width={width} height={height} lang={lang} onLang={changeLang} focusLang={langFocus.current} resume={resume} />
     </CrashBoundary>
   )
 }
@@ -177,8 +182,45 @@ function rectCenter(el: Element | null): { x: number; y: number } | null {
 
 type Op = { j: number; dir: 1 | -1 }
 
+/**
+ * 언어를 바꿔 다시 그린 첫 화면(같은 key)에 아직 머무는가. 한 번 벗어나면 그 뒤로는 늘 false.
+ * 효과가 두 번 도는 개발 모드(StrictMode)에서도 같은 값을 준다.
+ */
+function useStillResumed(resumedKey: string | null, key: string): boolean {
+  const left = useRef(false)
+  if (resumedKey === null || key !== resumedKey) left.current = true
+  return !left.current
+}
+
+/** 언어를 바꿔 게임을 새로 그릴 때 이어 가는 것: 게임 상태와 되돌리기 기록, 열려 있던 판 */
+interface Resume {
+  state: GameState
+  history: Op[]
+  details: boolean
+  keyPanel: KeyPanel
+  finaleReturn: FinaleView | null
+}
+
 /** focusLang = 언어 단추로 바꿔 새로 그린 시작 화면: 제목 대신 고른 언어 단추에 포커스(키보드로 계속 고를 수 있게) */
-function Game({ data, width, height, lang, onLang, focusLang = false }: { data: AppData; width: number; height: number; lang: Lang; onLang(l: Lang): void; focusLang?: boolean }) {
+function Game({
+  data,
+  width,
+  height,
+  lang,
+  onLang,
+  focusLang = false,
+  resume,
+}: {
+  data: AppData
+  width: number
+  height: number
+  lang: Lang
+  onLang(l: Lang): void
+  focusLang?: boolean
+  resume: MutableRefObject<Resume | null>
+}) {
+  // 언어를 바꿔 다시 그린 것이면 그 앞 상태(처음 그릴 때 한 번만 읽는다)
+  const resumed = useRef(resume.current).current
   const { scenario, landscape, manifest } = data
   const model = useMemo(() => buildModel(scenario), [scenario])
   // 디오라마 세계(집·나무·지소 터)는 한 번만 만든다. 3D 무대와 S6 지도가 같은 집 묶음을 쓴다.
@@ -195,8 +237,8 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
     [scenario, model, landscape],
   )
   const reduce = useMemo(() => reducer(cfg), [cfg])
-  const [s, dispatch] = useReducer(reduce, cfg, initialState)
-  // 언어를 바꿔 새로 그린 첫 시작 화면에서만 언어 단추로 포커스(처음으로·전시 복귀로 다시 열린 시작 화면은 제목). 자식(StartCard)의 마운트 효과가 먼저 읽는다
+  const [s, dispatch] = useReducer(reduce, cfg, (c) => (resumed ? resumeState(resumed.state) : initialState(c)))
+  // 언어를 바꿔 새로 그린 첫 화면에서만 언어 단추·고르기로 포커스(처음으로·전시 복귀로 다시 열린 시작 화면은 제목). 자식(StartCard·LangSelect)의 마운트 효과가 먼저 읽는다
   const focusLangOnce = useRef(focusLang)
   useEffect(() => {
     focusLangOnce.current = false
@@ -209,7 +251,7 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
   const [emphasis, setEmphasis] = useState<Emphasis>(null)
   const [live, setLive] = useState('')
   const [finaleHover, setFinaleHover] = useState<MissionId | null>(null)
-  const [finaleReturn, setFinaleReturn] = useState<FinaleView | null>(null)
+  const [finaleReturn, setFinaleReturn] = useState<FinaleView | null>(resumed?.finaleReturn ?? null)
   // S6 겹쳐 보기에서 판의 갈래 줄로 고른 갈래(누름 = 고정, 가리킴 = 잠깐). 지도에서 그 마을들을 청록으로 강조한다
   const [ovPick, setOvPick] = useState<number | null>(null)
   const [ovHover, setOvHover] = useState<number | null>(null)
@@ -220,19 +262,19 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
   // 세계가 먼저(설계안 6-17)
   const [preview, setPreview] = useState<(Op & { src: 'marker' | 'stage' }) | null>(null)
   const [undoHover, setUndoHover] = useState(false)
-  const [history, setHistory] = useState<Op[]>([])
+  const [history, setHistory] = useState<Op[]>(resumed?.history ?? [])
   const [running, setRunning] = useState(false)
   const [landedSeq, setLandedSeq] = useState(-1)
   const [landing, setLanding] = useState<{ j: number; key: number } | null>(null)
   const [denied, setDenied] = useState<{ j: number; key: number } | null>(null)
   const [pops, setPops] = useState<Pop[]>([])
-  const [details, setDetails] = useState(false)
+  const [details, setDetails] = useState(resumed?.details ?? false)
   /** 결과 이미지 대화상자(S6). 열려 있는 동안은 자료와 한계처럼 지도 키·Esc를 받지 않는다 */
   const [shareOpen, setShareOpen] = useState(false)
   const modalOpen = s.dataOpen || shareOpen
   const [topView, setTopView] = useState(false)
   // 왼쪽 아래 판: 읽는 법 · 조작법(설계안 6-22). ? 키로 열었으면(helpByKey) 조작법 제목으로 포커스를 옮긴다(단추로 열면 단추에 머문다)
-  const [keyPanel, setKeyPanel] = useState<KeyPanel>(null)
+  const [keyPanel, setKeyPanel] = useState<KeyPanel>(resumed?.keyPanel ?? null)
   const [helpByKey, setHelpByKey] = useState(false)
   const [phase, setPhase] = useState<'appreciate' | 'summary'>('summary')
   const [flat, setFlat] = useState(false)
@@ -499,8 +541,18 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
     setUndoHover(false)
     doOp(last.j, last.dir > 0 ? -1 : 1, false)
   }
+  // 언어를 바꿔 다시 그려도 이어 가도록 지금 상태를 App에 남긴다(그릴 때마다, 값 복사 없이 참조만)
+  useEffect(() => {
+    resume.current = { state: s, history, details, keyPanel, finaleReturn }
+  })
+  // 다시 그린 화면에 머무는 동안은 「화면에 들어올 때」 하는 정리(되돌리기 기록 비우기, 판 닫기, 감상 시점)를 하지 않는다
+  const rs = resumed?.state
+  const keepHistory = useStillResumed(rs ? `${rs.screen}|${rs.mission}` : null, `${s.screen}|${s.mission}`)
+  const keepScreen = useStillResumed(rs ? `${rs.screen}|${rs.results[rs.mission]?.attempt}` : null, `${s.screen}|${result?.attempt}`)
+
   // 되돌리기 기록은 한 판(한 미션의 배분) 안에서만
   useEffect(() => {
+    if (keepHistory) return
     setHistory([])
     setPreview(null)
     setPops([])
@@ -577,6 +629,7 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
 
   // 화면이 바뀌면: 전체 시점, 소식·표지 정리. 결산은 감상부터(움직임 줄이기면 바로 결과).
   useEffect(() => {
+    if (keepScreen) return
     if (s.screen === 'debrief' || s.screen === 'start' || s.screen === 'finale' || s.screen === 'intro') {
       stage.current?.preset('overview')
       setTopView(false)
@@ -930,6 +983,7 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
           top={topView}
           onTop={toggleTop}
           details={interactive ? { open: details, onToggle: () => setDetails(!details) } : null}
+          lang={{ value: lang, onChange: onLang, focus: focusLangOnce.current }}
         />
       )}
 
@@ -1174,6 +1228,7 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
             dispatch({ type: 'finaleFocus', m: null })
           }}
           onHome={() => dispatch({ type: 'home' })}
+          onShare={() => setShareOpen(true)}
         />
       )}
       {finaleBoard && finale && (
@@ -1247,6 +1302,7 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
                 <button type="button" className="btn btn-small" onClick={() => dispatch({ type: 'finaleFocus', m: finaleReturn ?? 'overlap' })}>
                   {copy.world.finaleBoardClose}
                 </button>
+                <LangSelect value={lang} onChange={onLang} focus={focusLangOnce.current} />
               </div>
               <FinalePanel results={finale} scenario={scenario} model={model} hover={finaleHover} focus={s.finaleFocus === 'overlap' ? null : s.finaleFocus} onHome={() => dispatch({ type: 'home' })} onData={openData} />
             </>
@@ -1264,7 +1320,7 @@ function Game({ data, width, height, lang, onLang, focusLang = false }: { data: 
         {hudEvent ? String(Math.round(hudEvent.t0 + hudEvent.plan.endMs)) : '0'}
       </span>
       <span hidden data-testid="game-state">
-        {JSON.stringify({ screen: s.screen, mission: s.mission, results: Object.fromEntries(Object.entries(s.results).map(([m, r]) => [m, { alloc: r.alloc, attempt: r.attempt, achieved: r.status.achieved }])) })}
+        {JSON.stringify({ screen: s.screen, mission: s.mission, alloc: s.alloc, T: s.T, results: Object.fromEntries(Object.entries(s.results).map(([m, r]) => [m, { alloc: r.alloc, attempt: r.attempt, achieved: r.status.achieved }])) })}
       </span>
     </div>
   )

@@ -485,7 +485,7 @@ export const vi: Copy = {
     finaleTabs: 'Chọn cách xem · xếp chồng ba phân bổ hoặc xem riêng từng nhiệm vụ',
     finaleLead: 'Ba phiên bản Gongju · cùng 15 ngày, ba mục tiêu',
     finaleBoard: 'Xem ba phân bổ cạnh nhau',
-    finaleBoardClose: 'Xem trên hòn đảo',
+    finaleBoardClose: 'Xem trên bản đồ',
     finaleTableTitle: '6 chỉ số · 15 phút đường bộ',
     overlapTab: 'Xem xếp chồng',
     overlapTabSub: 'Ba phân bổ trên một bản đồ',

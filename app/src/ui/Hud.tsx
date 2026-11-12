@@ -3,7 +3,7 @@
  * 모두 무대 위에 얹히되 가운데를 비워 둔다. 장식은 모서리 깎기 하나뿐이다.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
+import { Fragment, forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 
 import { sound } from '../audio/sound'
 import { copy } from '../content/copy'
@@ -156,13 +156,47 @@ interface KeyProps {
   focusHelp: boolean
 }
 
+/**
+ * 「·」로 이은 글에서 가운데가 갈라지면 안 되는 것만 붙여 둔다: 날짜(2026-08-31)와 짧은 조각(「W A S D」 등).
+ * 긴 말은 평소처럼 줄을 바꾼다(좁은 칸에서 넘치지 않게).
+ */
+function Parts({ text }: { text: string }) {
+  const parts = text.split(' · ')
+  const keep = (part: string, tail: string) =>
+    part.length <= 16 ? (
+      <span className="nowrap-part">{part + tail}</span>
+    ) : (
+      part.split(/(\d{4}-\d{2}-\d{2})/).map((bit, k, all) =>
+        /^\d{4}-\d{2}-\d{2}$/.test(bit) ? (
+          <span key={k} className="nowrap-part">
+            {bit + (k === all.length - 2 && all[k + 1] === '' ? tail : '')}
+          </span>
+        ) : (
+          (k === all.length - 1 ? bit + (bit === '' ? '' : tail) : bit)
+        ),
+      )
+    )
+  return (
+    <>
+      {parts.map((part, i) => (
+        <Fragment key={i}>
+          {keep(part, i < parts.length - 1 ? ' ·' : '')}
+          {i < parts.length - 1 ? ' ' : ''}
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
 function HelpRows({ rows }: { rows: readonly (readonly [string, string])[] }) {
   return (
     <dl>
       {rows.map(([k, v]) => (
         <div key={k}>
           <dt>
-            <kbd>{k}</kbd>
+            <kbd>
+              <Parts text={k} />
+            </kbd>
           </dt>
           <dd>{v}</dd>
         </div>
@@ -305,7 +339,7 @@ export function DataChip({ manifest, onData, floating }: { manifest: Manifest; o
   const d = manifest.display_dates
   return (
     <button type="button" className={`data-chip${floating ? ' is-floating' : ''}`} onClick={onData}>
-      {copy.dataChip(d.population, d.schedule, d.road_network)}
+      <Parts text={copy.dataChip(d.population, d.schedule, d.road_network)} />
     </button>
   )
 }

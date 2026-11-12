@@ -39,7 +39,7 @@ export function Hand({ left, budget, mission, done = false }: Props) {
           })}
       </div>
       <div className="hand-text">
-        <span className="hand-count num">{left <= 0 ? '×0' : copy.world.handCount(left)}</span>
+        <span className="hand-count num">{left <= 0 ? (!mission && done ? '✓' : '×0') : copy.world.handCount(left)}</span>
         <span className="hand-caption">{left <= 0 ? (mission ? copy.world.handEmpty : done ? copy.world.handTutorialDone : copy.world.handTutorialEmpty) : mission ? copy.world.handCaption : copy.world.handTutorial}</span>
       </div>
       {mission && (
