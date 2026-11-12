@@ -1049,6 +1049,7 @@ function Game({
                 T={s.T}
                 last={lastN !== null ? { n: lastN, on: s.baseline === 'last', onToggle: (on) => dispatch({ type: 'compareLast', on }) } : null}
                 previewValue={previewMission}
+                fresh={s.alloc.every((v) => v === 0)}
               />
             )}
             {/* 튜토리얼 1단계는 지도 읽기만: 6개 지표는 기준을 바꿔 보는 2단계부터 보인다(한 화면의 개념 수를 줄인다) */}
@@ -1292,7 +1293,6 @@ function Game({
                 onNext={() => dispatch({ type: 'nextMission' })}
                 onAgain={() => dispatch({ type: 'replay' })}
                 onHome={() => dispatch({ type: 'home' })}
-                showActions={false}
               />
             </>
           )}
