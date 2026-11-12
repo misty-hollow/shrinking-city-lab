@@ -165,6 +165,8 @@ export const ko = {
     notYet: (n: number) => `가능한 배분 중 상위 ${n}%`,
     remainingDays: (v: string) => `목표까지 주 ${v}일`,
     remainingPop: (v: string) => `목표까지 ${v}`,
+    /** 아직 하루도 놓지 않았을 때(모든 지소 0일): 순위·남은 거리 대신. 지표가 낮게 보이는 까닭 */
+    fromZero: '모든 지소가 0일에서 시작해요. 손의 15일을 놓아 배분을 만들어요.',
     judgedAt15: '미션 판정은 15분 기준이에요',
     confirm: '이 배분으로 확정',
     goalTag: '미션 지표',
@@ -279,7 +281,7 @@ export const ko = {
     tableView: '표로 보기',
     otherGoal: '다른 목표였다면',
     otherGoalLine: (kpi: string) =>
-      `같은 15일로 "${kpi}"을 높이면 배분이 이렇게 달라져요. 무대의 회색 탑이 그 배분이에요. 다음 미션에서 직접 해 보세요.`,
+      `같은 15일로 "${kpi}"을 높이면 배분이 이렇게 달라져요. 지도의 회색 탑이 그 배분이에요. 다음 미션에서 직접 해 보세요.`,
     ghostShow: '참고 배분 보기',
     ghostHide: '참고 배분 숨기기',
     compareTitle: (n: number) => `미션 ${n} 배분과 비교 · 둘 다 15일`,
@@ -290,8 +292,8 @@ export const ko = {
     compareBetter: '나아진 읍·면',
     compareWorse: '불리해진 읍·면',
     compareNone: '없음',
-    compareStage: (n: number) => `무대에서 미션 ${n} 배분과 비교`,
-    compareStageOff: '무대 비교 끄기',
+    compareStage: (n: number) => `지도에서 미션 ${n} 배분과 비교`,
+    compareStageOff: '지도 비교 끄기',
     limitTitle: '이 모델의 한계',
     next: '다음 미션',
     toFinale: '세 개의 공주 보기',
@@ -315,6 +317,8 @@ export const ko = {
     basis: '세 배분 모두 실제 10일 + 가정 5일 = 15일 기준 · 가상 정책실험',
     notCurrent: '지금 실제로 운영하는 주 10일과는 다른 가상 배분이에요. 비교는 모두 도로망 15분 기준이에요.',
     reference: '참고 배분',
+    /** 좁은 표 머리의 칩(화면 낭독은 reference) */
+    referenceShort: '참고',
     referenceNote: '건너뛴 미션 자리에는 그 미션 지표만 놓고 볼 때 가장 높은 배분 하나(참고 배분)를 넣었어요.',
     achieved: (n: number) => `달성 · 상위 ${n}%`,
     missed: (n: number) => `미달 · 상위 ${n}%`,
@@ -330,8 +334,8 @@ export const ko = {
     thickEmds: (list: string) => `주 3일 이상 읍·면 ${list}`,
     noneEmds: '없음',
     allocStrip: '보건지소별 진료일',
-    open: (title: string) => `${title} 배분을 무대에서 크게 보기`,
-    openHint: '눌러서 무대에서 크게 보기',
+    open: (title: string) => `${title} 배분을 지도에서 크게 보기`,
+    openHint: '눌러서 지도에서 크게 보기',
     back: '세 개로 돌아가기',
     focusTitle: (title: string) => `${title} · 주 15일 배분`,
     base: '지도 증감 기준',
@@ -514,11 +518,11 @@ export const ko = {
     finaleLead: '세 개의 공주 · 같은 15일, 세 가지 목표',
     finaleBoard: '세 배분 나란히 보기',
     /** 나란히 보기 → 같은 세계의 겹쳐 보기·미션별 보기(처음 들어와도 「돌아가기」가 아니다) */
-    finaleBoardClose: '섬 위에서 보기',
+    finaleBoardClose: '지도에서 보기',
     finaleTableTitle: '6개 지표 · 도로망 15분',
     /** S6 겹쳐 보기(설계안 6-19): 세 배분을 한 땅에. 새 판정이 아니라 「주 1일 이상 = 닿음」과 「기준 안 지소 없음」의 조합 */
     overlapTab: '겹쳐 보기',
-    overlapTabSub: '세 배분 한 땅에',
+    overlapTabSub: '세 배분을 한 지도에',
     overlapBasis: '도로망 15분 · 주 1일 이상 = 닿음. 모델로 계산한 결과예요. 실제로 진료를 이용하는지와는 달라요.',
     overlapCats: [
       { title: '세 배분 모두 닿음', sub: '불 켜진 집 · 창 불빛 = 셋 중 가장 낮은 단계' },

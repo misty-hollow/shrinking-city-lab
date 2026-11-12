@@ -271,7 +271,7 @@ describe('S6 세 개의 공주', () => {
         returnFocus={null}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: '가장 불리한 읍·면을 끌어올려라 배분을 무대에서 크게 보기' }))
+    fireEvent.click(screen.getByRole('button', { name: '가장 불리한 읍·면을 끌어올려라 배분을 지도에서 크게 보기' }))
     expect(opened).toEqual(['m2'])
   })
 })

@@ -172,7 +172,7 @@ export function reducer(cfg: GameConfig) {
     lastTChange: null,
   })
   // S6은 세 배분 나란히 보기(finaleFocus = null)부터 본다(2026-11-04 사용자 결정, 설계안 6-28 — 6-19의 「겹쳐 보기부터」를 바꿈).
-  // 겹쳐 보기와 미션별 보기는 [섬 위에서 보기]로 같은 세계에서 그대로 본다.
+  // 겹쳐 보기와 미션별 보기는 [지도에서 보기]로 같은 세계에서 그대로 본다.
   const toFinale = (s: GameState): GameState => ({
     ...s,
     screen: 'finale',

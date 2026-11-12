@@ -16,6 +16,7 @@ import type { MissionId } from '../state/results'
 import { Badge, Delta, DeltaLegend } from '../ui/common'
 import { KPI_NAME as NAME, diffText, fmtKpi as fmt } from '../ui/kpiText'
 import { Landscape } from '../ui/Landscape'
+import { ArrowIcon } from '../ui/WorldHud'
 
 /** 디브리핑 블록 7: 미션마다 다른 한계 문장(설계안 5-6 — M1=2번, M2=5번, M3=3번) */
 const LIMIT_OF: Record<MissionId, number> = { m1: 1, m2: 4, m3: 2 }
@@ -227,16 +228,15 @@ export function DebriefPanel(p: Props) {
       </section>
 
       {/* 8 버튼 */}
+      {/* 세계 위 결과 글과 같은 행동 줄(그 글은 자세히를 여는 동안 가려진다). 판 아래에 붙어 끝까지 읽은 뒤에도 바로 이어 간다 */}
       {p.showActions !== false && (
-        <div className="actions">
-          <button type="button" className="btn btn-primary" onClick={p.onNext}>
+        <div className="wr-actions sheet-actions">
+          <button type="button" className="wr-primary" onClick={p.onNext}>
             {p.next ? copy.debrief.next : copy.debrief.toFinale}
+            <ArrowIcon />
           </button>
-          <button type="button" className="btn" onClick={p.onAgain}>
+          <button type="button" className="wr-link" onClick={p.onAgain}>
             {copy.debrief.again}
-          </button>
-          <button type="button" className="btn" onClick={p.onHome}>
-            {copy.debrief.home}
           </button>
         </div>
       )}

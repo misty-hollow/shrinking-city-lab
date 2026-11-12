@@ -37,6 +37,9 @@ interface Item {
 
 /** 한글이 없는 이름(영어·베트남어 화면의 로마자 지명)은 자간을 좁히고, 판보다 길면 글자를 줄인다. 한글 이름은 그대로 그린다. */
 const LATIN_MAX_W = CW - 48
+/** 로마자 읍·면 이름 줄과 아래 미션 값 줄의 폭(한글 이름 「계룡면」이 차지하는 폭과 비슷하게 — 이웃 읍·면 글씨와 겹치지 않게) */
+const LATIN_NAME_W = 440
+const LATIN_SUB_W = 540
 
 function spacedWidth(ctx: CanvasRenderingContext2D, text: string, spacing: number): number {
   const chars = [...text]
@@ -51,6 +54,7 @@ function fitFont(ctx: CanvasRenderingContext2D, weight: number, px: number, fami
 }
 
 const hasHangul = (s: string): boolean => /[가-힣]/.test(s)
+const parts0 = (sub: string, worstTag: string | null): string => [sub, worstTag].filter(Boolean).join(' · ')
 
 function spaced(ctx: CanvasRenderingContext2D, text: string, cx: number, y: number, spacing: number): void {
   const chars = [...text]
@@ -161,16 +165,29 @@ export class EngravedLabels {
     ctx.fillStyle = city ? 'rgba(62,58,52,0.92)' : 'rgba(246,238,222,0.96)'
     ctx.font = city ? `650 64px ${DISPLAY_FONT}` : `600 104px ${DISPLAY_FONT}`
     if (city) ctx.shadowColor = 'rgba(255,255,255,0.5)'
+    const unit = !city && !hasHangul(name) ? /^(.+)-(eup|myeon)$/.exec(name) : null
     if (hasHangul(name)) spaced(ctx, name, CW / 2, city ? 136 : 118, city ? 8 : 30)
-    else {
+    else if (unit) {
+      // 로마자 읍·면 이름(영어·베트남어): 지도 글씨처럼 이름은 크게, 단위(eup·myeon)는 그 아래 작게.
+      // 한 줄로 쓰면 한글 이름의 두 배 가까이 넓어져 이웃 이름과 겹쳤다. 폭은 한글 이름과 비슷하게 맞춘다.
+      // 아래에 미션 값·「가장 불리」 줄이 있으면 세 줄이 한 판에 들어가도록 조금 작게, 위로(베트남어 성조 기호 자리까지)
+      const third = !!(sub || worstTag)
+      fitFont(ctx, 600, third ? 78 : 86, DISPLAY_FONT, unit[1], 5, LATIN_NAME_W)
+      spaced(ctx, unit[1], CW / 2, third ? 80 : 98, 5)
+      ctx.font = `600 ${third ? 36 : 44}px ${DISPLAY_FONT}`
+      ctx.globalAlpha = 0.9
+      spaced(ctx, unit[2], CW / 2, third ? 120 : 146, third ? 10 : 12)
+      ctx.globalAlpha = 1
+    } else {
       const sp = city ? 2 : 6
       fitFont(ctx, city ? 650 : 600, city ? 58 : 92, DISPLAY_FONT, name, sp, LATIN_MAX_W)
       spaced(ctx, name, CW / 2, city ? 136 : 118, sp)
     }
     if (sub || worstTag) {
-      ctx.font = `700 52px ${uiFont()}`
-      const parts = [sub, worstTag].filter(Boolean).join(' · ')
-      if (!hasHangul(parts)) fitFont(ctx, 700, 52, uiFont(), parts, 3, LATIN_MAX_W)
+      const latin = !hasHangul(parts0(sub, worstTag))
+      ctx.font = `700 ${latin ? 46 : 52}px ${uiFont()}`
+      const parts = parts0(sub, worstTag)
+      if (latin) fitFont(ctx, 700, 46, uiFont(), parts, 3, LATIN_SUB_W)
       ctx.fillStyle = worstTag ? 'rgba(227,236,244,0.98)' : 'rgba(246,238,222,0.92)'
       spaced(ctx, parts, CW / 2, 196, 3)
       if (worstTag) {

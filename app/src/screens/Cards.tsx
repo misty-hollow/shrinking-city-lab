@@ -268,6 +268,7 @@ export function BriefingCard({ mission, targetText, scheduleDate, reducedMotion,
       <p style={{ fontSize: 16, margin: '0 0 14px' }}>{c.goal(targetText)}</p>
       <div className="block" style={{ marginBottom: 12 }}>
         <div className="block-title">{copy.briefing.resource}</div>
+        <p className="brief-fresh">{copy.briefing.fresh}</p>
         <div key={mission} className={`pool-cells${animate ? ' pool-anim' : ''}`} aria-hidden="true">
           {Array.from({ length: 15 }, (_, k) => (
             <i
@@ -283,7 +284,6 @@ export function BriefingCard({ mission, targetText, scheduleDate, reducedMotion,
         </div>
         <p style={{ margin: '6px 0 0' }}>{copy.briefing.assumption}</p>
       </div>
-      <p className="small">{copy.briefing.fresh}</p>
       <p className="small">{copy.briefing.judged}</p>
       {mission !== 'm1' && <p className="small">{copy.briefing.kept}</p>}
       <div className="actions">

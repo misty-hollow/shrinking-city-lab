@@ -2213,8 +2213,8 @@ input {
 }
 
 .finale-table thead .finale-chip {
-  display: inline-block;
-  margin-top: 4px;
+  display: table;
+  margin: 4px 0 0 auto;
 }
 
 .finale-total {
@@ -2765,8 +2765,58 @@ input {
   white-space: normal;
 }
 
-:root:not(:lang(ko)) .finale-table tbody th {
-  width: 28%;
+/* 세 미션 열은 같은 폭(열마다 폭이 달라 미션 1 칸만 좁게 줄이 갈라졌다). 행 이름 칸은 두 줄까지 */
+:root:not(:lang(ko)) .finale-table {
+  table-layout: fixed;
+}
+
+:root:not(:lang(ko)) .finale-table thead th:first-child {
+  width: 27%;
+}
+
+:root:not(:lang(ko)) .finale-table td {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* 가장 불리한 읍·면 칸: 이름 한 줄, 값 한 줄(「Jeongan- / myeon 2,2」처럼 이름 가운데서 갈라지지 않게) */
+:root:not(:lang(ko)) .finale-table .fin-emd {
+  display: block;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+/* 좁은 판(1440 미만, 폭 440·400): 글을 한 단계 작게, 행 이름 칸은 조금 좁게(값이 「3,2 / ngày/tuần」으로 갈라지지 않게).
+   그래도 긴 이름(Jeongan-myeon)은 칸보다 넓을 수 있어 옆 칸으로 넘치지 않게 붙임표 뒤에서만 줄을 바꾼다 */
+@media (max-width: 1439px) {
+  :root:not(:lang(ko)) .finale-table {
+    font-size: 12px;
+  }
+
+  :root:not(:lang(ko)) .finale-table thead th:first-child {
+    width: 25%;
+  }
+
+  :root:not(:lang(ko)) .finale-table .fin-emd {
+    white-space: normal;
+    font-size: 11.5px;
+  }
+}
+
+/* 가장 좁은 판(1280 미만, 폭 400): 값 칸에 조금 더 자리를 주고, 목표 칸의 굵기를 한 단계 낮춘다(테두리가 목표를 말한다) */
+@media (max-width: 1279px) {
+  :root:not(:lang(ko)) .finale-table thead th:first-child {
+    width: 23%;
+  }
+
+  :root:not(:lang(ko)) .finale-table td {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
+  :root:not(:lang(ko)) .finale-table td.is-goal {
+    font-weight: 650;
+  }
 }
 
 /* 세 열 표 머리의 「Reference allocation」 칩은 좁은 열에서 줄을 바꾼다 */

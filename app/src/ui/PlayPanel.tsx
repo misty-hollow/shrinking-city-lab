@@ -409,6 +409,8 @@ interface MissionCardProps {
   last?: { n: number; on: boolean; onToggle(on: boolean): void } | null
   /** 가리키는 조작을 하면 바뀔 미션 값(점선 태그로 hero 아래에) */
   previewValue?: string | null
+  /** 아직 하루도 놓지 않았다(모든 지소 0일) — 순위 대신 시작점을 말한다 */
+  fresh?: boolean
 }
 
 /** hero 숫자: `주 1.2일` → 단위는 작게, 숫자는 크게(한 덩어리로 끊지 않는다) */
@@ -467,7 +469,9 @@ export function MissionCard(p: MissionCardProps) {
       {p.missionId === 'm3' && <ThicknessBar k={p.k15} total={p.scenario.totals.pop} target={status.target} />}
       <div className="small num flag-status">
         <span>
-          {status.achieved
+          {p.fresh
+            ? copy.missionCard.fromZero
+            : status.achieved
             ? copy.missionCard.achieved(status.topPercent)
             : `${isPop ? copy.missionCard.remainingPop(people(status.remaining)) : copy.missionCard.remainingDays(days1(status.remaining))} · ${copy.missionCard.notYet(status.topPercent)}`}
         </span>

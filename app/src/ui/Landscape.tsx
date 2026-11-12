@@ -99,9 +99,10 @@ export function Landscape({ combo, mine, current, scenario, others = [] }: Props
             stroke={INK}
             strokeWidth="2"
           />
+          {/* 이름은 점의 왼쪽 같은 높이에: 위에 두면 「내 배분」 이름(별 위)과 만난다(긴 영어·베트남어에서 겹쳤다) */}
           <text
-            x={sx(current.mean) - 9}
-            y={sy(current.worst) - 10}
+            x={sx(current.mean) - 11}
+            y={sy(current.worst) + 3.5}
             fontSize="10"
             fill={INK}
             fontWeight="600"

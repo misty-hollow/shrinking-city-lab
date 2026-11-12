@@ -292,7 +292,7 @@ function KpiCell({ k, kpi, scenario }: { k: MissionResult['k15']; kpi: (typeof K
   if (kpi === 'worstEmdDays')
     return (
       <>
-        <span className="nowrap">{scenario.emds[k.worstEmd].name}</span> <span className="nowrap">{weekDays(k.worstEmdDays)}</span>
+        <span className="nowrap fin-emd">{scenario.emds[k.worstEmd].name}</span> <span className="nowrap">{weekDays(k.worstEmdDays)}</span>
       </>
     )
   if (kpi === 'gapDays') return <span className="nowrap">{weekDays(k.gapDays)}</span>
@@ -319,10 +319,17 @@ export function FinalePanel(p: PanelProps) {
     <tr>
       <th scope="col" />
       {p.results.map((r) => (
-        <th key={r.mission} scope="col" className={col(r.mission)}>
+        // 머리는 미션 번호만(지도 보기의 표와 같다). 미션 이름은 바로 옆 카드 머리에 크게 있고, 목표는 표의 테두리 칸이 말한다.
+        // 좁은 세 열에 이름까지 넣으면 어느 언어에서나 3~4줄로 쌓였다. 이름은 화면 낭독과 가리킴 글로 남긴다
+        <th key={r.mission} scope="col" className={col(r.mission)} title={copy.missions[r.mission].name}>
           {copy.finale.col(missionNumber(r.mission))}
-          <div className="small">{copy.missions[r.mission].name}</div>
-          {r.source === 'reference' && <div className="finale-chip is-reference">{copy.finale.reference}</div>}
+          <span className="sr-only"> · {copy.missions[r.mission].name}</span>
+          {r.source === 'reference' && (
+            <div className="finale-chip is-reference" title={copy.finale.reference}>
+              {copy.finale.referenceShort}
+              <span className="sr-only"> ({copy.finale.reference})</span>
+            </div>
+          )}
         </th>
       ))}
     </tr>

@@ -2714,7 +2714,7 @@ body {
   line-height: 1.25;
 }
 
-/* S6 섬 위에서 보기의 표: 판 폭(480)을 넘기지 않고 칸 안에서 줄을 바꾼다 */
+/* S6 지도에서 보기의 표: 판 폭(480)을 넘기지 않고 칸 안에서 줄을 바꾼다 */
 :root:not(:lang(ko)) .wf-kpis th,
 :root:not(:lang(ko)) .wf-kpis td {
   white-space: normal;
@@ -2958,4 +2958,36 @@ body {
   .app.has-details .t-label {
     display: none;
   }
+}
+
+/* 브리핑: 「모든 지소를 0일로 비우고 15일을 처음부터 나눠요」는 각주가 아니라 15일 설명의 한 줄(설계안 6-31) */
+.brief-fresh {
+  margin: 2px 0 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+/* 결과 자세히 판 끝: 세계 위 결과 글과 같은 행동 줄(다음 · 배분 수정하기). 판 아래에 붙어 읽는 동안에도 보인다 */
+.panel .sheet-actions {
+  position: sticky;
+  bottom: -32px;
+  z-index: 2;
+  margin: 28px -24px -32px;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--sheet-bg);
+}
+
+/* 결과 자세히의 배분 지형도 범례: 글이 두 줄로 길어져도 표식(○·◇·★)은 제 크기로(베트남어에서 ○이 눌려 「C」처럼 보였다) */
+.landscape-legend svg {
+  flex: none;
+}
+
+.landscape-legend span {
+  align-items: flex-start;
+}
+
+.landscape-legend span svg {
+  margin-top: 1px;
 }

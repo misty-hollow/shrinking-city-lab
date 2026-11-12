@@ -286,10 +286,10 @@ const BANNED = ['최적', '최선', '추천', '정답', '가장 좋은 배분', 
 /** S6 세 개의 공주: 세 결과 · 15일 분해 · 금지어 없음 · hover · 크게 보기(키보드) · 돌아오기 */
 async function finaleChecks(page, tag, full, allocs) {
   await page.waitForSelector('#s6-title')
-  // 첫 화면 = 세 배분 나란히 보기(2026-11-04 사용자 결정, 설계안 6-28). 겹쳐 보기·미션별 보기는 [섬 위에서 보기]로 간다
+  // 첫 화면 = 세 배분 나란히 보기(2026-11-04 사용자 결정, 설계안 6-28). 겹쳐 보기·미션별 보기는 [지도에서 보기]로 간다
   await page.waitForSelector('.finale-board')
   check((await page.locator('.finale-col').count()) === 3 && (await page.getByRole('tab').count()) === 0, `${tag} S6: 첫 화면은 세 배분 나란히 보기(지도 세 장)`)
-  await page.getByRole('button', { name: '섬 위에서 보기' }).click()
+  await page.getByRole('button', { name: '지도에서 보기' }).click()
   await page.waitForSelector('.wf-tabs')
   await page.waitForTimeout(600)
   await windowCheck(page, `${tag} S6 세계`)
@@ -376,7 +376,7 @@ async function finaleChecks(page, tag, full, allocs) {
     await page.locator('.panel').evaluate((el) => el.scrollTo(0, 0))
   }
   // 크게 보기(키보드) → 같은 세계의 그 미션 탭 + 증감 기준
-  await page.getByRole('button', { name: '가장 불리한 읍·면을 끌어올려라 배분을 무대에서 크게 보기' }).focus()
+  await page.getByRole('button', { name: '가장 불리한 읍·면을 끌어올려라 배분을 지도에서 크게 보기' }).focus()
   await page.keyboard.press('Enter')
   await page.waitForSelector('.wf-top')
   const top = await page.locator('.wf-top').innerText()
@@ -393,7 +393,7 @@ async function finaleChecks(page, tag, full, allocs) {
   check(focused === 'finale-open-m2', `${tag} S6: 나란히 보기로 돌아오면 그 열로 포커스`, focused)
   await page.keyboard.press('Escape')
   await page.waitForSelector('.wf-top')
-  check((await page.locator('.finale-board').count()) === 0, `${tag} S6: Esc로 섬 위 보기로`)
+  check((await page.locator('.finale-board').count()) === 0, `${tag} S6: Esc로 지도 보기로`)
   await page.getByRole('button', { name: '세 배분 나란히 보기' }).click()
   await page.locator('.finale-col').nth(2).click()
   await page.waitForSelector('.wf-top')
@@ -495,8 +495,8 @@ async function missionRound(page, tag, full, m) {
   if (m === 'm2') check(deb.includes('참고 배분 · 두꺼운 서비스형') && deb.includes('민간 의원, 다른 시군의 시설은 모델에 없어요'), `${tag} S5 M2: 다른 목표(M3 참고)·한계 5번`)
   else check(!deb.includes('다른 목표였다면') && deb.includes('진료일은 게임용 단위예요'), `${tag} S5 M3: 다른 목표 없음·한계 3번`)
   check(await page.getByRole('radio', { name: '10분' }).isDisabled(), `${tag} S5 M${n}: 결과 화면에서 기준 스위치 잠김`)
-  await page.getByRole('button', { name: `무대에서 미션 ${n - 1} 배분과 비교` }).click()
-  check((await page.getByRole('button', { name: '무대 비교 끄기' }).count()) === 1 && (await page.getByRole('button', { name: '참고 배분 보기' }).count()) === (m === 'm2' ? 1 : 0), `${tag} S5 M${n}: 무대 비교 켬(참고 탑은 꺼짐)`)
+  await page.getByRole('button', { name: `지도에서 미션 ${n - 1} 배분과 비교` }).click()
+  check((await page.getByRole('button', { name: '지도 비교 끄기' }).count()) === 1 && (await page.getByRole('button', { name: '참고 배분 보기' }).count()) === (m === 'm2' ? 1 : 0), `${tag} S5 M${n}: 지도 비교 켬(참고 탑은 꺼짐)`)
   if (full) {
     await shot(page, `${tag}-s5-m${n}-debrief`)
     await page.locator('.compare-block').scrollIntoViewIfNeeded()
@@ -964,7 +964,7 @@ async function extras() {
 
 // --- 언어(한국어 · English · Tiếng Việt)와 결과 이미지 ---------------------------------------------------
 // 영어·베트남어로 한 판: 시작 화면의 언어 단추로 바꾸고 → 소개 → 튜토리얼(기준 바꾸기·하루 옮기기) → 미션 1(키보드로 목표 경계 배분)
-// → 결산(세계 위 결과 글·결과 자세히) → 미션 2·3 건너뛰기 → S6 나란히 보기 → 결과 이미지(미리보기·PNG 내려받기·Esc) → 섬 위에서 보기
+// → 결산(세계 위 결과 글·결과 자세히) → 미션 2·3 건너뛰기 → S6 나란히 보기 → 결과 이미지(미리보기·PNG 내려받기·Esc) → 지도에서 보기
 // → 자료와 한계 → 처음으로. 화면마다: 한글이 남지 않았는지(언어 단추와 출처 원문 이름 빼고), 판 밖으로 넘친 글·잘린 글, DOM 기하.
 // 표기: 영어 40,204 people · 베트남어 40.204 người(소수점 쉼표). 고른 언어는 새로고침 뒤에도 남고, 한국어로 돌아올 수 있다.
 
@@ -1284,7 +1284,7 @@ async function langRun(lang, width, height, full) {
   await page.keyboard.press('Escape')
   check((await page.locator('.share-page').count()) === 0 && (await page.locator('.finale-board').count()) === 1, `${tag} 결과 이미지: Esc는 대화상자만 닫는다(나란히 보기 그대로)`)
   check(await shareBtn.evaluate((b) => b === document.activeElement), `${tag} 결과 이미지: 닫으면 연 단추로 포커스`)
-  // 섬 위에서 보기(겹쳐 보기 → 미션 1)
+  // 지도에서 보기(겹쳐 보기 → 미션 1)
   await page.getByRole('button', { name: L.island }).click()
   await page.waitForSelector('.wf-tabs')
   await page.waitForTimeout(700)
