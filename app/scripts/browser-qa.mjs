@@ -972,7 +972,7 @@ const LANG = {
   en: {
     name: 'English', title: 'Days Within Reach', start: 'Start', next: 'Next', startMission: 'Start mission', begin: 'Start placing days',
     confirm: 'Confirm this allocation', skipMission: 'Skip this mission', nextMission: 'Next mission',
-    details: 'Result details · allocation landscape', detailsClose: 'Close result details', island: 'View on the island',
+    details: 'Result details · allocation landscape', detailsClose: 'Close result details', island: 'View on the map',
     share: 'Save results as an image', data: 'Data & limits', home: 'Back to start', pop: '40,204 people',
     remove: 'Remove a clinic day from Uidang', add: 'Add a clinic day to Sinpung', min10: '10 min', min15: '15 min',
     verdict: /Goal (met|not met)/, file: /^days-within-reach_results_\d{4}-\d{2}-\d{2}_Group_4\.png$/, group: 'Group 4',
@@ -981,7 +981,7 @@ const LANG = {
   vi: {
     name: 'Tiếng Việt', title: 'Ngày khám trong tầm với', start: 'Bắt đầu', next: 'Tiếp', startMission: 'Bắt đầu nhiệm vụ', begin: 'Bắt đầu chia',
     confirm: 'Chốt phân bổ này', skipMission: 'Bỏ qua nhiệm vụ này', nextMission: 'Nhiệm vụ tiếp theo',
-    details: 'Chi tiết kết quả · biểu đồ các phân bổ', detailsClose: 'Đóng chi tiết kết quả', island: 'Xem trên hòn đảo',
+    details: 'Chi tiết kết quả · biểu đồ các phân bổ', detailsClose: 'Đóng chi tiết kết quả', island: 'Xem trên bản đồ',
     share: 'Lưu kết quả thành ảnh', data: 'Dữ liệu và giới hạn', home: 'Về màn hình đầu', pop: '40.204 người',
     remove: 'Bớt một ngày khám ở Uidang', add: 'Thêm một ngày khám cho Sinpung', min10: '10 phút', min15: '15 phút',
     verdict: /(Đạt|Chưa đạt) mục tiêu/, file: /^ngay-kham-trong-tam-voi_ket-qua_\d{4}-\d{2}-\d{2}_Nhóm_4\.png$/, group: 'Nhóm 4',
@@ -994,7 +994,7 @@ async function noHangul(page, label, dataPage = false) {
   const left = await page.evaluate((dp) => {
     const H = /[가-힣]/
     const strip = (t) => (dp ? t.replace(/「[^」]*」/g, '').replace(/\([^()]*[가-힣][^()]*\)/g, '') : t)
-    const skip = (el) => !!el.closest('.lang-switch, [hidden]')
+    const skip = (el) => !!el.closest('.lang-switch, .lang-select, [hidden]')
     const out = []
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
     while (w.nextNode()) {
@@ -1097,6 +1097,37 @@ async function langScreen(page, label, opts = {}) {
   if (opts.geometry !== false) await layoutGeometry(page, label, check, { overview: !!opts.overview })
 }
 
+/**
+ * 판 도중 언어 바꾸기(설계안 6-30): 그 자리의 언어 고르기로 다른 언어로 갔다가 돌아와도 화면·배분·결과·되돌리기가 그대로인지.
+ * where = 고르기가 있는 곳(오른쪽 위 도구 또는 S6 나란히 보기 머리), ready = 다시 그린 뒤 나타나야 할 요소
+ */
+async function midSwitch(page, tag, lang, where, ready, what) {
+  const state = () => page.evaluate(() => document.querySelector('[data-testid="game-state"]')?.textContent ?? '')
+  const before = await state()
+  const undoBefore = await page.locator('.round-btn[aria-keyshortcuts]').count() > 0 ? await page.locator('.round-btn[aria-keyshortcuts]').getAttribute('aria-disabled') : 'none'
+  const sel = page.locator(`${where} .lang-select select`)
+  check((await sel.count()) === 1, `${tag} ${what}: 언어 고르기가 있음`)
+  await sel.selectOption('ko')
+  await page.waitForFunction(() => document.documentElement.lang === 'ko', null, { timeout: 15000 })
+  await page.waitForSelector(ready)
+  await page.waitForTimeout(600)
+  const ko = await state()
+  const focused = await page.evaluate((w) => document.activeElement === document.querySelector(`${w} .lang-select select`), where)
+  check(ko === before, `${tag} ${what}: 한국어로 바꿔도 화면·배분·결과 그대로`, ko === before ? '' : `${before.slice(0, 120)} → ${ko.slice(0, 120)}`)
+  check(focused, `${tag} ${what}: 다시 그린 뒤 포커스는 언어 고르기에`)
+  check((await page.locator('canvas').count()) === 1, `${tag} ${what}: 무대 하나(다시 그림)`)
+  await page.locator(`${where} .lang-select select`).selectOption(lang)
+  await page.waitForFunction((l) => document.documentElement.lang === l, lang, { timeout: 15000 })
+  await page.waitForSelector(ready)
+  await page.waitForTimeout(600)
+  const back = await state()
+  check(back === before, `${tag} ${what}: 돌아와도 그대로`)
+  if (undoBefore !== 'none') {
+    const undoAfter = await page.locator('.round-btn[aria-keyshortcuts]').getAttribute('aria-disabled')
+    check(undoAfter === undoBefore, `${tag} ${what}: 되돌리기 기록 유지`, `${undoBefore} → ${undoAfter}`)
+  }
+}
+
 async function langRun(lang, width, height, full) {
   const L = LANG[lang]
   const browser = await chromium.launch({ channel: CHANNEL, headless: true, args: ['--use-angle=d3d11', '--enable-webgl'] })
@@ -1186,6 +1217,7 @@ async function langRun(lang, width, height, full) {
   await page.waitForSelector('.mission-card')
   await page.waitForTimeout(250)
   await setAlloc(page, new Array(10).fill(0), boundary('boundary_m1_at'))
+  if (full) await midSwitch(page, tag, lang, '.corner-tools', '.mission-card', 'S4 판 도중 언어 바꾸기')
   await page.mouse.move(8, height / 2)
   await panelTop(page)
   await shot(page, `${pre}-s4-play`)
@@ -1225,6 +1257,7 @@ async function langRun(lang, width, height, full) {
   await page.waitForSelector('.finale-board')
   await page.waitForTimeout(900)
   check((await page.locator('.finale-col').count()) === 3, `${tag} S6: 세 배분 나란히`)
+  if (full) await midSwitch(page, tag, lang, '.sheet-head', '.finale-board', 'S6 나란히 보기에서 언어 바꾸기')
   await shot(page, `${pre}-s6-three`)
   await langScreen(page, `${tag} S6 나란히`, { geometry: false })
   await page.locator('.panel').evaluate((el) => el.scrollTo(0, el.scrollHeight))

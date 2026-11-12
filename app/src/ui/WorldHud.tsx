@@ -8,7 +8,9 @@ import { useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
 import type { Threshold } from '../engine/kpi'
+import type { Lang } from '../content/i18n'
 import { SoundToggle } from './Hud'
+import { LangSelect } from './LangSelect'
 
 const THRESHOLDS: Threshold[] = [10, 15, 20]
 
@@ -130,6 +132,8 @@ interface ToolsProps {
   top: boolean
   onTop(): void
   details?: { open: boolean; onToggle(): void } | null
+  /** 판 도중의 언어 고르기(설계안 6-30). 소리 단추 옆 — 시작 화면에서 언어를 고른 자리와 같은 모서리 */
+  lang?: { value: Lang; onChange(l: Lang): void; focus: boolean }
 }
 
 export function CornerTools(p: ToolsProps) {
@@ -140,6 +144,7 @@ export function CornerTools(p: ToolsProps) {
         {p.undo && <RoundButton icon="undo" label={copy.world.undo} kbd="Ctrl Z" busy={!p.undo.enabled} onClick={p.undo.onUndo} onHover={p.undo.onHover} />}
         <RoundButton icon="top" label={copy.world.topOn} tip={p.top ? copy.world.topOff : copy.world.topOn} pressed={p.top} onClick={p.onTop} />
         {p.details && <RoundButton icon="list" label={copy.world.details} tip={p.details.open ? copy.world.detailsClose : copy.world.details} expanded={p.details.open} onClick={p.details.onToggle} />}
+        {p.lang && <LangSelect value={p.lang.value} onChange={p.lang.onChange} focus={p.lang.focus} />}
         <SoundToggle />
       </div>
     </div>

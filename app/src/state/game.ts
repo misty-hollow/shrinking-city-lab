@@ -117,6 +117,14 @@ export function initialState(cfg: Pick<GameConfig, 'current'>): GameState {
   }
 }
 
+/**
+ * 화면 언어를 바꿔 게임 화면을 새로 그릴 때 이어 가는 상태(설계안 6-30). 배분·결과·화면·단계는 그대로 두고,
+ * 방금 한 조작의 빛·소리·알림이 다시 재생되지 않게 직전 조작 기록만 비운다. 자료와 한계 판은 닫는다.
+ */
+export function resumeState(prev: GameState): GameState {
+  return { ...prev, alloc: [...prev.alloc], lastOp: null, lastTChange: null, dataOpen: false }
+}
+
 /** 이 상태에서 지소 j의 +/−가 가능한가. 화면의 버튼 활성화와 리듀서가 같은 규칙을 쓴다. */
 export function allowedOps(s: GameState, cfg: Pick<GameConfig, 'tutorialFrom'>, j: number): { inc: boolean; dec: boolean } {
   if (s.screen === 'tutorial') {

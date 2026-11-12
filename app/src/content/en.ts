@@ -491,7 +491,7 @@ export const en: Copy = {
     finaleTabs: 'Choose a view · overlay and each mission’s allocation',
     finaleLead: 'Three Gongjus · the same 15 days, three goals',
     finaleBoard: 'Side by side',
-    finaleBoardClose: 'View on the island',
+    finaleBoardClose: 'View on the map',
     finaleTableTitle: 'Six metrics · 15 min by road',
     overlapTab: 'Overlay',
     overlapTabSub: 'All three on one map',

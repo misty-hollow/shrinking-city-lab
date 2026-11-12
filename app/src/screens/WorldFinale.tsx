@@ -45,6 +45,8 @@ interface Props {
   onBase(b: FinaleBase): void
   onBoard(): void
   onHome(): void
+  /** 결과 이미지 대화상자(나란히 보기의 단추와 같은 것). 마지막 「처음으로」 옆에도 둔다 */
+  onShare?(): void
 }
 
 export function WorldFinale(p: Props) {
@@ -279,6 +281,11 @@ export function WorldFinale(p: Props) {
             </span>
           ))}
         </p>
+        {p.onShare && (
+          <button type="button" className="wr-link wf-share" onClick={p.onShare}>
+            {copy.share.open}
+          </button>
+        )}
         <div className="wf-actions">
           {/* 겹쳐 보기에서는 왼쪽 판에 같은 링크가 있다(같은 이름의 버튼을 두 번 두지 않는다). 자리는 남겨 보기를 바꿔도 이 줄의 폭이 같다 */}
           <button

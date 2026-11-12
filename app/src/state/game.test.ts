@@ -10,7 +10,7 @@ import { copy } from '../content/copy'
 import type { Landscape, Scenario } from '../data/types'
 import { remaining, total } from '../engine/allocation'
 import { buildModel } from '../engine/kpi'
-import { type Action, type GameConfig, type GameState, allowedOps, canConfirm, canTutorialNext, initialState, reducer } from './game'
+import { type Action, type GameConfig, type GameState, allowedOps, canConfirm, canTutorialNext, initialState, reducer, resumeState } from './game'
 import { MISSIONS, finaleResults, judge, makeEvaluate } from './results'
 
 const dataDir = resolve(__dirname, '../../public/data')
@@ -346,5 +346,26 @@ describe('튜토리얼 2단계는 마지막으로 눌러 본 기준을 따른다
     expect(copy.tutorial.step2Changed(15, '24,846명', 20, '34,146명')).toBe(
       '배분은 그대로인데 주 1일 이상 닿는 주민이 15분 기준 24,846명에서 20분 기준 34,146명으로 바뀌었어요. 몇 분을 기준으로 삼을지도 하나의 선택이에요.',
     )
+  })
+})
+
+describe('resumeState (판 도중 언어 바꾸기, 설계안 6-30)', () => {
+  it('화면·배분·결과·기준은 그대로, 직전 조작 기록과 자료 판만 비운다', () => {
+    const prev: GameState = {
+      ...initialState({ current: [1, 2, 0, 0, 0, 0, 0, 0, 0, 0] }),
+      screen: 'play',
+      mission: 'm2',
+      T: 20,
+      alloc: [3, 2, 1, 0, 0, 0, 0, 0, 0, 0],
+      baseline: 'last',
+      dataOpen: true,
+      lastOp: { j: 0, before: [2, 2, 1, 0, 0, 0, 0, 0, 0, 0], seq: 7 },
+      lastTChange: { from: 15, seq: 6 },
+      seq: 7,
+    }
+    const next = resumeState(prev)
+    expect(next).toEqual({ ...prev, lastOp: null, lastTChange: null, dataOpen: false })
+    // 배분은 복사본(앞 상태를 고쳐도 이어 간 상태가 바뀌지 않게)
+    expect(next.alloc).not.toBe(prev.alloc)
   })
 })
