@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef } from 'react'
 
 import { copy } from '../content/copy'
 import type { Lang } from '../content/i18n'
+import { getLang } from '../content/lang'
 import type { Manifest, Scenario } from '../data/types'
 import { allocDays, allocShort, dec, people, weekDaysPattern } from '../engine/format'
 import type { MissionId } from '../state/results'
@@ -98,7 +99,8 @@ export function IntroCard({ step, scenario, manifest, onNext, onSkip }: IntroPro
     .map((f, j) => ({ f, v: scenario.current_allocation[j] }))
     .filter((x) => x.v > 0)
     .sort((a, b) => b.v - a.v)
-  const list = open.map((x, k) => `${x.f.short} ${k === 0 ? allocDays(x.v) : allocShort(x.v)}`).join(', ')
+  // 베트남어는 소수점이 쉼표라(0,5) 목록은 「; 」로 나눈다
+  const list = open.map((x, k) => `${x.f.short} ${k === 0 ? allocDays(x.v) : allocShort(x.v)}`).join(getLang() === 'vi' ? '; ' : ', ')
   return (
     <section className="corner-card" aria-label={copy.stage.intro}>
       <div className="steps" aria-hidden="true">

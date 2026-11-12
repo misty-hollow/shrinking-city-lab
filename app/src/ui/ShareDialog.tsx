@@ -78,10 +78,13 @@ export function ShareDialog({ input, onClose }: { input: Input; onClose(): void 
             }
           }
         } catch {
-          // 그리기·PNG 만들기가 실패하면 「만들고 있어요」에 멈추지 않고 안내한다
+          // 그리기·PNG 만들기가 실패하면 「만들고 있어요」에 멈추지 않고 안내한다.
+          // 앞서 만든 이미지(이름을 고치기 전)는 이미 놓아 주었으니 저장·복사도 막는다
           if (alive) {
+            blob.current = null
+            setUrl(null)
             setBusy(false)
-            say(copy.share.failed)
+            say(copy.share.renderFailed)
           }
         }
       },
