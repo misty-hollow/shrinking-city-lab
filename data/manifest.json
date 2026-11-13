@@ -1,11 +1,11 @@
 {
  "product": "Shrinking City Lab",
  "scenario": "진료일을 나누다 — 공주 보건지소 편",
- "data_version": "scl01-gongju-r2",
- "data_version_date": "2026-09-24",
+ "data_version": "scl01-gongju-r3",
+ "data_version_date": "2026-11-13",
  "reproducibility": {
   "pipeline_version": "0.1.0",
-  "code_sha256": "f139cd8f269b6b83ec0a352fbb580135ddd3fc4699d461e585efef757c974ccf",
+  "code_sha256": "da7a254a42883442effebc612ca3f6cd9e9f83819643db2166676cb6dd9dce88",
   "inputs": {
    "population_tongban": "d16c49b42c000d312a0bf81e6b84a704acba9eb7986bea76ecee633cc254b8e8",
    "population_households_age": "953bbe8e6684e2d95cf07bd9520e2ac1e95322d3d9e41f3696d75e0c7173a8b1",
@@ -22,17 +22,17 @@
    "derived": {
     "boundaries.json": "8a6da26f58ddac5b0a1e6a45172343181abebb7689fafc4f144d618cefaf729f",
     "osm_features.json": "b720d625b3d524d362670e0fa83588b09ee6afa24a58d78061ad9755ecfe0247",
-    "osrm_car_routes.json": "f16a4fe63843f7e6d0c212c5347cea6d11da75f781edbeb9f64cb53dd1ff376f",
-    "osrm_car_table.json": "d2d66b576654737bf8ea6138adbd01f5a8c96c6888b30e90c494195b86f458a8",
+    "osrm_car_routes.json": "c0d6526ac44282c028eb621ceda150da551f32f32d8d03bca5a7e91ab84bfb08",
+    "osrm_car_table.json": "5be79b9041890b06bbba1b7f319844c1ad1a99b0896c55dd3395819cd3741476",
     "source_facts.json": "01eb4375025ac9ca09e0eb080f86b67d60a12634d57972c62937616904b7762d",
     "terrain.json": "161439e146d1835559a811b3864b275a48607260e088eab1b4810455c739e61e"
    }
   },
   "outputs": {
-   "scenario.json": "36a2a7335fe673d36e429d71f57cc122d7998529c8eee9eb8f1db88c1e93b2cf",
-   "geometry.json": "f3030fa085ba31ae6248ba63e16221a3384f0eddc4874fd5a01246fbf4bb3aa4",
-   "landscape.json": "3d231bc90c029da7513ac9c42c9c58462b5cf8868174153db883d65248b8b635",
-   "golden.json": "36ac23e825d41047678f9946067cbcd46cff8626857762565ce3c3df0cb8096b",
+   "scenario.json": "e9be168dbf2293a61789487d09fb3e7960a110e21fa9142b3ab521512503ee89",
+   "geometry.json": "86388f38ecbe682f8e4899193a14dd4c368d8a81641c6303d1a05f8f346110dd",
+   "landscape.json": "8476e3b24c9a97fda7571fc8658097ced86a84e93cc55904f2706bc63884c95d",
+   "golden.json": "92168cd36dc25cad84dab1229deafae684a0bb2ec2aee4f4e693ed06a0ad6951",
    "terrain.bin": "a7d4b09fa5b373dcdb9d920b59d59725110d6cf46e1aecbd5430cf47843ddf62"
   },
   "regenerate": "README.md 「데이터 재생성」의 명령(pipeline/에서 python -m scl_pipeline). 같은 입력이면 같은 바이트가 나온다(verify가 대조)."
@@ -324,11 +324,11 @@
  ],
  "experiment_comparison": "pipeline/reports/experiment_comparison.json",
  "access_points": {
-  "rule_version": "access-v1",
-  "rule": "OSRM /nearest?exclude=motorway 후보(최대 100개, 거리순) 중 OSM way가 highway=motorway|motorway_link, motorroad=yes, expressway=yes, tunnel(no·building_passage 외)이 아니고, 도로망 본체에 이어져 지소 10곳에 모두 닿으며, 고속도로 없이도 한 곳 이상 닿는 가장 가까운 구간. 그 구간을 hint로 고정해 /table을 부른다. 경로 계산에는 exclude를 쓰지 않는다(접근점 이후 고속도로 이용 허용).",
-  "reason": "r1(=2026-09 반증 실험)은 OSRM 기본 스냅을 그대로 써서 일부 법정리 대표점이 고속도로 본선·램프·터널 구간에서 출발했다(마을에서 직접 들어갈 수 없는 구간). r2는 접근점 고르기와 경로 계산을 나눈다",
-  "changed_villages": 9,
-  "changed_villages_pop": 1873,
+  "rule_version": "access-v1.1",
+  "rule": "OSRM /nearest?exclude=motorway 후보(최대 100개, 거리순) 중 OSM way가 highway=motorway|motorway_link, motorroad=yes, expressway=yes, tunnel(no·building_passage 외)이 아니고, 도로망 본체에 이어져 지소 10곳에 모두 닿으며, 고속도로 없이도 한 곳 이상 닿는 가장 가까운 구간. 그 구간을 hint로 고정해 /table을 부른다. 경로 계산에는 exclude를 쓰지 않는다(접근점 이후 고속도로 이용 허용). 단, 가장 가까운 도로가 OSM의 연결 누락으로 마을 도로와 끊겨 있다는 근거를 확인한 점은 pipeline/sources/access_overrides.json이 정한 OSM way 위의 후보만 쓴다(나머지 조건은 같다).",
+  "reason": "r1(=2026-09 반증 실험)은 OSRM 기본 스냅을 그대로 써서 일부 법정리 대표점이 고속도로 본선·램프·터널 구간에서 출발했다(마을에서 직접 들어갈 수 없는 구간). r2는 접근점 고르기와 경로 계산을 나눈다. r3(access-v1.1)은 OSM 연결 누락으로 먼 우회를 만들던 대표점 1곳(이인면 신흥리)에 근거를 적은 예외를 더했다",
+  "changed_villages": 10,
+  "changed_villages_pop": 2014,
   "changed_facilities": 1,
   "villages": [
    {
@@ -347,6 +347,23 @@
      "name": "금계산로"
     },
     "pop": 256
+   },
+   {
+    "id": "iin-04",
+    "default": {
+     "dist_m": 106.5,
+     "osm_way": "w1333351726",
+     "highway": "residential",
+     "name": "",
+     "tags_flag": null
+    },
+    "access": {
+     "dist_m": 164.2,
+     "osm_way": "w1281876017",
+     "highway": "residential",
+     "name": ""
+    },
+    "pop": 141
    },
    {
     "id": "banpo-07",
@@ -532,6 +549,18 @@
     {
      "id": "jeongan-05",
      "skipped_candidates": 39
+    }
+   ]
+  },
+  {
+   "id": "access_override",
+   "detail": "가장 가까운 일반 도로가 OSM에서 마을 도로와 끊겨(연결 누락) 실제로는 없는 먼 우회를 계산하던 대표점은, 항공사진·OSM 도로 연결로 근거를 확인한 뒤 마을 도로에서 출발하게 했다",
+   "file": "pipeline/sources/access_overrides.json",
+   "points": [
+    {
+     "id": "iin-04",
+     "skipped_way": "w1333351726",
+     "osm_way": "w1281876017"
     }
    ]
   }
