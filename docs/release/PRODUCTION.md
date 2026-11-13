@@ -1,6 +1,6 @@
 # Production 운영 (geoleobom.kr)
 
-기준일: 2026-11-06(최초 2026-09-29). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
+기준일: 2026-11-13(최초 2026-09-29). 이 문서는 **지금 공개 중인 사이트가 어디서 어떻게 서빙되는지, 새 릴리스와 되돌리기를 어떻게 하는지**를 적습니다.
 공개 전 준비 기록은 `RELEASE_READINESS.md`에 있습니다(그 6절의 VPS 배포는 전환 기간에만 썼습니다).
 
 ## 1. 구조
@@ -62,19 +62,20 @@ git revert --no-edit HEAD && git push origin HEAD:gh-pages
 
 | 항목 | 값 |
 |---|---|
-| 앱 커밋(main) | `5d034dabf7e4b3233d0237d62b97734d471c31ac` (main CI success). PR #62 판 도중 언어 바꾸기·UX 다듬기 + PR #63 UX 다듬기 2차 + PR #64 최종 검토 반영(Codex GPT-6-Astra 독립 검토). 사용자 요청(2026-11-12, 검토에서 문제가 없으면 배포) |
-| `gh-pages` 커밋 | `a634688` (2026-11-13, `aa9d7c9` 위 fast-forward) |
-| 직전 릴리스(되돌리기 대상) | 앱 `dc1302e` = `gh-pages` `aa9d7c9`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
-| 주 자산 | `assets/index-BnMnUM2R.js` |
-| 자료 판본 | `scl01-gongju-r2` (앱 자료 6개 = `pipeline/data.lock.json`, 직전 릴리스와 바이트 동일). `dc1302e` 대비 `app/public/data`·`pipeline` 변경 없음 |
-| 공개 | 2026-11-13 Pages build `built`. 도메인·HTTPS 설정 변경 없음 |
-| 공개 뒤 확인 | `aa9d7c9` 대비 바뀐 파일은 `index.html`·`404.html`·주 JS·CSS뿐(자료·글꼴·라이선스·`CNAME`·`.nojekyll` 바이트 동일). `404.html` = `index.html`. `build_release.sh` 안의 테스트 통과. 공개 전 로컬에서 같은 `dist`를 뿌리 경로로 띄워 smoke 실패 0 · 브라우저 QA 1334 PASS / 0 FAIL. 공개 뒤 smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404), 주 자산 `index-BnMnUM2R.js`. 실제 사이트 브라우저 QA(`QA_BASE_URL=https://geoleobom.kr/?kiosk=0`, Edge 157) **1334 PASS / 0 FAIL**(개발 서버 전용 검사 90개는 빠짐). 실제 사이트에서 판 도중 언어 바꾸기 조작 (임시 스크립트, 1280 한↔영): 소개·튜토리얼·브리핑·미션 시작·결과·결과 자세히·S6 보드·S6 지도 9곳 모두 상태 같음·포커스 언어 고르기, 결과 이미지는 바꾼 언어, 콘솔 오류 0 |
+| 앱 커밋(main) | `780e29ed2f394ea569b70146f58f4a023dd2e507` (main CI success). PR #66 데이터 판본 r3 — 이인면 신흥리 OSM 연결 누락을 접근점 예외(access-v1.1)로 고침. 사용자 승인(2026-11-13) |
+| `gh-pages` 커밋 | `a764a8a` (2026-11-13, `a634688` 위 fast-forward) |
+| 직전 릴리스(되돌리기 대상) | 앱 `5d034da` = `gh-pages` `a634688`. 3절 `git revert HEAD`가 이것으로 돌아갑니다 |
+| 주 자산 | `assets/index-BnMnUM2R.js` (직전 릴리스와 같음, 앱 코드 변경 없음) |
+| 자료 판본 | `scl01-gongju-r3` (앱 자료 = `pipeline/data.lock.json`). `a634688` 대비 바뀐 파일은 `data/` 5개(`scenario`·`geometry`·`golden`·`landscape`·`manifest`)뿐 |
+| 공개 | 2026-11-13 Pages build `built`(commit `a764a8a`). 도메인·HTTPS 설정 변경 없음 |
+| 공개 뒤 확인 | `build_release.sh` 안의 테스트 통과. 공개 전 로컬에서 같은 `dist`를 뿌리 경로로 띄워 smoke 실패 0 · 브라우저 QA 1334 PASS / 0 FAIL. 공개 뒤 smoke 실패 0, 깊은 주소 = 앱 HTML(상태 404), `data/scenario.json`의 `data_version` = `scl01-gongju-r3`. 실제 사이트 브라우저 QA(`QA_BASE_URL=https://geoleobom.kr/?kiosk=0`, Edge 157, playwright-core 1.63.0) **1334 PASS / 0 FAIL**(개발 서버 전용 검사 90개는 빠짐). 실제 사이트에서 핵심 수치 확인(headless Edge, 세 미션 건너뛰기 → S6, 콘솔 오류 0): 미션 목표 주 2.8일 · 주 1.0일 · **24,900명**, 참고 배분 닿지 않는 마을 72곳·14,851명 / **8곳·865명** / 21곳·5,541명, 미션 3 주 3일 이상 **34,663명**, 평균 주 3.2 · 2.6 · 2.8일 |
 
 이전 릴리스 기록:
 
 | 날짜 | 앱 커밋 | `gh-pages` | 메모 |
 |---|---|---|---|
-| 2026-11-13 | `5d034da` | `a634688` | 위 표 |
+| 2026-11-13 | `780e29e` | `a764a8a` | 위 표 |
+| 2026-11-13 | `5d034da` | `a634688` | PR #62~#64 판 도중 언어 바꾸기·UX 다듬기. 주 자산 `index-BnMnUM2R.js`, smoke 실패 0, 실제 사이트 QA 1334/0 |
 | 2026-11-12 | `dc1302e` | `aa9d7c9` | 결과 이미지 · 한국어·English·Tiếng Việt 첫 공개(PR #58·#60). 주 자산 `index-z9kgEDtF.js`, smoke 실패 0, 실제 사이트 QA 1312/0 |
 | 2026-11-06 | `d2f349f` | `3605b42` | PR #55 화면 문구 다듬기. 주 자산 `index-Cz-Yg3e1.js`, smoke 실패 0, 실제 사이트 QA 714/0 |
 | 2026-11-04 | `1b1d924` | `ed04aed` | 디자인·UX 점검 1차(PR #49) · S6 나란히 보기 · 시내 회색(PR #50). 주 자산 `index-7tSEh0zE.js`, smoke 실패 0, 실제 사이트 QA 714/0 |
