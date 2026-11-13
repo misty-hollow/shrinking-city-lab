@@ -1,7 +1,7 @@
 /**
  * 미션 판정 경계(설계안 3-4, 7-7). 경계 배분은 파이썬 전처리가 B=15·T=15 전수 831,204개에서 고른 것이다
  * (golden.json boundary_*: 목표 미만 중 가장 높은 배분 / 목표 이상 중 가장 낮은 배분). 브라우저 판정이 그 경계를
- * 정확히 가르는지, 화면 기준(10·20분)이 판정을 바꾸지 않는지, r2 데이터만 쓰는지 본다.
+ * 정확히 가르는지, 화면 기준(10·20분)이 판정을 바꾸지 않는지, r3 데이터만 쓰는지 본다.
  */
 
 import { readFileSync } from 'node:fs'
@@ -34,11 +34,11 @@ function boundary(m: string, side: 'below' | 'at', t: number) {
   return c
 }
 
-describe('mission targets (r2)', () => {
-  it('are the r2 values from the full enumeration', () => {
+describe('mission targets (r3)', () => {
+  it('are the r3 values from the full enumeration', () => {
     expect(landscape.missions.m1.target).toBe(2.8)
     expect(landscape.missions.m2.target).toBe(1.0)
-    expect(landscape.missions.m3.target).toBe(24800)
+    expect(landscape.missions.m3.target).toBe(24900)
     for (const m of MISSIONS) {
       const d = landscape.missions[m]
       expect(d.budget).toBe(15)
@@ -112,24 +112,24 @@ describe('near-miss display', () => {
     expect(missionDays(1, 1)).toBe('주 1.0일')
     expect(missionDays(0.84, 1)).toBe('주 0.8일')
     const m3 = judge(model, landscape, 'm3', boundary('m3', 'below', 15).x)
-    expect(m3.status.remaining).toBe(24800 - boundary('m3', 'below', 15).kpis.cov3_pop)
+    expect(m3.status.remaining).toBe(24900 - boundary('m3', 'below', 15).kpis.cov3_pop)
   })
 })
 
 describe('no r1 data', () => {
-  it('scenario, manifest and landscape are r2 (접근점 규칙 access-v1)', () => {
-    expect(scenario.data_version).toBe('scl01-gongju-r2')
-    expect(manifest.data_version).toBe('scl01-gongju-r2')
+  it('scenario, manifest and landscape are r3 (접근점 규칙 access-v1.1)', () => {
+    expect(scenario.data_version).toBe('scl01-gongju-r3')
+    expect(manifest.data_version).toBe('scl01-gongju-r3')
   })
 
-  it('the mission references evaluate to their r2 values on the app matrix, not on the r1 matrix', () => {
+  it('the mission references evaluate to their r3 values on the app matrix, not on the r1 matrix', () => {
     const r = JSON.parse(readFileSync(resolve(dataDir, '../../../pipeline/reports/r1_to_r2.json'), 'utf-8')) as {
       matrix: { r1_tenths: number[][] }
     }
     const r1 = buildModel({ ...scenario, matrix: { ...scenario.matrix, tenths: r.matrix.r1_tenths } })
     let changed = 0
     for (let i = 0; i < model.nV; i++) for (let j = 0; j < model.nF; j++) if (model.tenths[i * model.nF + j] !== r1.tenths[i * r1.nF + j]) changed++
-    expect(changed).toBe(222)
+    expect(changed).toBe(231) // r1→r2 222칸 + r3 신흥리 행 9칸(이인면 신흥리, 접근점 예외)
     for (const m of MISSIONS) {
       const ref = landscape.missions[m].reference
       expect(computeKpis(model, ref.x, 15).worstEmdDays).toBe(ref.worst_emd_days)

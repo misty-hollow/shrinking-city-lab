@@ -24,8 +24,10 @@ LOCK_PATH: Final = PIPELINE_DIR / "data.lock.json"
 
 # 데이터 판본. 입력·규칙이 바뀌면 올린다. 생성 시각 대신 이 값과 해시로 재현성을 말한다
 # (같은 입력이면 같은 바이트가 나와야 하므로 산출물에 실행 시각을 넣지 않는다).
-DATA_VERSION: Final = "scl01-gongju-r2"
-DATA_VERSION_DATE: Final = "2026-09-24"
+DATA_VERSION: Final = "scl01-gongju-r3"
+DATA_VERSION_DATE: Final = "2026-11-13"
+# 접근점 예외(access-v1.1): OSM 연결 누락이 근거로 확인된 대표점만, 출발할 OSM way를 정한다.
+ACCESS_OVERRIDES: Final = SOURCES_DIR / "access_overrides.json"
 PIPELINE_VERSION: Final = "0.1.0"
 
 # 읍·면 10곳. 순서가 곧 앱의 읍·면 순서다(설계안 4-1).

@@ -58,12 +58,12 @@ describe('engine matches pipeline golden values', () => {
 })
 
 describe('known allocations reproduced from generated data', () => {
-  it('current actual (주 10일) at 15분 — r2 (접근점 규칙 access-v1)', () => {
+  it('current actual (주 10일) at 15분 — r3 (접근점 규칙 access-v1.1)', () => {
     const k = computeKpis(model, scenario.current_allocation, 15)
-    expect(scenario.data_version).toBe('scl01-gongju-r2')
+    expect(scenario.data_version).toBe('scl01-gongju-r3')
     expect(scenario.current_allocation.reduce((a, b) => a + b, 0)).toBe(10)
     expect(k.meanDays.toFixed(2)).toBe('2.08')
-    expect(((k.cov1Pop / model.totalPop) * 100).toFixed(2)).toBe('61.80')
+    expect(((k.cov1Pop / model.totalPop) * 100).toFixed(2)).toBe('62.15')
     expect(((k.cov3Pop / model.totalPop) * 100).toFixed(2)).toBe('22.43')
     expect(k.worstEmdDays).toBe(0)
     expect(scenario.emds[k.worstEmd].name).toBe('반포면')
@@ -89,7 +89,7 @@ describe('known allocations reproduced from generated data', () => {
     const k20 = computeKpis(model, scenario.current_allocation, 20)
     expect(k10.cov1Pop).toBeLessThan(k20.cov1Pop)
     expect(k10.meanDays.toFixed(2)).toBe('1.32')
-    expect(k20.meanDays.toFixed(2)).toBe('3.17')
+    expect(k20.meanDays.toFixed(2)).toBe('3.18')
   })
 
   it('every village and facility carries access-point metadata, none on motorways', () => {
@@ -267,7 +267,7 @@ describe('어느 배분으로도 닿지 않는 마을(구조적 미도달)', () 
     const [a, b, c] = T.map((t) => unreachableVillages(model, t))
     expect(new Set([...b].filter((i) => !a.includes(i)))).toEqual(new Set())
     expect(new Set([...c].filter((i) => !b.includes(i)))).toEqual(new Set())
-    // 현재 판본(r2)에서는 기준마다 실제로 다르다
+    // 현재 판본(r3)에서는 기준마다 실제로 다르다(20분은 0곳)
     expect(a.length).toBeGreaterThan(b.length)
     expect(b.length).toBeGreaterThan(c.length)
   })

@@ -543,6 +543,23 @@ def known_issues(inp: dict[str, Any]) -> list[dict[str, Any]]:
                 "points": frag,
             }
         )
+    ov = inp["table"]["provenance"].get("access_overrides") or {}
+    if ov.get("ids"):
+        rows = {o["id"]: o for o in read_json(config.ACCESS_OVERRIDES)["overrides"]}
+        out.append(
+            {
+                "id": "access_override",
+                "detail": (
+                    "가장 가까운 일반 도로가 OSM에서 마을 도로와 끊겨(연결 누락) 실제로는 없는 먼 우회를 계산하던 "
+                    "대표점은, 항공사진·OSM 도로 연결로 근거를 확인한 뒤 마을 도로에서 출발하게 했다"
+                ),
+                "file": ov["file"],
+                "points": [
+                    {"id": i, "skipped_way": rows[i]["skipped_way"], "osm_way": rows[i]["osm_way"]}
+                    for i in ov["ids"]
+                ],
+            }
+        )
     return out
 
 
@@ -575,7 +592,8 @@ def access_summary(inp: dict[str, Any]) -> dict[str, Any]:
         "rule": prov["access_rule"],
         "reason": (
             "r1(=2026-09 반증 실험)은 OSRM 기본 스냅을 그대로 써서 일부 법정리 대표점이 고속도로 본선·램프·"
-            "터널 구간에서 출발했다(마을에서 직접 들어갈 수 없는 구간). r2는 접근점 고르기와 경로 계산을 나눈다"
+            "터널 구간에서 출발했다(마을에서 직접 들어갈 수 없는 구간). r2는 접근점 고르기와 경로 계산을 나눈다. "
+            "r3(access-v1.1)은 OSM 연결 누락으로 먼 우회를 만들던 대표점 1곳(이인면 신흥리)에 근거를 적은 예외를 더했다"
         ),
         "changed_villages": len(src),
         "changed_villages_pop": sum(r["pop"] for r in src),

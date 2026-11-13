@@ -2,7 +2,7 @@
 
 오프라인에서 한 번만 돈다(설계안 10-5: "런타임 OSRM은 없다").
   osrm-extract -p /opt/car.lua → osrm-partition → osrm-customize (MLD)
-  osrm-routed를 127.0.0.1의 임시 포트에 잠깐 띄워 접근점을 고르고(access.py, access-v1)
+  osrm-routed를 127.0.0.1의 임시 포트에 잠깐 띄워 접근점을 고르고(access.py, access-v1.1)
   /table 한 번 → 컨테이너 정지
 
 걸어봄의 foot 그래프·개발 컨테이너(geoleobom-osrm-dev, 5000)와 파일·포트·이름을 공유하지 않는다.
@@ -148,8 +148,17 @@ def _table(
     return res
 
 
-def select_access(root: str, pts: list[tuple[float, float]], ns: int) -> tuple[list[access.Candidate], dict]:
-    """접근점 선택(access-v1). 반환: 점마다 고른 후보, 진단 기록."""
+def select_access(
+    root: str,
+    pts: list[tuple[float, float]],
+    ns: int,
+    ids: list[str],
+    overrides: dict[str, access.Override],
+) -> tuple[list[access.Candidate], dict]:
+    """접근점 선택(access-v1.1). 반환: 점마다 고른 후보, 진단 기록."""
+    unknown = set(overrides) - set(ids)
+    if unknown:
+        raise SystemExit(f"접근점 예외의 id가 수요점·지소에 없다: {sorted(unknown)}")
     cands: list[list[access.Candidate]] = []
     for lon, lat in pts:
         r = _get(f"{root}/nearest/v1/driving/{lon},{lat}?number={access.NEAREST_N}&exclude=motorway")
@@ -214,7 +223,7 @@ def select_access(root: str, pts: list[tuple[float, float]], ns: int) -> tuple[l
         failed_ways: set[str] = set()
         while True:
             c = cands[i][pos[i]]
-            why = c.reject
+            why = c.reject or access.override_rejection(c, overrides.get(ids[i]))
             if why is None and c.ways and c.ways[0].id in failed_ways:
                 why = "같은 way의 앞 후보가 도로망 본체와 떨어짐"
             if why is None:
@@ -251,9 +260,11 @@ def run() -> dict[str, Any]:
     build_graph()
     build_way_index_source()
     pts = [(v.lon, v.lat) for v in villages] + [(f.lon, f.lat) for f in facilities]
+    ids = [v.id for v in villages] + [f.id for f in facilities]
     ns = len(villages)
+    overrides = access.load_overrides(config.ACCESS_OVERRIDES)
     with osrm_server() as root:
-        chosen, diag = select_access(root, pts, ns)
+        chosen, diag = select_access(root, pts, ns, ids, overrides)
         res = _table(root, pts, ns, [c.hint for c in chosen])
         # 확인용: 같은 접근점에서 고속도로를 빼고 잰 표. 정상 표가 더 짧은 칸 = 고속도로를 실제로 쓴 경로.
         nomw = _table(root, pts, ns, [c.hint for c in chosen], exclude="motorway")["durations"]
@@ -290,6 +301,11 @@ def run() -> dict[str, Any]:
             "way_index": "같은 bbox 추출본의 highway way(osmium tags-filter w/highway, cat -f opl)",
             "access_rule_version": access.ACCESS_RULE_VERSION,
             "access_rule": access.ACCESS_RULE,
+            "access_overrides": {
+                "file": "pipeline/sources/access_overrides.json",
+                "sha256": sha256_file(config.ACCESS_OVERRIDES),
+                "ids": sorted(overrides),
+            },
             "call": (
                 "GET /table/v1/driving sources=161 법정리 접근점 destinations=10 보건지소 접근점 "
                 "hints=접근점 구간 annotations=duration (exclude 없음)"
