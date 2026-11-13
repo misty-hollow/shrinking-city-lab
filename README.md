@@ -114,7 +114,7 @@ node scripts/perf-probe.mjs      # PERF_PROFILES=gpu PERF_HEADED=1 이면 실제
 CI는 `.github/workflows/ci.yml`의 세 job이 PR·main push에서 돈다(데이터 재생성 단계·OSRM은 돌지 않는다): repository(바뀐 줄 공백 · Git 이력 전체 gitleaks · 배포 스크립트 구문),
 pipeline(ruff · pytest · verify), app(npm ci · build · vitest · 뿌리 기준 빌드 정적 smoke).
 
-## 데이터 재생성 (판본 `scl01-gongju-r2`)
+## 데이터 재생성 (판본 `scl01-gongju-r3`)
 
 ```
 cd pipeline
@@ -124,10 +124,10 @@ cd pipeline
 #  boundaries 읍·면 10 + 시내 경계 → derived/boundaries.json
 #  osm        docker osmium: 충청권 추출본에서 반증 실험과 같은 bbox(126.55,36.15,127.55,36.85)
 #             → place 점·도로·하천·지소 보정 객체 → derived/osm_features.json
-#  route      docker OSRM v5.27.1 stock car.lua(MLD)를 127.0.0.1:5071에 잠깐 띄워 접근점(access-v1)을 고르고
+#  route      docker OSRM v5.27.1 stock car.lua(MLD)를 127.0.0.1:5071에 잠깐 띄워 접근점(access-v1.1)을 고르고
 #             /table 161×10 → derived/osrm_car_table.json
 #             같은 입력으로 만든 그래프가 있으면(cache/osrm_car/graph.stamp.json) 다시 만들지 않는다
-#  routes     같은 OSRM car 그래프·접근점으로 도로망 20분 안 쌍(469개)의 최단경로 폴리라인 → derived/osrm_car_routes.json
+#  routes     같은 OSRM car 그래프·접근점으로 도로망 20분 안 쌍(471개)의 최단경로 폴리라인 → derived/osrm_car_routes.json
 #             (화면의 관계 읽기에 실제 도로 경로를 그리기 위한 형상. 계산은 여전히 행렬)
 #  terrain    DEM → app/public/data/terrain.bin
 #  build      앱 JSON + manifest + 골든 값(현재·참고 배분 3·임의 5·미션 경계 6) + 전수 계산(B=10·15 × T=10·15·20) → data.lock.json
@@ -152,7 +152,7 @@ OSRM 그래프 파일 자체는 만들 때마다 다르다(`osrm-partition`이 �
 이름·절대경로·시각을 넣지 않는다. 각 파생 파일의 `provenance.step_code_sha256`은 그 단계 코드의 해시이고, `verify`가
 지금 코드와 대조한다. 단계 코드를 고쳤으면 그 단계를 다시 돌려야 한다.
 
-### 도로망 접근점 규칙 access-v1 (r2)
+### 도로망 접근점 규칙 access-v1 (r2) · access-v1.1 (r3)
 
 수요점은 마을의 대표 위치이지 차량 GPS가 아니다. r1(= 2026-09 반증 실험)은 OSRM 기본 스냅을 그대로 써서
 고속도로 본선·램프 7곳, 전용구간 표시(`expressway=yes`)·터널 구간 2곳, 보건지소 1곳이 그 위에서 출발·도착했다.
@@ -161,6 +161,13 @@ r2는 **접근점 고르기**(`/nearest?exclude=motorway` 후보 중 `motorroad/
 `/table`, exclude 없음 → 고속도로 이용 가능)을 나눈다. 대표점 좌표는 그대로다. 규칙은 `scl_pipeline/access.py`,
 점마다 원본 좌표·기본 스냅·접근점·OSM way·highway·거절된 후보는 `derived/osrm_car_table.json`,
 요약은 `manifest.access_points`, r1과의 차이는 `pipeline/reports/r1_to_r2.json`.
+
+**access-v1.1 (r3, 2026-11-13).** 가장 가까운 도로가 OSM의 연결 누락으로 마을 도로와 끊겨 실제로는 없는 먼 우회를
+계산하게 만드는 점은, 근거를 `pipeline/sources/access_overrides.json`에 적고 그 파일이 정한 OSM way 위의 후보만 쓴다(나머지
+조건은 같다). 지금은 이인면 신흥리 1곳이다: access-v1이 고른 숲길(w1333351726)의 마을 쪽 끝이 어떤 도로와도 이어지지 않아
+1.7 km를 돌아 나가는 경로(이인보건지소 20.9분)로 계산됐다. OSM 연결과 항공사진으로 마을 도로(w1281876017)와 이어진 길임을
+확인했고, 그 마을 도로에서 출발한다(이인 6.5분·탄천 14.2분). 지도 서비스의 이동시간은 판단 근거로 쓰지 않았다.
+`verify`가 예외 파일이 route 단계 때와 같은지, 예외 점이 정한 way에서 출발하는지 대조한다.
 
 ## 데이터 의미와 출처 (자세한 값은 `app/public/data/manifest.json`)
 
@@ -171,7 +178,7 @@ r2는 **접근점 고르기**(`/nearest?exclude=motorway` 후보 중 `motorroad/
 | 보건지소 10곳 | 실제 자료 | HIRA 2026.6 좌표, 공식 주소와 다른 유구·정안은 OSM 객체 |
 | 현재 진료일(합 주 10일) | 실제 자료 | 공주시보건소 순회근무 현황 2026-04-13, ○=1일·격주=0.5일. 이용조건은 별도 확인 필요(`DATA_LICENSE.md` 2절) |
 | 도로망 | 실제 자료 | OSM(최신 객체 2026-09-10T14:58:34Z) |
-| 161×10 도로망 접근시간 | 계산값 | OSRM car, 접근점 access-v1, 혼잡·대기 없음. 초 → 0.1분 **올림** 정수 |
+| 161×10 도로망 접근시간 | 계산값 | OSRM car, 접근점 access-v1.1, 혼잡·대기 없음. 초 → 0.1분 **올림** 정수 |
 | 수요점 | 계산값 | 법정리 이름과 같은 OSM 마을 점 중 읍·면 중심에 가장 가까운 것 |
 | 읍·면 경계 | 실제 자료 | 통계청 SGIS(공공누리 1유형) 가공 admdongkor(CC BY 4.0), 2026-07-01 |
 | 지형 | 실제 자료 | SRTM 1″(퍼블릭 도메인), 시각 표현 전용 |
@@ -204,6 +211,9 @@ r2는 **접근점 고르기**(`/nearest?exclude=motorway` 후보 중 `motorroad/
 - 유구 신영리·의당 가산리·정안 북계리: 가장 가까운 일반 도로가 OSM에서 도로망 본체와 이어지지 않은 조각이라 다음으로
   가까운 이어진 도로에서 출발한다(가산리·북계리는 r1에서도 OSRM이 같은 이유로 다른 도로로 넘어갔다. 신영리는 r1에서
   고속도로에 붙었고, 고속도로가 아닌 가장 가까운 도로들이 이 조각이었다).
+- 이인 신흥리: 가장 가까운 도로가 OSM에서 마을 쪽 끝이 끊긴 숲길이라, 근거를 적은 예외로 마을 도로에서 출발한다(r3, 위 access-v1.1).
+  2026-11-13 카카오맵 표본 대조(10쌍)에서 드러났다. 같은 유형을 출구가 긴 상위 20개 마을에서 찾았고 신흥리 말고는 없었다.
+  나머지 마을은 좌표까지 전수 점검하지 않았다.
 - 그래픽 기준 기기는 개발·녹화용 데스크톱(Ryzen 5 9600X · RX 9070 · 32GB)이고, 삼각형·드로우·텍스처의 고정 상한은 없다(설계안 6-23, 2026-10-18).
   이 PC(Edge)에서 1080p 한 장면 GPU 약 0.5 ms, 39 드로우·약 50만 삼각형, 첫 조작 가능 약 1초(CPU 4배 느리게 2.7초, 소프트웨어 GL 2.1초). 가장 무거운 장면은 계속 그리는 S0 회전 무대이고,
   아주 약한 GPU에서의 병목은 화소가 아니라 형상이다. 느린 GPU에서는 적응 화질(픽셀 비율 → 나무 절반)이 먼저 내려간다

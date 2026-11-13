@@ -55,8 +55,8 @@ describe('S6 overlap categories', () => {
     // 시안(2026-10-15 사용자 첨부): 미션 1 = 유구 5 · 계룡 3 · 의당 2 · 우성 5, 미션 2·3 = 참고 배분
     const m1 = [5, 0, 0, 3, 0, 2, 0, 5, 0, 0]
     const o = check([computeKpis(model, m1, T), computeKpis(model, ref('m2'), T), computeKpis(model, ref('m3'), T)])
-    expect(o.counts.map((c) => c.villages)).toEqual([98, 54, 0, 9])
-    expect(o.counts.map((c) => c.pop)).toEqual([26988, 12210, 0, 1006])
+    expect(o.counts.map((c) => c.villages)).toEqual([98, 55, 0, 8])
+    expect(o.counts.map((c) => c.pop)).toEqual([26988, 12351, 0, 865])
   })
 
   it('handles half days and the one-day boundary like the KPI (A < 1 = not reached)', () => {

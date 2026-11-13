@@ -12,22 +12,51 @@ access-v1은 "출발·도착 접근점 고르기"와 "그 뒤의 정상 car 경�
   3. 도로망 본체에 이어진 구간만 쓴다(접근점에서 지소 10곳이 모두 닿아야 한다).
   4. 고속도로 없이도 어느 지소엔가 닿아야 한다(휴게소처럼 고속도로로만 이어진 구간 제외).
   5. 조건을 만족하는 가장 가까운 후보를 hint로 고정해 /table에 넘긴다.
+
+access-v1.1은 예외 하나를 더한다. 가장 가까운 도로가 OSM에서 마을 도로와 끊겨(연결 누락) 실제로는 없는
+먼 우회를 만드는 점은, 근거를 sources/access_overrides.json에 적고 그 파일이 정한 OSM way 위의 후보만 쓴다.
+그 way 안에서는 1~5를 그대로 따른다. 대표점 좌표와 OSM 추출본은 바꾸지 않는다.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-ACCESS_RULE_VERSION = "access-v1"
+ACCESS_RULE_VERSION = "access-v1.1"
 ACCESS_RULE = (
     "OSRM /nearest?exclude=motorway 후보(최대 100개, 거리순) 중 OSM way가 highway=motorway|motorway_link, "
     "motorroad=yes, expressway=yes, tunnel(no·building_passage 외)이 아니고, 도로망 본체에 이어져 지소 10곳에 "
     "모두 닿으며, 고속도로 없이도 한 곳 이상 닿는 가장 가까운 구간. 그 구간을 hint로 고정해 /table을 부른다. "
-    "경로 계산에는 exclude를 쓰지 않는다(접근점 이후 고속도로 이용 허용)."
+    "경로 계산에는 exclude를 쓰지 않는다(접근점 이후 고속도로 이용 허용). "
+    "단, 가장 가까운 도로가 OSM의 연결 누락으로 마을 도로와 끊겨 있다는 근거를 확인한 점은 "
+    "pipeline/sources/access_overrides.json이 정한 OSM way 위의 후보만 쓴다(나머지 조건은 같다)."
 )
+
+
+@dataclass(frozen=True)
+class Override:
+    point_id: str
+    osm_way: str
+    skipped_way: str
+
+
+def load_overrides(path: Path) -> dict[str, Override]:
+    """접근점 예외 목록(access-v1.1). id → 출발할 OSM way."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {o["id"]: Override(o["id"], o["osm_way"], o["skipped_way"]) for o in data["overrides"]}
+
+
+def override_rejection(cand: Candidate, ov: Override | None) -> str | None:
+    """예외가 정한 OSM way가 아닌 후보를 거른다. 예외가 없는 점은 늘 None."""
+    if ov is None or any(w.id == ov.osm_way for w in cand.ways):
+        return None
+    return f"접근점 예외(sources/access_overrides.json): {ov.osm_way} 위의 후보만 쓴다"
+
+
 NEAREST_N = 100
 FORBIDDEN_HIGHWAY = {"motorway", "motorway_link"}
 ALLOWED_TUNNEL = {"no", "building_passage"}

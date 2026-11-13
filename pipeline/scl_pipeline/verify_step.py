@@ -159,7 +159,7 @@ ACCESS_KEYS = ("lon", "lat", "dist_m", "osm_way", "highway")
 
 
 def access_invariants(sc: dict[str, Any], mf: dict[str, Any]) -> list[str]:
-    """접근점 규칙(access-v1) 불변식: 메타데이터 완전성, 고속도로·전용도로·터널 출발점 없음."""
+    """접근점 규칙(access-v1.1) 불변식: 메타데이터 완전성, 고속도로·전용도로·터널 출발점 없음, 예외 기록 일치."""
     errs = []
     ap = mf.get("access_points", {})
     if not ap.get("rule_version") or not ap.get("rule"):
@@ -175,6 +175,17 @@ def access_invariants(sc: dict[str, Any], mf: dict[str, Any]) -> list[str]:
     for p in table["sources"] + table["destinations"]:
         if p["access"].get("tags_flag"):
             errs.append(f"{p['id']}: 접근점 구간이 규칙에 어긋난다 ({p['access']['tags_flag']})")
+    # 접근점 예외(access-v1.1): 예외 파일이 route 단계 때와 같고, 예외 점은 정한 way에서 출발한다.
+    rec = table["provenance"].get("access_overrides") or {}
+    if rec.get("sha256") != sha256_file(config.ACCESS_OVERRIDES):
+        errs.append("sources/access_overrides.json이 route 단계 때와 다르다 — route 단계를 다시 돌려라")
+    want = access.load_overrides(config.ACCESS_OVERRIDES)
+    if sorted(want) != rec.get("ids"):
+        errs.append("접근점 예외 목록이 osrm_car_table.json의 기록과 다르다")
+    by_id = {p["id"]: p for p in table["sources"] + table["destinations"]}
+    for i, ov in want.items():
+        if i in by_id and by_id[i]["access"]["osm_way"] != ov.osm_way:
+            errs.append(f"{i}: 접근점 예외의 way({ov.osm_way})에서 출발하지 않는다")
     return errs
 
 

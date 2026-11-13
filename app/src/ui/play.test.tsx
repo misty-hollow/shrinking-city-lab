@@ -223,7 +223,7 @@ describe('mission cards 2 and 3', () => {
     render(<Card m="m3" x={bx('boundary_m3_at')} T={15} />)
     const card = document.querySelector('.mission-card')!
     expect(card.textContent).toContain('미션 3 · 두껍게 닿게')
-    expect(card.textContent).toContain('목표 24,800명')
+    expect(card.textContent).toContain('목표 24,900명')
     expect(card.textContent).toMatch(/목표 달성 · 가능한 배분 중 상위 \d+%/)
     expect(card.textContent).toContain('주 3일 이상')
     expect(card.textContent).toContain('주 1~2일')

@@ -62,9 +62,12 @@ def test_access_points_never_start_on_controlled_access_roads():
     }
     assert all(p["access_changed"] for p in pts if p["id"] in was_motorway)
     # 문제 없던 수요점의 접근점은 기본 스냅 그대로다(규칙이 정상 구간을 건드리지 않는다).
+    # 바뀌는 것은 규칙에 걸린 기본 스냅과, 근거를 적은 접근점 예외(access-v1.1)뿐이다.
     flagged = {p["id"] for p in pts if p["default_snap"]["tags_flag"]}
-    assert {p["id"] for p in pts if p["access_changed"]} == flagged
-    assert table["provenance"]["access_rule_version"] == "access-v1"
+    overrides = table["provenance"]["access_overrides"]["ids"]
+    assert overrides == ["iin-04"]
+    assert {p["id"] for p in pts if p["access_changed"]} == flagged | set(overrides)
+    assert table["provenance"]["access_rule_version"] == "access-v1.1"
     assert "exclude 없음" in table["provenance"]["call"]
     # 접근점 뒤의 경로는 고속도로를 쓴다(고속도로를 뺀 표보다 짧은 칸이 있다).
     assert table["provenance"]["motorway_used_cells"] > 100
@@ -170,37 +173,37 @@ def test_b15_front_matches_experiment(sc_r1):
     ]
 
 
-def test_r2_current_actual_and_front(sc, scenario):
-    """r2(접근점 규칙 access-v1) 값. 바뀌면 r1_to_r2 보고서와 함께 다시 검토한다."""
+def test_r3_current_actual_and_front(sc, scenario):
+    """r3(접근점 규칙 access-v1.1) 값. r2에서 바뀐 것은 이인면 신흥리 행 하나(sources/access_overrides.json)다."""
     cur = scenario["current_allocation"]
     ptot = sc.pop.sum()
     k = model.kpis(sc, cur, 15)
-    assert round(k["mean_days"], 3) == 2.075
-    assert round(k["cov1_pop"] / ptot * 100, 2) == 61.80
+    assert round(k["mean_days"], 3) == 2.084
+    assert round(k["cov1_pop"] / ptot * 100, 2) == 62.15
     assert round(k["cov3_pop"] / ptot * 100, 2) == 22.43
     assert k["worst_emd_days"] == 0.0 and k["p90_tenths"] == 222
     b = model.evaluate_all(sc, model.all_allocations(15), 15, model.p90_by_mask(sc))
-    assert len(model.coarse_front(b, int(ptot))) == 7
+    assert len(model.coarse_front(b, int(ptot))) == 8
 
 
-def test_r2_design_claims_about_missions(sc):
-    """설계안 3-5·3-6·7-2가 적는 r2 사실. 바뀌면 설계안 문장과 S6 문구를 함께 다시 검토한다."""
+def test_r3_design_claims_about_missions(sc):
+    """설계안 3-5·3-6·7-2가 적는 r3 사실. 바뀌면 설계안 문장과 S6 문구를 함께 다시 검토한다."""
     ls = read_json(DATA / "landscape.json")
     t = {m: ls["missions"][m]["target"] for m in ("m1", "m2", "m3")}
     x = model.all_allocations(15)
     b = model.evaluate_all(sc, x, 15, model.p90_by_mask(sc))
     p1, p2, p3 = b.mean_days >= t["m1"], b.worst_emd_days >= t["m2"], b.cov3_pop >= t["m3"]
     # 세 미션 목표를 모두 넘는 배분이 있다(설계안 3-5 1번)
-    assert int((p1 & p2 & p3).sum()) == 2_457
+    assert int((p1 & p2 & p3).sum()) == 2_680
     # 그래도 지표마다 그 지표를 가장 높이는 배분은 서로 다르다(S6 마지막 문장)
     tops = [set(np.flatnonzero(v == v.max()).tolist()) for v in (b.mean_days, b.worst_emd_days, b.cov3_pop)]
     assert all(not (tops[i] & tops[j]) for i in range(3) for j in range(i + 1, 3))
     # 미션 1 목표는 지소당 2일 이하로 나눈 배분으로도 넘는다(집중만이 길이 아니다, 설계안 3-6·7-2)
     spread = x.max(1) <= 2
-    assert (int(spread.sum()), int((spread & p1).sum())) == (1_452, 892)
+    assert (int(spread.sum()), int((spread & p1).sum())) == (1_452, 970)
     # 15분 안에 지소가 하나도 없는 마을: 어느 배분으로도 닿지 않는다
     unreachable = (sc.tenths > 150).all(1)
-    assert (int(unreachable.sum()), int(sc.pop[unreachable].sum())) == (9, 1_006)
+    assert (int(unreachable.sum()), int(sc.pop[unreachable].sum())) == (8, 865)
 
 
 def test_enumeration_counts():
@@ -239,7 +242,7 @@ def test_missions_follow_rule():
     m = ls["missions"]
     assert m["m1"]["target"] == 2.8
     assert m["m2"]["target"] == 1.0
-    assert m["m3"]["target"] == 24800
+    assert m["m3"]["target"] == 24900
     for v in m.values():
         assert v["share_at_or_above_target"] >= config.MISSION_TOP_SHARE
         assert sum(v["reference"]["x"]) == 15
@@ -251,7 +254,7 @@ def test_route_shapes_cover_reachable_pairs(scenario):
     routes = read_json(config.DERIVED_DIR / "osrm_car_routes.json")
     table = read_json(config.DERIVED_DIR / "osrm_car_table.json")
     assert routes["provenance"]["graph_input_sha256"] == table["provenance"]["graph_input_sha256"]
-    assert routes["provenance"]["access_rule_version"] == "access-v1"
+    assert routes["provenance"]["access_rule_version"] == "access-v1.1"
     assert verify_step.route_invariants(scenario, geo) == []
     assert geo["routes"]["threshold_min"] == 20
     assert len(geo["routes"]["pairs"]) == sum(
