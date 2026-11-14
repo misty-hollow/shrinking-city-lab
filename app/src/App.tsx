@@ -284,7 +284,8 @@ function Game({
     if (import.meta.env.DEV) (window as unknown as { __sclSound?: unknown }).__sclSound = sound
   }, [])
 
-  const kiosk = useMemo(() => new URLSearchParams(window.location.search).get('kiosk') !== '0', [])
+  // 전시 모드는 주소에 ?kiosk=1을 붙였을 때만 켠다(2026-11-14 사용자 결정). 일반 접속·수업에서는 진행이 사라지지 않는다
+  const kiosk = useMemo(() => new URLSearchParams(window.location.search).get('kiosk') === '1', [])
   const current = scenario.current_allocation
   const mission = landscape.missions[s.mission]
   const combo = comboFor(landscape, mission)
@@ -580,7 +581,7 @@ function Game({
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  // --- 전시 모드: 90초 무입력이면 처음으로(설계안 5-1, ?kiosk=0으로 끔) ---------------------
+  // --- 전시 모드(?kiosk=1): 90초 무입력이면 처음으로(설계안 5-1) -----------------------------
   useEffect(() => {
     if (!kiosk || s.screen === 'start') return
     let timer = window.setTimeout(() => dispatch({ type: 'home' }), IDLE_MS)

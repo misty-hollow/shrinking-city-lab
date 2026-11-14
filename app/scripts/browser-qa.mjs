@@ -913,11 +913,17 @@ async function extras() {
     await sp.waitForSelector('.center-card h1')
   }
   await sp.locator('.sound-toggle').click()
-  // 90초 무입력 → 처음으로(전시 모드 기본 켬). 가짜 시계로 앞당긴다.
+  // 90초 무입력 → 처음으로는 전시 모드(?kiosk=1)에서만(2026-11-14 사용자 결정). 가짜 시계로 앞당긴다.
+  const withKiosk = (v) => {
+    const u = new URL(BASE)
+    if (v === null) u.searchParams.delete('kiosk')
+    else u.searchParams.set('kiosk', v)
+    return u.toString()
+  }
   const k = await browser.newPage({ viewport: { width: 1280, height: 800 } })
   current = k
   await k.clock.install()
-  await k.goto(BASE.replace('kiosk=0', 'kiosk=1'))
+  await k.goto(withKiosk('1'))
   await k.waitForSelector('.center-card h1')
   await k.getByRole('button', { name: '시작', exact: true }).click()
   await k.waitForSelector('.corner-card')
@@ -926,6 +932,32 @@ async function extras() {
   await k.clock.fastForward(31_000)
   await k.waitForSelector('#s0-title', { timeout: 5000 }).catch(() => {})
   check((await k.locator('#s0-title').count()) === 1, '1280x800 90초 무입력: 시작 화면으로 복귀')
+  await k.close()
+  // 일반 접속(주소에 kiosk 없음)과 ?kiosk=0: 활동지를 쓰거나 결과를 읽는 동안 오래 두어도 진행이 그대로다.
+  for (const [label, v] of [['주소 그대로', null], ['?kiosk=0', '0']]) {
+    const g = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    current = g
+    await g.clock.install()
+    await g.goto(withKiosk(v))
+    await g.waitForSelector('.center-card h1')
+    await g.getByRole('button', { name: '시작', exact: true }).click()
+    await g.waitForSelector('.corner-card')
+    await g.clock.fastForward(91_000)
+    check((await g.locator('.corner-card').count()) === 1 && (await g.locator('#s0-title').count()) === 0, `1280x800 ${label} 91초 무입력: 그 화면 그대로`)
+    await g.clock.fastForward(30 * 60_000)
+    check((await g.locator('.corner-card').count()) === 1 && (await g.locator('#s0-title').count()) === 0, `1280x800 ${label} 30분 무입력: 그 화면 그대로`)
+    // 「세 개의 공주」(활동지를 적는 화면)에서도 그대로
+    await g.locator('.corner-card').getByRole('button', { name: '건너뛰기' }).click()
+    await g.locator('.corner-card').getByRole('button', { name: '건너뛰기' }).click()
+    for (let n = 0; n < 3; n++) {
+      await g.waitForSelector('#s3-title')
+      await g.locator('.center-card').getByRole('button', { name: '건너뛰기' }).click()
+    }
+    await g.waitForSelector('#s6-title')
+    await g.clock.fastForward(30 * 60_000)
+    check((await g.locator('#s6-title').count()) === 1 && (await g.locator('#s0-title').count()) === 0, `1280x800 ${label} 세 개의 공주에서 30분 무입력: 그 화면 그대로`)
+    await g.close()
+  }
   // 전시에서 미션을 모두 건너뛰어도 S6은 세 결과(참고 배분)로 채워진다(설계안 3-1, 7-5).
   const sk = await browser.newPage({ viewport: { width: 1280, height: 800 } })
   current = sk
